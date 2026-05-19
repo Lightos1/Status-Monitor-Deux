@@ -11,6 +11,25 @@ HidSixAxisSensorHandle sixaxisHandles[Controller_Max];
 
 #include "rendering_pipeline.hpp"
 
+// Using this dummy because if we go directly to RenderingPipeline, we can't get out of focus. Why? Trivago.
+class Dummy : public tsl::Gui {
+public:
+	std::string filepath;
+	Dummy(std::string path) {
+		filepath = path;
+	}
+
+	virtual tsl::elm::Element* createUI() override {
+		auto frame = new tsl::elm::OverlayFrame("", "");
+		return frame;
+	}
+
+	virtual bool handleInput(u64 keysDown, u64 keysHeld, const HidTouchState &touchPos, HidAnalogStickState joyStickPosLeft, HidAnalogStickState joyStickPosRight) override {
+		tsl::changeTo<RenderingPipeline>(filepath, true);
+		return true;
+	}
+};
+
 class MainMenu : public tsl::Gui {
 public:
     
@@ -243,7 +262,7 @@ public:
 		if (file_to_load.length() == 0)
         	return initially<MainMenu>("");
 		else {
-			return initially<RenderingPipeline>(file_to_load);
+			return initially<Dummy>(file_to_load);
 		}
     }
 };

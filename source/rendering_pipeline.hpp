@@ -3,13 +3,13 @@ int64_t COMMON_MARGIN;
 
 class RenderingPipeline : public tsl::Gui {
 private:
+	bool m_double_back = false;
 	uint64_t mappedButtons = HidNpadButton_B;
 	uint64_t leftJoyconMotionMappedButtons = MapButtons(leftJoyconMotionKeyCombo);
 	uint64_t rightJoyconMotionMappedButtons = MapButtons(rightJoyconMotionKeyCombo);
 	uint64_t proControllerMotionMappedButtons = MapButtons(proControllerMotionKeyCombo);
 	uint8_t* displayRefreshRate = 0;
 	bool UseCustomExitCombo = false;
-	bool focus = true;
 	std::string name;
 	std::string rel_filepath;
 	std::string error;
@@ -235,7 +235,8 @@ private:
 	}
 
 public:
-    RenderingPipeline(std::string filepath) {
+    RenderingPipeline(std::string filepath, bool double_back = false) {
+		m_double_back = double_back;
 		m_layer_pos_x_window  = 0;
 		m_layer_pos_y_window  = 0;
 		m_obj_offset_x_screen = 0;
@@ -245,7 +246,6 @@ public:
 			uintptr_t base = (uintptr_t)shmemGetAddr(&_sharedmemory);
 			if (base) displayRefreshRate = (uint8_t*)(base + 1);
 		}
-		tsl::hlp::requestForeground(true);
 		ApmPerformanceMode performanceMode;
 		SystemData.IsDocked = false;
 		if (R_SUCCEEDED(apmGetPerformanceMode(&performanceMode))) {
@@ -302,7 +302,7 @@ public:
 		}
 		HeaderText = doc.GetConfigBool("HeaderText", true);
 		FooterText = doc.GetConfigBool("FooterText", true);
-		focus = doc.GetConfigBool("EnableControls", true);
+		bool focus = doc.GetConfigBool("EnableControls", true);
 		tsl::hlp::requestForeground(focus);
 		UseCustomExitCombo = doc.GetConfigBool("UseCustomExitCombo", false);
 		if (FooterText == false) {
@@ -485,6 +485,7 @@ public:
 		if (error.length() != 0) {
 			if (isKeyComboPressed(keysHeld, keysDown, mappedButtons, 20'000'000)) {
 				tsl::goBack();
+				if (m_double_back == true) tsl::goBack();
 				return true;
 			}
 			return false;			
@@ -672,6 +673,7 @@ public:
 				}
 				if (isKeyComboPressed(keysHeld, keysDown, mappedButtons, UseCustomExitCombo ? 200'000'000 : 20'000'000)) {
 					tsl::goBack();
+					if (m_double_back == true) tsl::goBack();
 					return true;
 				}
 				padUpdate(&pad);
