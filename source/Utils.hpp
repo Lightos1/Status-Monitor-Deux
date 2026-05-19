@@ -130,7 +130,7 @@ PwmChannelSession g_ICon;
 std::string folderpath = "sdmc:/switch/.overlays/";
 std::string filename = "";
 std::string filepath = "";
-uint8_t batteryTimeLeftRefreshRate = 60;
+uint8_t batteryTimeLeftRefreshRate = 10;
 bool touchScreen = true;
 NxFpsSharedBlock* NxFps = 0;
 bool SaltySD = false;
@@ -1195,7 +1195,7 @@ void createDefaultFile(std::string filepath) {
 	mkdir("sdmc:/config/status-monitor-deux/", 420);
 	//setIniFile(filepath, "status-monitor-deux", "key_combo", "L+DDOWN+RSTICK", "");
 	setIniFile(filepath, "status-monitor-deux", "battery_avg_iir_filter", "false", "");
-	setIniFile(filepath, "status-monitor-deux", "battery_time_left_refreshrate", "60", "");
+	setIniFile(filepath, "status-monitor-deux", "battery_time_left_refreshrate", "10", "");
 	setIniFile(filepath, "status-monitor-deux", "font_cache", "true", "");
 	setIniFile(filepath, "status-monitor-deux", "touch_screen", "true", "");
 	setIniFile(filepath, "status-monitor-deux", "motion_control", "true", "");
