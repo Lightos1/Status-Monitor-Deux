@@ -1,4 +1,4 @@
-name: CI
+name: Sanitizer and tests
 
 on:
   push:
