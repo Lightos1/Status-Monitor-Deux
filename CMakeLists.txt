@@ -1,3 +1,4 @@
+# This CMAKE is only for local tests of smd_parser, you won't compile homebrew with it
 cmake_minimum_required(VERSION 3.16)
 project(smd_parser CXX C)
 
