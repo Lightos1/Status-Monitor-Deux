@@ -22,6 +22,10 @@
 #include <vector>
 #include <regex>
 
+template <typename T> bool isNumeric (const std::string& str, T* result) {
+    auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), *result);
+    return ec == std::errc() && ptr == str.data() + str.size();
+};
 
 /**
  * @brief Trims leading and trailing whitespaces from a string.

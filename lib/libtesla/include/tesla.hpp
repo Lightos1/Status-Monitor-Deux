@@ -79,13 +79,33 @@ extern "C" {
 #include "ini_funcs.hpp"
 
 
-bool isValidHexColor(const std::string& hexColor) {
+bool isValid888HexColor(const std::string& hexColor) {
     // Check if the string is a valid hexadecimal color of the format "#RRGGBB"
     if (hexColor.size() != 6) {
         return false; // Must be exactly 6 characters long
     }
     
     for (char c : hexColor) {
+        if (!isxdigit(c)) {
+            return false; // Must contain only hexadecimal digits (0-9, A-F, a-f)
+        }
+    }
+    
+    return true;
+}
+
+bool isValid4444HexColor(const std::string& hexColor) {
+    // Check if the string is a valid hexadecimal color of the format "#RRGGBB"
+    if (hexColor.size() != 6) {
+        return false; // Must be exactly 6 characters long
+    }
+	std::string substring = hexColor.substr(0, 2);
+	if (substring.compare("0x") != 0)
+		return false;
+	
+	substring = hexColor.substr(2, 4);
+	
+    for (char c : substring) {
         if (!isxdigit(c)) {
             return false; // Must contain only hexadecimal digits (0-9, A-F, a-f)
         }
@@ -112,6 +132,7 @@ bool isValidHexColor(const std::string& hexColor) {
 
 #define ASSERT_EXIT(x) if (R_FAILED(x)) std::exit(1)
 #define ASSERT_FATAL(x) if (Result res = x; R_FAILED(res)) fatalThrow(res)
+#define ELEMENT_BOUNDS(elem) elem->getX(), elem->getY(), elem->getWidth(), elem->getHeight()
 
 u16 backgroundColor = 0xD000;
 bool FullMode = true;
@@ -419,7 +440,7 @@ namespace tsl {
                 hexColor = hexColor.substr(1);
             }
         
-            if (isValidHexColor(hexColor)) {
+            if (isValid888HexColor(hexColor)) {
                 std::string r = hexColor.substr(0, 2); // Extract the first two characters (red component)
                 std::string g = hexColor.substr(2, 2); // Extract the next two characters (green component)
                 std::string b = hexColor.substr(4, 2); // Extract the last two characters (blue component)
@@ -958,6 +979,69 @@ namespace tsl {
 
 				return { maxX - x, currY - y };
 			}
+
+            /**
+             * @brief Limit a strings length and end it with "…"
+             *
+             * @param string String to truncate
+             * @param maxLength Maximum length of string
+             */
+            std::string limitStringLength(std::string string, bool monospace, float fontSize, s32 maxLength) {
+                if (string.size() < 2)
+                    return string;
+
+                s32 currX = 0;
+                ssize_t strPos = 0;
+                ssize_t codepointWidth;
+
+                do {
+                    u32 currCharacter;
+                    codepointWidth = decode_utf8(&currCharacter, reinterpret_cast<const u8*>(&string[strPos]));
+
+                    if (codepointWidth <= 0)
+                        break;
+
+                    strPos += codepointWidth;
+
+                    stbtt_fontinfo *currFont = nullptr;
+
+					if (stbtt_FindGlyphIndex(&this->m_extFont, currCharacter))
+						currFont = &this->m_extFont;
+					else if (stbtt_FindGlyphIndex(&this->m_stdFont, currCharacter))
+						currFont = &this->m_stdFont;
+					else if (stbtt_FindGlyphIndex(&this->m_korFont, currCharacter))
+						currFont = &this->m_korFont;
+					else if (isChineseTraditionalOverride == true) {
+						if (stbtt_FindGlyphIndex(&this->m_twFont, currCharacter))
+							currFont = &this->m_twFont;
+						else if (stbtt_FindGlyphIndex(&this->m_extchnFont, currCharacter))
+							currFont = &this->m_extchnFont;
+						else if (stbtt_FindGlyphIndex(&this->m_chnFont, currCharacter))
+							currFont = &this->m_chnFont;
+					}
+					else {
+						if (stbtt_FindGlyphIndex(&this->m_extchnFont, currCharacter))
+							currFont = &this->m_extchnFont;	
+						else if (stbtt_FindGlyphIndex(&this->m_chnFont, currCharacter))
+							currFont = &this->m_chnFont;
+						else if (stbtt_FindGlyphIndex(&this->m_twFont, currCharacter))
+							currFont = &this->m_twFont;					
+					}
+
+                    float currFontSize = stbtt_ScaleForPixelHeight(currFont, fontSize);
+
+                    int xAdvance = 0, yAdvance = 0;
+                    stbtt_GetCodepointHMetrics(currFont, monospace ? 'W' : currCharacter, &xAdvance, &yAdvance);
+
+                    currX += static_cast<s32>(xAdvance * currFontSize);
+
+                } while (string[strPos] != '\0' && string[strPos] != '\n' && currX < maxLength);
+
+                string = string.substr(0, strPos - codepointWidth) + "…";
+                string.shrink_to_fit();
+
+                return string;
+            }
 			
 		private:
 			Renderer() {}
@@ -1331,6 +1415,14 @@ namespace tsl {
 				return m_clickListener(keys);
 			}
 
+			virtual tsl::gfx::Color getHighlightColor1() {
+				return highlightColor1;
+			}
+
+			virtual tsl::gfx::Color getHighlightColor2() {
+				return highlightColor2;
+			}
+
 			/**
 			 * @brief Function called when the element got touched
 			 * @todo Not yet implemented
@@ -1537,6 +1629,8 @@ namespace tsl {
 			 */
 			virtual inline void setFocused(bool focused) { this->m_focused = focused; }
 
+			std::function<bool(u64 keys)> m_clickListener = [](u64) { return false; };
+
 		protected:
 			constexpr static inline auto a = &gfx::Renderer::a;
 
@@ -1549,8 +1643,6 @@ namespace tsl {
 			s32 m_x = 0, m_y = 0, m_width = 0, m_height = 0;
 			Element *m_parent = nullptr;
 			bool m_focused = false;
-
-			std::function<bool(u64 keys)> m_clickListener = [](u64) { return false; };
 
 			// Highlight shake animation
 			bool m_highlightShaking = false;
@@ -1694,7 +1786,7 @@ namespace tsl {
 			 *              already set, matching upstream libtesla. Equivalent to
 			 *              calling \ref setValue after construction.
 			 */
-			ListItem(std::string text, std::string value = "") : Element(), m_text(text), m_value(value) {}
+			ListItem(std::string text, std::string value = "", bool faint = false) : Element(), m_text(text), m_value(value), m_faint(faint) {}
 			virtual ~ListItem() {}
 
 			virtual void draw(gfx::Renderer *renderer) override {
@@ -1762,7 +1854,7 @@ namespace tsl {
 			 * @param onValue Value drawn if the toggle is on
 			 * @param offValue Value drawn if the toggle is off
 			 */
-			ToggleListItem(std::string text, bool initialState, std::string onValue = "On", std::string offValue = "Off")
+			ToggleListItem(std::string text, bool initialState, std::string onValue = "\uE14B", std::string offValue = "\uE14C")
 				: ListItem(text), m_state(initialState), m_onValue(onValue), m_offValue(offValue) {
 				
 				this->setState(this->m_state);
@@ -1776,11 +1868,9 @@ namespace tsl {
 
 					this->setState(this->m_state);
 					this->m_stateChangedListener(this->m_state);
-
-					return true;
 				}
 
-				return false;
+				return m_clickListener(keys);
 			}
 
 			/**
@@ -1823,6 +1913,72 @@ namespace tsl {
 		};
 
 
+		/**
+		 * @brief A toggleable list item that changes the state from On to Off when the A button gets pressed
+		 * 
+		 */
+		class ColorListItem : public ListItem {
+		public:
+			/**
+			 * @brief Constructor
+			 * 
+			 * @param text Initial description text
+			 * @param initialState Is the toggle set to On or Off initially
+			 * @param onValue Value drawn if the toggle is on
+			 * @param offValue Value drawn if the toggle is off
+			 */
+			ColorListItem(std::string text, u16 in_color) : ListItem(text), m_color(in_color) {
+				this->setColor(this->m_color);
+			}
+
+			virtual ~ColorListItem() {}
+
+			virtual void draw(gfx::Renderer *renderer) override {
+				renderer->drawRect(this->getX(), this->getY(), this->getWidth(), 1, a({ 0x4, 0x4, 0x4, 0xF  }));
+				renderer->drawRect(this->getX(), this->getY() + this->getHeight(), this->getWidth(), 1, a({ 0x0, 0x0, 0x0, 0xD }));
+
+				renderer->drawString(this->m_text.c_str(), false, this->getX() + 20, this->getY() + 45, 23, a(defaultTextColor));
+
+				renderer->drawCircle(this->getX() + this->getWidth() - 32, this->getY() + 37, 17, true, 0xFFFF - (m_color.rgba & 0xFFF));
+				renderer->drawRect(this->getX() + this->getWidth() - 43, this->getY() + 26, 24, 24, 0xF000 + (m_color.rgba & 0xFFF));
+			}
+
+			virtual bool onClick(u64 keys) {
+				return m_clickListener(keys);
+			}
+
+			/**
+			 * @brief Gets the current state of the toggle
+			 * 
+			 * @return State
+			 */
+			virtual inline tsl::gfx::Color getColor() {
+				return this->m_color;
+			}
+
+			/**
+			 * @brief Sets the current state of the toggle. Updates the Value
+			 * 
+			 * @param state State
+			 */
+			virtual void setColor(tsl::gfx::Color value) {
+				this->m_color = value;
+			}
+
+			/**
+			 * @brief Adds a listener that gets called whenever the state of the toggle changes
+			 * 
+			 * @param stateChangedListener Listener with the current state passed in as parameter
+			 */
+			void setStateChangedListener(std::function<void(bool)> stateChangedListener) {
+				this->m_stateChangedListener = stateChangedListener;
+			} 
+
+		protected:
+			tsl::gfx::Color m_color;
+
+			std::function<void(bool)> m_stateChangedListener = [](bool){};
+		};
 
 		/**
 		 * @brief A List containing list items

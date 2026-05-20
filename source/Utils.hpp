@@ -1185,9 +1185,6 @@ void createDefaultFile(std::string filepath) {
 	setIniFile(filepath, "status-monitor-deux", "left_joycon_motion_key_combo", "ZL+L+LSTICK", "");
 	setIniFile(filepath, "status-monitor-deux", "right_joycon_motion_key_combo", "ZR+R+RSTICK", "");
 	setIniFile(filepath, "status-monitor-deux", "pro_controller_motion_key_combo", "ZR+R+RSTICK", "");
-	setIniFile(filepath, "status-monitor-deux", "jump_immediately_to_single_smd", "true", "");
-	setIniFile(filepath, "status-monitor-deux", "override_language", "false", "");
-	setIniFile(filepath, "status-monitor-deux", "override_language_ietf_code", "EN-US", "");
 }
 
 bool ProcessSmdSettings(std::string filename, uint32_t crc32, uint16_t* x, uint16_t* y) {
