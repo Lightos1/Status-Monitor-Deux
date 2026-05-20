@@ -2,11 +2,11 @@ name: CI
 
 on:
   push:
-      branches:
-        - main
-      paths:
-        - 'source/smd_parser.cpp'
-        - 'include/smd_parser.hpp'
+    branches:
+      - main
+    paths:
+      - 'source/smd_parser.cpp'
+      - 'include/smd_parser.hpp'
   pull_request:
     branches:
       - main
