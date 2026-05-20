@@ -23,7 +23,8 @@ extern "C" {
 #include <vector>
 #ifndef __SWITCH__
 unsigned int crc32Calculate(const unsigned char *message, size_t len) {
-   int i, j;
+   size_t i;
+   int j;
    unsigned int byte, crc, mask;
 
    i = 0;
