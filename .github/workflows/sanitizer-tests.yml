@@ -1,170 +1,128 @@
-# .github/workflows/sanitizer-tests.yml
-#
-# Builds and runs the smd_parser unit-test suite on a native ARM64 runner
-# under both AddressSanitizer (ASan) and UndefinedBehaviourSanitizer (UBSan).
-#
-# Key compilation notes:
-#   • tinyexpr.c must be compiled as C (clang -x c), not C++, due to its use
-#     of void* arithmetic and implicit casts that are illegal in C++ mode.
-#   • smd_parser.cpp and the test driver are compiled as C++23 by clang++.
-#   • tests/stub/switch.h provides libnx type aliases + crc32Calculate() so
-#     neither DevkitPro nor libnx are required on the host.
-#
-# Jobs:
-#   asan   — AddressSanitizer + LeakSanitizer
-#   ubsan  — UndefinedBehaviourSanitizer + integer / nullability checkers
-
-name: Sanitizer Tests (ARM64)
+name: CI
 
 on:
   workflow_dispatch:
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
-env:
-  # C++ sources (compiled with clang++)
-  CXX_SRCS: source/smd_parser.cpp tests/test_parser.cpp
-
-  # Include paths – tests/stub/ must come first so it shadows <switch.h>
-  INCS: >-
-    -I tests/stub
-    -I include
-    -I include/Ext
-    -I lib/tinyexpr
-    -I lib/Atmosphere-libs/libstratosphere/source/dmnt
-    -I lib/Atmosphere-libs/libstratosphere/source
-    -I lib/libtesla/include
-
-  DEFINES: >-
-    -D__SWITCH__
-    -DAPP_VERSION='"test"'
-    -DAPP_TITLE='"SMD Parser Test"'
-
-  # Flags shared across both builds
-  COMMON_CXXFLAGS: >-
-    -std=c++23
-    -g
-    -O1
-    -fno-omit-frame-pointer
-    -Wall
-    -Wextra
-    -Wno-unused-parameter
-    -Wno-unknown-pragmas
+permissions:
+  contents: read
 
 jobs:
-  # ---------------------------------------------------------------------------
-  # AddressSanitizer + LeakSanitizer
-  # ---------------------------------------------------------------------------
-  asan:
-    name: ASan (ARM64)
-    runs-on: ubuntu-24.04-arm
+  build-and-test:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # x86-64: release build, no sanitizers. Quick smoke test.
+          - name: x86_64 / Release
+            slug: x86_64-release
+            runner: ubuntu-24.04
+            sanitize: "OFF"
+            debug_history: "OFF"
+
+          # x86-64: ASan + UBSan
+          - name: x86_64 / ASan+UBSan
+            slug: x86_64-asan-ubsan
+            runner: ubuntu-24.04
+            sanitize: "ON"
+            debug_history: "OFF"
+
+          # x86-64: ASan + UBSan + DEBUG so HistoryUpdate/HistoryClean are
+          # exposed and exercised. Catches issues in code paths that only
+          # exist when DEBUG is defined.
+          - name: x86_64 / ASan+UBSan + DEBUG
+            slug: x86_64-asan-ubsan-debug
+            runner: ubuntu-24.04
+            sanitize: "ON"
+            debug_history: "ON"
+
+          # arm64 native: release build. Validates arm64 codegen
+          # (alignment, signed-overflow on arm64, etc.) which matters
+          # because the parser will run on a Nintendo Switch (aarch64).
+          - name: arm64 / Release
+            slug: arm64-release
+            runner: ubuntu-24.04-arm
+            sanitize: "OFF"
+            debug_history: "OFF"
+
+          # arm64 native: ASan + UBSan. Closest to the Switch's actual
+          # architecture with full sanitizer coverage.
+          - name: arm64 / ASan+UBSan
+            slug: arm64-asan-ubsan
+            runner: ubuntu-24.04-arm
+            sanitize: "ON"
+            debug_history: "OFF"
+
+          # arm64 native: ASan + UBSan + DEBUG
+          - name: arm64 / ASan+UBSan + DEBUG
+            slug: arm64-asan-ubsan-debug
+            runner: ubuntu-24.04-arm
+            sanitize: "ON"
+            debug_history: "ON"
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - name: Install clang
+      # GCC 15 isn't in Ubuntu 24.04's default repos yet, so pull it from
+      # the ubuntu-toolchain-r/test PPA. Matches devkitPro's compiler
+      # generation (GCC 15 with C++23 support).
+      - name: Install GCC 15 + build tools
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends clang
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends software-properties-common
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            gcc-15 g++-15 cmake ninja-build
+          echo "CC=gcc-15"  >> $GITHUB_ENV
+          echo "CXX=g++-15" >> $GITHUB_ENV
 
-      - name: Compile tinyexpr as C
+      - name: Show toolchain info
         run: |
-          clang -x c -std=c11 \
-            -g -O1 -fno-omit-frame-pointer \
-            -fsanitize=address,leak \
-            ${{ env.INCS }} ${{ env.DEFINES }} \
-            -c lib/tinyexpr/tinyexpr.c \
-            -o tinyexpr.o
+          uname -a
+          gcc-15 --version | head -1
+          g++-15 --version | head -1
+          cmake --version | head -1
 
-      - name: Compile and link (ASan)
+      - name: Configure
         run: |
-          clang++ ${{ env.COMMON_CXXFLAGS }} \
-            -fsanitize=address,leak \
-            ${{ env.INCS }} ${{ env.DEFINES }} \
-            ${{ env.CXX_SRCS }} \
-            tinyexpr.o \
-            -o test_asan \
-            -lm
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_C_COMPILER=gcc-15 \
+            -DCMAKE_CXX_COMPILER=g++-15 \
+            -DSMD_SANITIZE=${{ matrix.sanitize }} \
+            -DSMD_DEBUG_HISTORY=${{ matrix.debug_history }}
 
-      - name: Run tests (ASan)
-        env:
-          ASAN_OPTIONS: halt_on_error=1:detect_leaks=1:check_initialization_order=1:strict_init_order=1
-          LSAN_OPTIONS: suppressions=${{ github.workspace }}/tests/lsan.supp
-        run: ./test_asan modes
+      - name: Build
+        run: cmake --build build -j
 
-      - name: Upload binary on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
+      # Capture every test's stdout/stderr. CTest's default behaviour
+      # discards passing-test output -- we override that so the upload
+      # step always has something to publish.
+      - name: Run tests
+        working-directory: build
+        run: |
+          mkdir -p test-logs
+          ctest \
+            --output-on-failure \
+            --no-tests=error \
+            --output-junit test-logs/junit.xml \
+            --output-log test-logs/ctest.log \
+            --test-output-size-passed 0 \
+            --test-output-size-failed 0
+
+      # Always upload logs (success OR failure) so we can see test
+      # output without re-running the job.
+      - name: Upload test logs
+        if: always()
+        uses: actions/upload-artifact@v7
         with:
-          name: asan-binary
-          path: test_asan
-
-  # ---------------------------------------------------------------------------
-  # UndefinedBehaviourSanitizer
-  # ---------------------------------------------------------------------------
-  ubsan:
-    name: UBSan (ARM64)
-    runs-on: ubuntu-24.04-arm
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install clang
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends clang
-
-      - name: Compile tinyexpr as C
-        run: |
-          clang -x c -std=c11 \
-            -g -O1 -fno-omit-frame-pointer \
-            -fsanitize=undefined,integer,nullability \
-            -fno-sanitize-recover=all \
-            ${{ env.INCS }} ${{ env.DEFINES }} \
-            -c lib/tinyexpr/tinyexpr.c \
-            -o tinyexpr.o
-
-      - name: Compile and link (UBSan)
-        run: |
-          clang++ ${{ env.COMMON_CXXFLAGS }} \
-            -fsanitize=undefined,integer,nullability \
-            -fno-sanitize-recover=all \
-            ${{ env.INCS }} ${{ env.DEFINES }} \
-            ${{ env.CXX_SRCS }} \
-            tinyexpr.o \
-            -o test_ubsan \
-            -lm
-
-      - name: Run tests (UBSan)
-        env:
-          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
-        run: ./test_ubsan modes
-
-      - name: Upload binary on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ubsan-binary
-          path: test_ubsan
-
-  # ---------------------------------------------------------------------------
-  # Gate – both jobs must pass
-  # ---------------------------------------------------------------------------
-  all-sanitizers-pass:
-    name: All sanitizer jobs passed
-    needs: [asan, ubsan]
-    runs-on: ubuntu-24.04-arm
-    if: always()
-    steps:
-      - name: Check results
-        run: |
-          if [ "${{ needs.asan.result }}" != "success" ] || \
-             [ "${{ needs.ubsan.result }}" != "success" ]; then
-            echo "One or more sanitizer jobs failed."
-            exit 1
-          fi
-          echo "All sanitizer jobs passed."
+          name: test-logs-${{ matrix.slug }}
+          path: |
+            build/test-logs/
+            build/Testing/Temporary/
+            build/CMakeFiles/CMakeOutput.log
+            build/CMakeFiles/CMakeError.log
+          if-no-files-found: warn
+          retention-days: 14
