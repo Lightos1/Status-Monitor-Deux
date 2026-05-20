@@ -1,0 +1,169 @@
+# .github/workflows/sanitizer-tests.yml
+#
+# Builds and runs the smd_parser unit-test suite on a native ARM64 runner
+# under both AddressSanitizer (ASan) and UndefinedBehaviourSanitizer (UBSan).
+#
+# The test binary compiles only the host-portable parts of the project:
+#   • source/smd_parser.cpp  — the parser / evaluator under test
+#   • lib/tinyexpr/tinyexpr.c — the expression-evaluation dependency
+#   • tests/test_parser.cpp  — the test driver
+#
+# A minimal tests/stub/switch.h provides the libnx type aliases that
+# smd_parser.cpp includes but never actually calls into on host.
+#
+# Jobs:
+#   asan   — AddressSanitizer (-fsanitize=address,leak)
+#   ubsan  — UndefinedBehaviourSanitizer (-fsanitize=undefined)
+
+name: Sanitizer Tests (ARM64)
+
+on:
+  workflow_dispatch:
+
+# Cancel in-progress runs for the same ref so PRs don't queue up.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# ---------------------------------------------------------------------------
+# Shared compiler flags used by both jobs
+# ---------------------------------------------------------------------------
+env:
+  # Sources that go into every build (relative to repo root).
+  SRCS: >-
+    source/smd_parser.cpp
+    lib/tinyexpr/tinyexpr.c
+    tests/test_parser.cpp
+
+  # Include search paths (the stub/ dir shadows the real <switch.h>).
+  INCS: >-
+    -I include
+    -I include/Ext
+    -I lib/tinyexpr
+    -I lib/Atmosphere-libs/libstratosphere/source/dmnt
+    -I lib/Atmosphere-libs/libstratosphere/source
+    -I lib/libtesla/include
+    -I tests/stub
+
+  # Flags shared by both sanitizer builds.
+  COMMON_FLAGS: >-
+    -std=c++23
+    -g
+    -O1
+    -fno-omit-frame-pointer
+    -Wall
+    -Wextra
+    -Wno-unused-parameter
+    -D__SWITCH__
+    -DAPP_VERSION='"test"'
+    -DAPP_TITLE='"SMD Parser Test"'
+
+jobs:
+  # -------------------------------------------------------------------------
+  # AddressSanitizer + LeakSanitizer
+  # -------------------------------------------------------------------------
+  asan:
+    name: ASan (ARM64)
+    runs-on: ubuntu-24.04-arm
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            clang \
+            libc++-dev \
+            libc++abi-dev
+
+      - name: Build (ASan)
+        run: |
+          clang++ ${{ env.COMMON_FLAGS }} \
+            -fsanitize=address,leak \
+            ${{ env.INCS }} \
+            ${{ env.SRCS }} \
+            -o test_asan \
+            -lstdc++ -lm
+        # Note: tinyexpr.c is C, so we let clang++ drive the whole thing.
+        # The C translation unit is compiled as C because clang++ defaults to
+        # C++ mode; pass the C file last so the compiler sees the right suffix.
+
+      - name: Run tests (ASan)
+        env:
+          # Abort on the first error so the log stays readable.
+          ASAN_OPTIONS: halt_on_error=1:detect_leaks=1:check_initialization_order=1:strict_init_order=1
+          LSAN_OPTIONS: suppressions=${{ github.workspace }}/tests/lsan.supp
+        run: |
+          ./test_asan modes
+
+      - name: Upload ASan binary (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: asan-binary
+          path: test_asan
+
+  # -------------------------------------------------------------------------
+  # UndefinedBehaviourSanitizer
+  # -------------------------------------------------------------------------
+  ubsan:
+    name: UBSan (ARM64)
+    runs-on: ubuntu-24.04-arm
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            clang \
+            libc++-dev \
+            libc++abi-dev
+
+      - name: Build (UBSan)
+        run: |
+          clang++ ${{ env.COMMON_FLAGS }} \
+            -fsanitize=undefined \
+            -fsanitize=integer \
+            -fsanitize=nullability \
+            -fno-sanitize-recover=all \
+            ${{ env.INCS }} \
+            ${{ env.SRCS }} \
+            -o test_ubsan \
+            -lstdc++ -lm
+
+      - name: Run tests (UBSan)
+        env:
+          # Print a full stack trace and abort on first violation.
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        run: |
+          ./test_ubsan modes
+
+      - name: Upload UBSan binary (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ubsan-binary
+          path: test_ubsan
+
+  # -------------------------------------------------------------------------
+  # Combined summary — depends on both jobs passing
+  # -------------------------------------------------------------------------
+  all-sanitizers-pass:
+    name: All sanitizer jobs passed
+    needs: [asan, ubsan]
+    runs-on: ubuntu-24.04-arm
+    if: always()
+    steps:
+      - name: Check results
+        run: |
+          if [ "${{ needs.asan.result }}" != "success" ] || \
+             [ "${{ needs.ubsan.result }}" != "success" ]; then
+            echo "One or more sanitizer jobs failed."
+            exit 1
+          fi
+          echo "All sanitizer jobs passed."
