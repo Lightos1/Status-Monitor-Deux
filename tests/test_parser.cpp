@@ -1,9 +1,8 @@
 // test_parser.cpp  –  Host-side sanitizer test driver for smd::Document.
 //
-// Compiles alongside smd_parser.cpp + tinyexpr.c without DevkitPro.
-// Exercises LoadFromFile, LoadFromMemory, Compile, Evaluate, Reset, Free, and
-// every public config accessor across all .smd fixtures shipped with the
-// project, plus a suite of hand-crafted edge-case / malformed inputs.
+// Compiles alongside smd_parser.cpp + tinyexpr.c (as C) without DevkitPro.
+// Exercises LoadFromFile/Memory, Compile, Evaluate, Reset, Free, and every
+// public config accessor across all .smd fixtures, plus edge-case inputs.
 //
 // Exit code: 0 on success, non-zero if any test fails.
 
@@ -37,7 +36,7 @@ static int g_fail = 0;
         } \
     } while (0)
 
-// Null render callback – just counts invocations and handles GetDimensions.
+// Render callback – non-const ref to match the Callback typedef exactly.
 struct RenderCtx {
     int calls = 0;
     int text  = 0;
@@ -45,17 +44,17 @@ struct RenderCtx {
     int graph = 0;
 };
 
-static void render_cb(const smd::RenderCommand& cmd, void* user) {
+static void render_cb(smd::RenderCommand& cmd, void* user) {
     auto* ctx = static_cast<RenderCtx*>(user);
     ++ctx->calls;
     switch (cmd.type) {
-        case smd::RenderCmdType::Text:          ++ctx->text;  break;
+        case smd::RenderCmdType::Text:           ++ctx->text;  break;
         case smd::RenderCmdType::Box:
         case smd::RenderCmdType::RoundedBox:
-        case smd::RenderCmdType::EmptyBox:      ++ctx->box;   break;
-        case smd::RenderCmdType::GraphLineChart: ++ctx->graph; break;
+        case smd::RenderCmdType::EmptyBox:       ++ctx->box;   break;
+        case smd::RenderCmdType::GraphLineChart:  ++ctx->graph; break;
         case smd::RenderCmdType::GetDimensions:
-            // Return non-zero dims so dependent expressions don't divide-by-zero.
+            // Provide non-zero dims so dependent expressions don't divide-by-zero.
             if (cmd.outDims) { cmd.outDims->x = 100; cmd.outDims->y = 20; }
             break;
         default: break;
@@ -73,27 +72,56 @@ static std::string slurp(const fs::path& p) {
 }
 
 // ---------------------------------------------------------------------------
+// Helper: bind the standard runtime variables referenced by shipped .smd files
+// ---------------------------------------------------------------------------
+static void bind_live_vars(smd::Document& doc,
+                           const int64_t& cpu_hz, const int64_t& gpu_hz,
+                           const int64_t& ram_hz, const int64_t& fps,
+                           const int64_t& bat_pct,
+                           const float& cpu_f, const double& temp_d,
+                           const bool& show_fps, const bool& show_real,
+                           const bool& salty_running, const bool& clk_running,
+                           const std::string& game_name,
+                           const smd::ResolutionEntry* res_arr) {
+    doc.BindInt64 ("CPU_Hz_int",                       &cpu_hz);
+    doc.BindInt64 ("GPU_Hz_int",                       &gpu_hz);
+    doc.BindInt64 ("RAM_Hz_int",                       &ram_hz);
+    doc.BindInt64 ("FPS_int",                          &fps);
+    doc.BindInt64 ("BAT_Percent_int",                  &bat_pct);
+    doc.BindFloat ("CPU_Hz_float",                     &cpu_f);
+    doc.BindDouble("Temp_CPU_double",                  &temp_d);
+    doc.BindBool  ("SaltyNX_Running",                  &salty_running);
+    doc.BindBool  ("SysClk_Running",                   &clk_running);
+    doc.BindBool  ("User_ShowRealFrequencies",          &show_real);
+    doc.BindBool  ("User_ShowFPS",                     &show_fps);
+    doc.BindString("Game_Name",                        &game_name);
+    doc.BindResolutionArray("Game_ResolutionViewportCalls_int", res_arr);
+    doc.BindResolutionArray("Game_ResolutionRenderCalls_int",   res_arr);
+}
+
+// ---------------------------------------------------------------------------
 // Test 1: load every .smd fixture from the modes/ directory
 // ---------------------------------------------------------------------------
 static void test_fixture_files(const fs::path& modes_dir) {
     if (!fs::exists(modes_dir)) {
-        std::fprintf(stderr, "SKIP fixture tests: %s not found\n", modes_dir.c_str());
+        std::fprintf(stderr, "SKIP fixture tests: %s not found\n",
+                     modes_dir.c_str());
         return;
     }
 
     // Live bind values – realistic non-zero defaults.
-    int64_t cpu_hz    = 1785000000LL;
-    int64_t gpu_hz    = 768000000LL;
-    int64_t ram_hz    = 1600000000LL;
-    int64_t fps       = 60;
-    int64_t bat_pct   = 80;
-    float   cpu_f     = 1785.0f;
-    double  temp_d    = 45.0;
-    bool    show_fps  = true;
-    bool    show_real = true;
-    bool    salty_running = true;
-    bool    clk_running   = true;
-    std::string game_name = "TestGame";
+    const int64_t cpu_hz = 1785000000LL;
+    const int64_t gpu_hz = 768000000LL;
+    const int64_t ram_hz = 1600000000LL;
+    const int64_t fps    = 60;
+    const int64_t bat    = 80;
+    const float   cpu_f  = 1785.0f;
+    const double  temp   = 45.0;
+    const bool    show_fps    = true;
+    const bool    show_real   = true;
+    const bool    salty = true;
+    const bool    clk   = true;
+    const std::string game = "TestGame";
 
     smd::ResolutionEntry res_arr[8] = {};
     res_arr[0] = {1920, 1080, 5};
@@ -117,27 +145,14 @@ static void test_fixture_files(const fs::path& modes_dir) {
             EXPECT(loaded, ("LoadFromFile failed: " + path_str).c_str());
             if (!loaded) continue;
 
-            // Bind all the variables the shipped .smd files reference.
-            doc.BindInt64 ("CPU_Hz_int",       &cpu_hz);
-            doc.BindInt64 ("GPU_Hz_int",       &gpu_hz);
-            doc.BindInt64 ("RAM_Hz_int",       &ram_hz);
-            doc.BindInt64 ("FPS_int",          &fps);
-            doc.BindInt64 ("BAT_Percent_int",  &bat_pct);
-            doc.BindFloat ("CPU_Hz_float",     &cpu_f);
-            doc.BindDouble("Temp_CPU_double",  &temp_d);
-            doc.BindBool  ("SaltyNX_Running",  &salty_running);
-            doc.BindBool  ("SysClk_Running",   &clk_running);
-            doc.BindBool  ("User_ShowRealFrequencies", &show_real);
-            doc.BindBool  ("User_ShowFPS",     &show_fps);
-            doc.BindString("Game_Name",        &game_name);
-            doc.BindResolutionArray("Game_ResolutionViewportCalls_int", res_arr);
-            doc.BindResolutionArray("Game_ResolutionRenderCalls_int",   res_arr);
+            bind_live_vars(doc, cpu_hz, gpu_hz, ram_hz, fps, bat,
+                           cpu_f, temp, show_fps, show_real, salty, clk,
+                           game, res_arr);
 
             bool compiled = doc.Compile();
             EXPECT(compiled, ("Compile failed: " + path_str).c_str());
             if (!compiled) continue;
 
-            // Two evaluate passes; the second exercises post-Reset behaviour.
             RenderCtx ctx1;
             bool ev1 = doc.Evaluate(render_cb, &ctx1);
             EXPECT(ev1, ("Evaluate pass 1 failed: " + path_str).c_str());
@@ -153,6 +168,10 @@ static void test_fixture_files(const fs::path& modes_dir) {
             (void)doc.GetConfigInt   ("LayerHeight", 720);
             (void)doc.GetConfigBool  ("Movable",     false);
             (void)doc.GetConfigString("Name",        "");
+
+            // FormatConfigString on a known key.
+            std::string fmtOut;
+            (void)doc.FormatConfigString("Name", fmtOut);
         }
 
         // --- Load from memory (same file content) ---
@@ -165,21 +184,24 @@ static void test_fixture_files(const fs::path& modes_dir) {
             if (loaded) {
                 doc.BindInt64("FPS_int", &fps);
                 bool compiled = doc.Compile();
-                EXPECT(compiled, ("Compile (from memory) failed: " + path_str).c_str());
+                EXPECT(compiled,
+                       ("Compile (from memory) failed: " + path_str).c_str());
                 if (compiled) {
                     RenderCtx ctx;
                     bool ev = doc.Evaluate(render_cb, &ctx);
-                    EXPECT(ev, ("Evaluate (from memory) failed: " + path_str).c_str());
+                    EXPECT(ev, ("Evaluate (from memory) failed: " +
+                                path_str).c_str());
                 }
             }
         }
     }
 
-    if (fixture_count == 0) {
-        std::fprintf(stderr, "WARNING: no .smd fixtures found under %s\n", modes_dir.c_str());
-    } else {
+    if (fixture_count == 0)
+        std::fprintf(stderr,
+                     "WARNING: no .smd fixtures found under %s\n",
+                     modes_dir.c_str());
+    else
         std::fprintf(stdout, "  loaded %d fixture(s)\n", fixture_count);
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -187,15 +209,12 @@ static void test_fixture_files(const fs::path& modes_dir) {
 // ---------------------------------------------------------------------------
 static void test_reload(const fs::path& modes_dir) {
     fs::path first_smd;
-    for (auto& e : fs::recursive_directory_iterator(modes_dir)) {
-        if (e.is_regular_file() && e.path().extension() == ".smd") {
-            first_smd = e.path();
-            break;
-        }
-    }
+    for (auto& e : fs::recursive_directory_iterator(modes_dir))
+        if (e.is_regular_file() && e.path().extension() == ".smd")
+            { first_smd = e.path(); break; }
     if (first_smd.empty()) return;
 
-    int64_t fps = 60;
+    const int64_t fps = 60;
     smd::Document doc;
     for (int i = 0; i < 3; ++i) {
         bool loaded = doc.LoadFromFile(first_smd.c_str());
@@ -213,38 +232,44 @@ static void test_reload(const fs::path& modes_dir) {
 }
 
 // ---------------------------------------------------------------------------
-// Test 3: malformed / edge-case inputs (must not crash or UB, return false)
+// Test 3: malformed / edge-case inputs (must not crash, return gracefully)
 // ---------------------------------------------------------------------------
 static void test_malformed() {
-    struct Case { const char* label; const char* src; };
-    static const Case cases[] = {
-        { "empty",              "" },
-        { "whitespace only",    "   \n\t\r\n  " },
-        { "comment only",       ";; just a comment\n;; another\n" },
-        { "minimal name",       "Name = Test\n" },
-        { "unclosed brace",     "Name = X\nTEXT{\"hello\", 0, 0, 0, 0xFFFF\n" },
-        { "missing arg",        "Name = X\nTEXT{}\n" },
-        { "deep nesting",       "Name = X\n#if 1\n#if 1\n#if 1\n#if 1\nTEXT{\"x\",0,0,0,0xFFFF}\n#end\n#end\n#end\n#end\n" },
-        { "for loop empty list","Name = X\n#for $x in $nolist\nTEXT{\"x\",0,0,0,0xFFFF}\n#end\n" },
-        { "expr division zero", "Name = X\nTEXT{\"{1/0}\",0,0,0,0xFFFF}\n" },
-        { "very long string",   std::string("Name = X\nTEXT{\"" + std::string(4096, 'a') + "\",0,0,0,0xFFFF}\n").c_str() },
-        { "null bytes middle",  nullptr }, // handled separately below
-        { "only config lines",  "Name = Parser Test\nLayerWidth = 448\nLayerHeight = 720\nBackgroundColor = 0xD000\n" },
-        { "history no graph",   "Name = X\nMyHist = HISTORY{int, 60}\n" },
-        { "invalid color",      "Name = X\nUser_Color = COLOR{ZZZZ}\n" },
-        { "unicode text",       "Name = X\nTEXT{\"Cześć świat\",0,0,0,0xFFFF}\n" },
-        { "negative coords",    "Name = X\nTEXT{\"hi\",-100,-200,0,0xFFFF}\n" },
-        { "color format expr",  "Name = X\nMyColor = COLOR{0xF00F}\nBOX{0,0,100,100,MyColor}\n" },
+    // Build the long-string case as a persistent std::string so c_str() stays valid.
+    static const std::string kLongStr =
+        "Name = X\nTEXT{\"" + std::string(4096, 'a') + "\",0,0,0,0xFFFF}\n";
+
+    struct Case { const char* label; const char* src; size_t len; };
+    const Case cases[] = {
+        { "empty",              "",                          0 },
+        { "whitespace only",    "   \n\t\r\n  ",             14 },
+        { "comment only",       ";; just a comment\n",       19 },
+        { "minimal name",       "Name = Test\n",             12 },
+        { "unclosed brace",     "Name = X\nTEXT{\"hello\", 0, 0, 0, 0xFFFF\n", 39 },
+        { "missing arg",        "Name = X\nTEXT{}\n",        17 },
+        { "deep nesting",
+          "Name = X\n#if 1\n#if 1\n#if 1\n#if 1\n"
+          "TEXT{\"x\",0,0,0,0xFFFF}\n#end\n#end\n#end\n#end\n", 0 },
+        { "for loop empty list",
+          "Name = X\n#for $x in $nolist\nTEXT{\"x\",0,0,0,0xFFFF}\n#end\n", 0 },
+        { "expr division zero", "Name = X\nTEXT{\"{1/0}\",0,0,0,0xFFFF}\n", 0 },
+        { "long string",        kLongStr.c_str(),            kLongStr.size() },
+        { "config only",
+          "Name = Parser Test\nLayerWidth = 448\nLayerHeight = 720\n", 0 },
+        { "history no graph",   "Name = X\nMyHist = HISTORY{int, 60}\n", 0 },
+        { "invalid color",      "Name = X\nUser_Color = COLOR{ZZZZ}\n", 0 },
+        { "unicode text",       "Name = X\nTEXT{\"Cześć świat\",0,0,0,0xFFFF}\n", 0 },
+        { "negative coords",    "Name = X\nTEXT{\"hi\",-100,-200,0,0xFFFF}\n", 0 },
+        { "color box",
+          "Name = X\nMyColor = COLOR{0xF00F}\nBOX{0,0,100,100,MyColor}\n", 0 },
     };
 
     for (auto& c : cases) {
-        if (!c.src) continue; // skip null-bytes case (special handling below)
+        size_t len = c.len ? c.len : std::strlen(c.src);
 
         smd::Document doc;
-        bool loaded = doc.LoadFromMemory(c.src, std::strlen(c.src));
-        // We don't assert loaded==true for malformed inputs; we just assert no crash/UB.
+        bool loaded = doc.LoadFromMemory(c.src, len);
         (void)loaded;
-
         if (loaded) {
             bool compiled = doc.Compile();
             if (compiled) {
@@ -252,47 +277,53 @@ static void test_malformed() {
                 (void)doc.Evaluate(render_cb, &ctx);
             }
         }
-        // Explicit Free is optional (destructor handles it) but exercises the path.
         doc.Free();
 
-        // Re-use the same document after Free.
-        bool loaded2 = doc.LoadFromMemory(c.src, std::strlen(c.src));
+        // Re-use after Free.
+        bool loaded2 = doc.LoadFromMemory(c.src, len);
         (void)loaded2;
-        if (loaded2) {
-            (void)doc.Compile();
-        }
+        if (loaded2) (void)doc.Compile();
 
-        ++g_pass; // reaching here without crash/UB is a pass
+        ++g_pass;
         std::fprintf(stdout, "  malformed[%s]: ok\n", c.label);
     }
 
-    // Special: buffer with embedded null bytes.
+    // Buffer with embedded null bytes – LoadFromMemory takes an explicit size.
     {
         const char buf[] = "Name = X\0TEXT{\"hi\",0,0,0,0xFFFF}\n";
         smd::Document doc;
-        // LoadFromMemory takes an explicit size, so embedded nulls are valid input.
         bool loaded = doc.LoadFromMemory(buf, sizeof(buf) - 1);
         (void)loaded;
-        if (loaded) { doc.Compile(); }
+        if (loaded) (void)doc.Compile();
         ++g_pass;
         std::fprintf(stdout, "  malformed[null bytes middle]: ok\n");
     }
 }
 
 // ---------------------------------------------------------------------------
-// Test 4: PeekFile doesn't crash, returns reasonable data
+// Test 4: static Peek helpers
 // ---------------------------------------------------------------------------
 static void test_peek(const fs::path& modes_dir) {
     for (auto& e : fs::recursive_directory_iterator(modes_dir)) {
         if (!e.is_regular_file() || e.path().extension() != ".smd") continue;
 
-        smd::Document doc;
-        smd::Document::PeekInfo pi = doc.PeekFile(e.path().c_str());
-        EXPECT(!pi.name.empty() || pi.layerWidth >= 0,
-               ("PeekFile returned implausible data for " + e.path().string()).c_str());
-        std::fprintf(stdout, "  peek[%s]: name='%s' w=%lld h=%lld\n",
-                     e.path().filename().c_str(), pi.name.c_str(),
-                     (long long)pi.layerWidth, (long long)pi.layerHeight);
+        smd::Document::PeekInfo pi;
+        bool ok = smd::Document::Peek(e.path().c_str(), pi);
+        EXPECT(ok, ("Peek failed for " + e.path().string()).c_str());
+        if (ok)
+            std::fprintf(stdout, "  peek[%s]: name='%s' w=%lld h=%lld\n",
+                         e.path().filename().c_str(), pi.name.c_str(),
+                         (long long)pi.layerWidth, (long long)pi.layerHeight);
+
+        // PeekFromMemory with the same content should give the same name.
+        std::string content = slurp(e.path());
+        smd::Document::PeekInfo pi2;
+        bool ok2 = smd::Document::PeekFromMemory(
+                       content.data(), content.size(), pi2);
+        EXPECT(ok2, ("PeekFromMemory failed for " + e.path().string()).c_str());
+        if (ok && ok2)
+            EXPECT(pi.name == pi2.name,
+                   "Peek and PeekFromMemory must return same name");
     }
 }
 
@@ -301,18 +332,15 @@ static void test_peek(const fs::path& modes_dir) {
 // ---------------------------------------------------------------------------
 static void test_clear_dims_cache(const fs::path& modes_dir) {
     fs::path first_smd;
-    for (auto& e : fs::recursive_directory_iterator(modes_dir)) {
-        if (e.is_regular_file() && e.path().extension() == ".smd") {
-            first_smd = e.path(); break;
-        }
-    }
+    for (auto& e : fs::recursive_directory_iterator(modes_dir))
+        if (e.is_regular_file() && e.path().extension() == ".smd")
+            { first_smd = e.path(); break; }
     if (first_smd.empty()) return;
 
-    int64_t fps = 30;
+    const int64_t fps = 30;
     smd::Document doc;
 
-    // Clear on a fresh (never-loaded) document.
-    doc.ClearDimsMeasureCache();
+    doc.ClearDimsMeasureCache();   // on a never-loaded document
     ++g_pass;
 
     doc.LoadFromFile(first_smd.c_str());
@@ -321,27 +349,22 @@ static void test_clear_dims_cache(const fs::path& modes_dir) {
 
     RenderCtx ctx;
     doc.Evaluate(render_cb, &ctx);
-
-    // Clear after evaluate – exercises the populated cache path.
-    doc.ClearDimsMeasureCache();
+    doc.ClearDimsMeasureCache();   // after evaluate
     ++g_pass;
 
-    // Second evaluate after cache clear.
     RenderCtx ctx2;
     bool ev2 = doc.Evaluate(render_cb, &ctx2);
     EXPECT(ev2, "Evaluate after ClearDimsMeasureCache");
 }
 
 // ---------------------------------------------------------------------------
-// Test 6: GetFileHash is stable for the same content
+// Test 6: GetFileHash is deterministic for the same content
 // ---------------------------------------------------------------------------
 static void test_file_hash(const fs::path& modes_dir) {
     fs::path first_smd;
-    for (auto& e : fs::recursive_directory_iterator(modes_dir)) {
-        if (e.is_regular_file() && e.path().extension() == ".smd") {
-            first_smd = e.path(); break;
-        }
-    }
+    for (auto& e : fs::recursive_directory_iterator(modes_dir))
+        if (e.is_regular_file() && e.path().extension() == ".smd")
+            { first_smd = e.path(); break; }
     if (first_smd.empty()) return;
 
     smd::Document doc1, doc2;
@@ -354,15 +377,13 @@ static void test_file_hash(const fs::path& modes_dir) {
 }
 
 // ---------------------------------------------------------------------------
-// Test 7: Locale callback is invoked
+// Test 7: Locale RecordCallback is invoked during Load
 // ---------------------------------------------------------------------------
 static void test_locale_callback(const fs::path& modes_dir) {
     fs::path first_smd;
-    for (auto& e : fs::recursive_directory_iterator(modes_dir)) {
-        if (e.is_regular_file() && e.path().extension() == ".smd") {
-            first_smd = e.path(); break;
-        }
-    }
+    for (auto& e : fs::recursive_directory_iterator(modes_dir))
+        if (e.is_regular_file() && e.path().extension() == ".smd")
+            { first_smd = e.path(); break; }
     if (first_smd.empty()) return;
 
     bool cb_called = false;
@@ -375,22 +396,25 @@ static void test_locale_callback(const fs::path& modes_dir) {
         &cb_called
     );
     doc.LoadFromFile(first_smd.c_str());
-    EXPECT(cb_called, "locale RecordCallback must be invoked during Load");
+    EXPECT(cb_called, "RecordCallback must be invoked during Load");
+
+    // PeekName with locale
+    std::string name;
+    bool ok = smd::Document::PeekName(first_smd.c_str(), name, "PL-PL");
+    EXPECT(ok, "PeekName with locale failed");
 }
 
 // ---------------------------------------------------------------------------
-// Test 8: Reset(freeze=true) then Evaluate (must not crash)
+// Test 8: Reset(freeze=true) then Evaluate
 // ---------------------------------------------------------------------------
 static void test_reset_freeze(const fs::path& modes_dir) {
     fs::path first_smd;
-    for (auto& e : fs::recursive_directory_iterator(modes_dir)) {
-        if (e.is_regular_file() && e.path().extension() == ".smd") {
-            first_smd = e.path(); break;
-        }
-    }
+    for (auto& e : fs::recursive_directory_iterator(modes_dir))
+        if (e.is_regular_file() && e.path().extension() == ".smd")
+            { first_smd = e.path(); break; }
     if (first_smd.empty()) return;
 
-    int64_t fps = 60;
+    const int64_t fps = 60;
     smd::Document doc;
     doc.LoadFromFile(first_smd.c_str());
     doc.BindInt64("FPS_int", &fps);
@@ -410,8 +434,6 @@ static void test_reset_freeze(const fs::path& modes_dir) {
 // main
 // ---------------------------------------------------------------------------
 int main(int argc, char* argv[]) {
-    // The first argument (if given) is the path to the modes/ directory.
-    // When run by CI the workflow sets it to the checked-out path.
     fs::path modes_dir = (argc > 1) ? argv[1] : "modes";
 
     std::fprintf(stdout, "=== smd_parser sanitizer tests ===\n");
@@ -426,7 +448,7 @@ int main(int argc, char* argv[]) {
     std::fprintf(stdout, "\n[3] malformed inputs\n");
     test_malformed();
 
-    std::fprintf(stdout, "\n[4] PeekFile\n");
+    std::fprintf(stdout, "\n[4] Peek helpers\n");
     test_peek(modes_dir);
 
     std::fprintf(stdout, "\n[5] ClearDimsMeasureCache\n");
@@ -441,6 +463,7 @@ int main(int argc, char* argv[]) {
     std::fprintf(stdout, "\n[8] Reset(freeze)\n");
     test_reset_freeze(modes_dir);
 
-    std::fprintf(stdout, "\n=== results: %d passed, %d failed ===\n", g_pass, g_fail);
+    std::fprintf(stdout, "\n=== results: %d passed, %d failed ===\n",
+                 g_pass, g_fail);
     return (g_fail > 0) ? 1 : 0;
 }
