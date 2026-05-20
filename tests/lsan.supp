@@ -1,8 +1,0 @@
-# tests/lsan.supp
-# LeakSanitizer suppression file.
-#
-# Add suppressions here if any third-party code that smd_parser.cpp relies on
-# (e.g. tinyexpr) produces reachable-but-not-freed statics that LSan reports.
-# Format:  leak:<symbol-or-source-pattern>
-#
-# Currently empty — the project is expected to be leak-clean.
