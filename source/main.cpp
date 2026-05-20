@@ -293,21 +293,110 @@ public:
 	}
 };
 
+class ConfigurationSubMenu : public tsl::Gui {
+private:
+	std::string m_type;
+public:
+	ConfigurationSubMenu(std::string type) {
+		m_type = type;
+	}
+
+	virtual tsl::elm::Element* createUI() override {
+		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, m_type);
+		auto list = new tsl::elm::List();
+
+		for (const auto& [key, data] : configs) {
+			if (data.type.compare(m_type) == 0) {
+				if (m_type.compare("int") == 0) {
+					int64_t temp;
+					if (isNumeric(data.rangeMin, &temp) == true && isNumeric(data.rangeMax, &temp) == true) {
+						auto Item = new tsl::elm::ListItem(key, data.value);
+						Item->setClickListener([this, key, data, Item](uint64_t keys) {
+							if (keys & KEY_A) {
+								tsl::changeTo<EditConfigInt>(key, configs[key].value, data.rangeMin, data.rangeMax, data.defaultValue, Item);
+								return true;
+							}
+							return false;
+						});
+						list->addItem(Item);
+					}
+					else {
+						auto Item = new tsl::elm::ListItem(key, data.type.c_str(), true);
+						list->addItem(Item);
+					}
+				}
+				else if (data.type.compare("bool") == 0) {
+					bool isTrue = data.value.compare("true") == 0;
+					auto Item = new tsl::elm::ToggleListItem(key, isTrue);
+					Item->setClickListener([key, Item](uint64_t keys) {
+						if (keys & KEY_A) {
+							configs[key].value = Item->getState() ? "true" : "false";
+							return true;
+						}
+						return false;
+					});
+					list->addItem(Item);
+				}
+				else if (data.type.compare("color") == 0) {
+					bool isValid = false;
+					u16 color;
+					std::string error;
+					if (data.value.length() == 13) {
+						std::string hexColor = data.value.substr(6);
+						hexColor = hexColor.substr(0, 6);
+						isValid = isValid4444HexColor(hexColor);
+						if (isValid) {
+							std::string r = hexColor.substr(2, 1);
+							std::string g = hexColor.substr(3, 1);
+							std::string b = hexColor.substr(4, 1);
+							std::string a = hexColor.substr(5, 1);
+							color = tsl::gfx::Color((u8)std::stoi(r, nullptr, 16), (u8)std::stoi(g, nullptr, 16), (u8)std::stoi(b, nullptr, 16), (u8)std::stoi(a, nullptr, 16)).rgba;
+						}
+						else error = "invalid color";
+					}
+					if (isValid) {
+						auto Item = new tsl::elm::ColorListItem(key, color);
+						Item->setClickListener([key, Item, color](uint64_t keys) {
+							if (keys & KEY_A) {
+								tsl::changeTo<EditConfigColor>(key, Item);
+								return true;
+							}
+							return false;
+						});
+						list->addItem(Item);
+					}
+					else {
+						auto Item = new tsl::elm::ListItem(error, data.type.c_str(), true);
+						list->addItem(Item);
+					}
+				}
+				else {
+					auto Item = new tsl::elm::ListItem(key, "\uE150");
+					list->addItem(Item);
+				}
+			}
+		}
+		rootFrame->setContent(list);
+		return rootFrame;
+	}
+
+	virtual bool handleInput(u64 keysDown, u64 keysHeld, const HidTouchState &touchPos, HidAnalogStickState joyStickPosLeft, HidAnalogStickState joyStickPosRight) override {
+		if (keysDown & KEY_B) {
+			tsl::goBack();
+			return true;
+		}
+		return false;
+	}
+};
+
 class Configuration : public tsl::Gui {
 private:
-	char* buffer;
+	char* buffer = nullptr;
 	size_t buffer_size = 0;
-
-	// Strip a line-comment starting with ';', but ignore ';' inside "..." strings.
-	static std::string StripLineComment(const std::string& line) {
-		bool inStr = false;
-		for (size_t i = 0; i < line.size(); ++i) {
-			char c = line[i];
-			if (c == '"' && (i == 0 || line[i-1] != '\\')) inStr = !inStr;
-			else if (c == ';' && !inStr) return line.substr(0, i);
-		}
-		return line;
-	}
+	bool isBool = false;
+	bool isInt = false;
+	bool isColor = false;
+	bool isError = false;
 
 	void FindConfigs(const char* data, size_t size) {
 		size_t lineStart = 0;
@@ -544,15 +633,29 @@ public:
 			fclose(file);
 			FindConfigs(buffer, buffer_size);
 		}
+		for (const auto& [key, data] : configs) {
+			if (data.type.compare("bool") == 0) {
+				isBool = true;
+			}
+			else if (data.type.compare("int") == 0) {
+				isInt = true;
+			}
+			else if (data.type.compare("color") == 0) {
+				isColor = true;
+			}
+			else isError = true;
+		}
 	}
 
 	~Configuration() {
-		std::string newBuffer = ReplaceConfigs(buffer, buffer_size);
-		free(buffer);
-		FILE* file = fopen(filepath.c_str(), "wb");
-		if (file) {
-			fwrite(newBuffer.c_str(), 1, newBuffer.length(), file);
-			fclose(file);
+		if (buffer) {
+			std::string newBuffer = ReplaceConfigs(buffer, buffer_size);
+			free(buffer);
+			FILE* file = fopen(filepath.c_str(), "wb");
+			if (file) {
+				fwrite(newBuffer.c_str(), 1, newBuffer.length(), file);
+				fclose(file);
+			}
 		}
 		configs.clear();
 	}
@@ -560,75 +663,40 @@ public:
 	virtual tsl::elm::Element* createUI() override {
 		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, "Configuration");
 		auto list = new tsl::elm::List();
-		for (const auto& [key, data] : configs) {
-			if (data.type.compare("bool") == 0) {
-				bool isTrue = data.value.compare("true") == 0;
-				auto Item = new tsl::elm::ToggleListItem(key, isTrue);
-				Item->setClickListener([key, Item](uint64_t keys) {
-					if (keys & KEY_A) {
-						configs[key].value = Item->getState() ? "true" : "false";
-						return true;
-					}
-					return false;
-				});
-				list->addItem(Item);
-			}
-			else if (data.type.compare("int") == 0) {
-				int64_t temp;
-				if (isNumeric(data.rangeMin, &temp) == true && isNumeric(data.rangeMax, &temp) == true) {
-					auto Item = new tsl::elm::ListItem(key, data.value);
-					Item->setClickListener([this, key, data, Item](uint64_t keys) {
-						if (keys & KEY_A) {
-							tsl::changeTo<EditConfigInt>(key, configs[key].value, data.rangeMin, data.rangeMax, data.defaultValue, Item);
-							return true;
-						}
-						return false;
-					});
-					list->addItem(Item);
+		if (isBool == true) {
+			auto Item = new tsl::elm::ListItem("Bools", "\uE142");
+			Item->setClickListener([](uint64_t keys) {
+				if (keys & KEY_A) {
+					tsl::changeTo<ConfigurationSubMenu>("bool");
+					return true;
 				}
-				else {
-					auto Item = new tsl::elm::ListItem(key, data.type.c_str(), true);
-					list->addItem(Item);
-				}
-			}
-			else if (data.type.compare("color") == 0) {
-				bool isValid = false;
-				u16 color;
-				std::string error;
-				if (data.value.length() == 13) {
-					std::string hexColor = data.value.substr(6);
-					hexColor = hexColor.substr(0, 6);
-					isValid = isValid4444HexColor(hexColor);
-					if (isValid) {
-						std::string r = hexColor.substr(2, 1);
-						std::string g = hexColor.substr(3, 1);
-						std::string b = hexColor.substr(4, 1);
-						std::string a = hexColor.substr(5, 1);
-						color = tsl::gfx::Color((u8)std::stoi(r, nullptr, 16), (u8)std::stoi(g, nullptr, 16), (u8)std::stoi(b, nullptr, 16), (u8)std::stoi(a, nullptr, 16)).rgba;
-					}
-					else error = "invalid color";
-				}
-				if (isValid) {
-					auto Item = new tsl::elm::ColorListItem(key, color);
-					Item->setClickListener([key, Item, color](uint64_t keys) {
-						if (keys & KEY_A) {
-							tsl::changeTo<EditConfigColor>(key, Item);
-							return true;
-						}
-						return false;
-					});
-					list->addItem(Item);
-				}
-				else {
-					auto Item = new tsl::elm::ListItem(error, data.type.c_str(), true);
-					list->addItem(Item);
-				}
-			}
-			else {
-				auto Item = new tsl::elm::ListItem(key, "\uE150");
-				list->addItem(Item);				
-			}
+				return false;
+			});
+			list->addItem(Item);
 		}
+		if (isInt == true) {
+			auto Item = new tsl::elm::ListItem("Ints", "\uE047\uE048");
+			Item->setClickListener([](uint64_t keys) {
+				if (keys & KEY_A) {
+					tsl::changeTo<ConfigurationSubMenu>("int");
+					return true;
+				}
+				return false;
+			});
+			list->addItem(Item);
+		}
+		if (isColor == true) {
+			auto Item = new tsl::elm::ListItem("Colors", "\uE135");
+			Item->setClickListener([](uint64_t keys) {
+				if (keys & KEY_A) {
+					tsl::changeTo<ConfigurationSubMenu>("color");
+					return true;
+				}
+				return false;
+			});
+			list->addItem(Item);
+		}
+
 		rootFrame->setContent(list);
 		return rootFrame;
 	}
@@ -670,6 +738,53 @@ public:
     std::string standard_path = root_path;
 	std::vector<Designs> filesChecked;
 	std::string formattedKeyCombo;
+
+	bool FindConfigs(const char* data, size_t size) {
+		size_t lineStart = 0;
+		for (size_t i = 0; i < size; ++i) {
+			if (data[i] != '\n') continue;
+
+			// Slice the current line [lineStart, i), peeling off a trailing \r.
+			size_t end = i;
+			while (end > lineStart && data[end - 1] == '\r') --end;
+			std::string rawLine(data + lineStart, end - lineStart);
+			lineStart = i + 1;
+
+			std::string trimmedRaw = trim(rawLine);
+
+			// 2. Standard configuration line processing
+			std::string line = StripLineComment(rawLine);
+			line = trim(line);
+			if (line.empty()) continue;
+
+			if (line == "Start:" || line == "Start: ") break;
+
+			size_t sep = std::string::npos;
+			{
+				int depth = 0; bool inStr = false;
+				for (size_t j = 0; j < line.size(); ++j) {
+					char c = line[j];
+					if (inStr) {
+						if (c == '\\' && j + 1 < line.size()) { ++j; continue; }
+						if (c == '"') inStr = false;
+						continue;
+					}
+					if (c == '"') { inStr = true; continue; }
+					if (c == '{') ++depth;
+					else if (c == '}') --depth;
+					else if (depth == 0 && c == '=') { sep = j; break; }
+				}
+			}
+			if (sep == std::string::npos) continue;
+
+			std::string key  = trim(line.substr(0, sep));
+			std::string rest = trim(line.substr(sep + 1));
+
+			if (key.starts_with("User_") == true) return true;
+		}
+
+		return false;
+	}
 
     MainMenu(std::string rel_path) {
 		formattedKeyCombo = keyCombo;
@@ -733,7 +848,19 @@ public:
                     smd::Document::Peek(full_path.c_str(), info, overrideLanguage.c_str());
 
                     auto fileItem = new tsl::elm::ListItem(info.name.empty() ? item.name : info.name, info.name.empty() ? "\uE098" : "");
-                    fileItem->setClickListener([this, item, info, full_path, rel_dir](uint64_t keys) {
+					FILE* file = fopen(full_path.c_str(), "rb");
+					bool doesHaveConfig = false;
+					if (file) {
+						fseek(file, 0, 2);
+						size_t size = ftell(file);
+						fseek(file, 0, 0);
+						char* buffer = (char*)malloc(size);
+						fread(buffer, 1, size, file);
+						fclose(file);
+						doesHaveConfig = FindConfigs(buffer, size);
+						free(buffer);
+					}
+                    fileItem->setClickListener([this, item, info, full_path, rel_dir, doesHaveConfig](uint64_t keys) {
 						if (info.name.empty() == false) {
 							if (keys & KEY_A) {
 								if (info.layerWidth != 0 && info.layerHeight != 0 && info.layerWidth != 448 && info.layerHeight != 720) {
@@ -755,9 +882,11 @@ public:
 								tsl::changeTo<RenderingPipeline>(full_path);
 								return true;
 							}
-							else if (keys & KEY_X) {
-								tsl::changeTo<Configuration>(full_path);
-								return true;
+							else if (doesHaveConfig == true) {
+								if (keys & KEY_X) {
+									tsl::changeTo<Configuration>(full_path);
+									return true;
+								}
 							}
 						}
                         return false;
@@ -881,7 +1010,6 @@ public:
 		//Exit services
 		clkrstExit();
 		pcvExit();
-		tsExit();
 		tcExit();
 		pwmChannelSessionClose(&g_ICon);
 		pwmExit();

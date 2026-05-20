@@ -383,7 +383,8 @@ void BatteryChecker(void*) {
 	if (R_FAILED(psmCheck) || R_FAILED(i2cCheck)){
 		return;
 	}
-	auto BatteryTimeCache = std::make_unique<int32_t[]>(120);
+	constexpr int cacheElements = 120;
+	auto BatteryTimeCache = std::make_unique<int32_t[]>(cacheElements);
 	PsmBatteryChargeInfoFields _batteryChargeInfoFields = {0};
 	uint16_t data = 0;
 	float tempV = 0.0;
@@ -486,8 +487,7 @@ void BatteryChecker(void*) {
 			if (batteryTimeEstimateInMinutes > (99.0*60.0)+59.0) {
 				batteryTimeEstimateInMinutes = (99.0*60.0)+59.0;
 			}
-			static int itr = 0;
-			int cacheElements = (sizeof(BatteryTimeCache) / sizeof(BatteryTimeCache[0]));
+			static int itr = 0;;
 			BatteryTimeCache[itr++ % cacheElements] = (int32_t)batteryTimeEstimateInMinutes;
 			uint64_t new_tick_TTE = svcGetSystemTick();
 			if (armTicksToNs(new_tick_TTE - tick_TTE) / 1'000'000'000 >= batteryTimeLeftRefreshRate) {
@@ -1511,4 +1511,15 @@ std::string lookupSMF(const std::string& folderPath) {
 	}
 
 	return lookupLocale(path + "_folder.smf");
+}
+
+// Strip a line-comment starting with ';', but ignore ';' inside "..." strings.
+static std::string StripLineComment(const std::string& line) {
+	bool inStr = false;
+	for (size_t i = 0; i < line.size(); ++i) {
+		char c = line[i];
+		if (c == '"' && (i == 0 || line[i-1] != '\\')) inStr = !inStr;
+		else if (c == ';' && !inStr) return line.substr(0, i);
+	}
+	return line;
 }
