@@ -22,7 +22,7 @@ extern "C" {
 #include <unordered_set>
 #include <vector>
 #ifndef __SWITCH__
-unsigned int crc32Calculate(const unsigned char *message, size_t len) {
+unsigned int crc32Calculate(const char *message, size_t len) {
    size_t i;
    int j;
    unsigned int byte, crc, mask;
