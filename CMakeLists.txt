@@ -52,7 +52,7 @@ target_include_directories(tinyexpr PUBLIC lib/tinyexpr)
 # smd_parser
 # ---------------------------------------------------------------------------
 add_library(smd_parser STATIC source/smd_parser.cpp)
-target_include_directories(smd_parser PUBLIC src)
+target_include_directories(smd_parser PUBLIC include)
 target_link_libraries(smd_parser PUBLIC tinyexpr)
 if(UNIX)
     target_link_libraries(smd_parser PUBLIC m)
