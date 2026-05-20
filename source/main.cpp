@@ -1,6 +1,7 @@
 #define TESLA_INIT_IMPL
 #include <tesla.hpp>
 #include "Utils.hpp"
+#include <malloc.h>
 
 #include <cstdlib>
 
@@ -721,13 +722,50 @@ public:
 	}
 
 	virtual tsl::elm::Element* createUI() override {
-		auto frame = new tsl::elm::OverlayFrame("", "");
-		return frame;
+		rootFrame = new tsl::elm::OverlayFrame("", "");
+		return rootFrame;
 	}
 
 	virtual bool handleInput(u64 keysDown, u64 keysHeld, const HidTouchState &touchPos, HidAnalogStickState joyStickPosLeft, HidAnalogStickState joyStickPosRight) override {
 		tsl::changeTo<RenderingPipeline>(filepath, true);
 		return true;
+	}
+};
+
+class MemoryCheck : public tsl::Gui {
+public:
+	size_t free_space = 0;
+	void* buffer = 0;
+	MemoryCheck() {
+		size_t start_size = 10*1024*1024;
+		while(true) {
+			buffer = malloc(start_size);
+			if (buffer) {
+				free(buffer);
+				free_space = start_size;
+				return;
+			}
+			start_size -= 1024;
+		}
+	}
+
+	virtual tsl::elm::Element* createUI() override {
+		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, "Memory checker");
+		auto Status = new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, u16 x, u16 y, u16 w, u16 h) {
+			char test[128] = "";
+			snprintf(test, sizeof(test), "Free space: %.03f MB\n\nPointer: %p", (float)free_space / 1024.f / 1024.f, buffer);
+			renderer->drawString(test, false, x, y+20, 20, renderer->a(0xFFFF));
+		});
+		rootFrame->setContent(Status);
+		return rootFrame;
+	}
+
+	virtual bool handleInput(u64 keysDown, u64 keysHeld, const HidTouchState &touchPos, HidAnalogStickState joyStickPosLeft, HidAnalogStickState joyStickPosRight) override {
+		if (keysDown & KEY_B) {
+			tsl::goBack();
+			return true;
+		}
+		return false;
 	}
 };
 
@@ -837,6 +875,12 @@ public:
                             tsl::changeTo<MainMenu>(localPath);
                             return true;
                         }
+						#ifdef DEBUG
+						else if (keys & KEY_Y) {
+							tsl::changeTo<MemoryCheck>();
+							return true;							
+						}
+						#endif
                         return false;
                     });
                     list->addItem(folderItem);
@@ -854,11 +898,14 @@ public:
 						fseek(file, 0, 2);
 						size_t size = ftell(file);
 						fseek(file, 0, 0);
-						char* buffer = (char*)malloc(size);
-						fread(buffer, 1, size, file);
-						fclose(file);
-						doesHaveConfig = FindConfigs(buffer, size);
-						free(buffer);
+						char* buffer = 0;
+						buffer = (char*)malloc(size);
+						if (buffer) {
+							fread(buffer, 1, size, file);
+							fclose(file);
+							doesHaveConfig = FindConfigs(buffer, size);
+							free(buffer);
+						}
 					}
                     fileItem->setClickListener([this, item, info, full_path, rel_dir, doesHaveConfig](uint64_t keys) {
 						if (info.name.empty() == false) {
