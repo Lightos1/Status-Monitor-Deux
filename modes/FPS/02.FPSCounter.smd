@@ -21,7 +21,7 @@ User_DockedFontSize = 40
 ;;User_DockedFontSize_Range = {int, 8, 150}
 User_OldFpsAverage = false
 ;;User_OldFpsAverage_Description_en = "Don't clamp FPS if they are in close range of PFPS value."
-;;User_ShowReadSpeed_DefaultValue = false
+;;User_OldFpsAverage_DefaultValue = false
 
 BackgroundColor = COLOR{0x0000}
 COMMON_MARGIN = 0
