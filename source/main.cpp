@@ -776,6 +776,7 @@ public:
     std::string standard_path = root_path;
 	std::vector<Designs> filesChecked;
 	std::string formattedKeyCombo;
+	std::string m_folderName;
 
 	bool FindConfigs(const char* data, size_t size) {
 		size_t lineStart = 0;
@@ -824,13 +825,14 @@ public:
 		return false;
 	}
 
-    MainMenu(std::string rel_path) {
+    MainMenu(std::string rel_path, std::string folderName = "") {
 		formattedKeyCombo = keyCombo;
 		formatButtonCombination(formattedKeyCombo);
         if (!rel_path.empty()) {
             standard_path = rel_path;
         }
         find_smd_files(standard_path, filesChecked);
+		if (folderName.length() != 0) m_folderName = folderName;
     }
 
     virtual tsl::elm::Element* createUI() override {
@@ -854,9 +856,10 @@ public:
 
 		std::string version = APP_VERSION;
 		version += "\n" + formattedKeyCombo;
+		if (m_folderName.length() > 0) version += "\n\n" + m_folderName;
 
 		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, version.c_str());
-        auto list = new tsl::elm::List();
+		auto list = new tsl::elm::List();
 
         std::string rel_dir = "";
         if (standard_path.length() > root_path.length()) {
@@ -870,9 +873,9 @@ public:
 					std::string localName = lookupSMF(localPath);
 					std::string name = localName.length() == 0 ? item.name : localName;
                     auto folderItem = new tsl::elm::ListItem(name, "\uE133");
-                    folderItem->setClickListener([this, localPath](uint64_t keys) {
+                    folderItem->setClickListener([this, localPath, name](uint64_t keys) {
                         if (keys & KEY_A) {
-                            tsl::changeTo<MainMenu>(localPath);
+                            tsl::changeTo<MainMenu>(localPath, name);
                             return true;
                         }
 						#ifdef DEBUG
@@ -973,7 +976,6 @@ public:
 		//Initialize services
 		tsl::hlp::doWithSmSession([this]{
 
-			apmInitialize();
 			if (hosversionAtLeast(8,0,0)) clkrstCheck = clkrstInitialize();
 			else pcvCheck = pcvInitialize();
 
@@ -1064,7 +1066,6 @@ public:
 		nvExit();
 		psmExit();
 		i2cExit();
-		apmExit();
 	}
 
     virtual void onShow() override {}
