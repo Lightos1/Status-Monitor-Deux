@@ -267,11 +267,11 @@ public:
 			return;
 		}
 		Movable = doc.GetConfigBool("Movable", false);
+		rel_filepath = filepath.substr(strlen("sdmc:/config/status-monitor-deux/modes/"));
 		if (Movable && saveAndLoadMovableOverlayPosition) {
 			uint32_t crc32 = doc.GetFileHash();
 			uint16_t saved_x_pos;
 			uint16_t saved_y_pos;
-			rel_filepath = filepath.erase(0, strlen("sdmc:/config/status-monitor-deux/modes/"));
 			bool wasSuccess = ProcessSmdSettings(rel_filepath, crc32, &saved_x_pos, &saved_y_pos);
 			if (wasSuccess == false) {
 				saved_x_pos = 0;
@@ -312,6 +312,38 @@ public:
 			}
 		}
 		COMMON_MARGIN = doc.GetConfigInt("COMMON_MARGIN", 20);
+		std::map<std::string, std::map<std::string, std::string>> config = getParsedDataFromIniFile("sdmc:/config/status-monitor-deux/config.ini");
+		std::string section_name = rel_filepath;
+		auto section = config.find(section_name);
+
+		if (section != config.end()) {
+			for (const auto& [m_key, value] : section->second) {
+				auto key = m_key.c_str();
+				const smd::ConfigValue* entry = doc.GetConfig(key);
+				if (entry != nullptr) {
+					switch(entry->kind) {
+						case smd::ConfigKind::Integer: {
+							int64_t int_value;
+							bool good = isNumeric(value, &int_value);
+							if (good == true) doc.SetConfigInt(key, int_value);
+							else if (value.starts_with("COLOR")) doc.SetConfigColor(key, value.c_str());
+							break;
+						}
+						case smd::ConfigKind::Bool: {
+							bool isTrue = value.compare("true") == 0;
+							bool isFalse = value.compare("false") == 0;
+							if (isTrue || isFalse) doc.SetConfigBool(key, isTrue);
+							break;
+						}
+						case smd::ConfigKind::List:
+							if (value.starts_with("LIST{str, \"") && value.ends_with("\"}}")) doc.SetConfigList(key, value.c_str());
+							break;
+						default:
+							break;
+					}
+				}
+			}
+		}
 		auto test = doc.GetConfigInt("User_BackgroundColor", 0xFFFFFF);
 		if (test == 0xFFFFFF) backgroundColor = (uint16_t)doc.GetConfigInt("BackgroundColor", 0xD000);
 		else backgroundColor = (uint16_t)test;

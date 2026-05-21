@@ -2,6 +2,7 @@
 #include <tesla.hpp>
 #include "Utils.hpp"
 #include <malloc.h>
+#include <set>
 
 #include <cstdlib>
 
@@ -55,7 +56,7 @@ public:
 	}
 
 	virtual tsl::elm::Element* createUI() override {
-		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, std::string("Edit ") + m_key);
+		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, m_key);
 		auto Status = new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, u16 x, u16 y, u16 w, u16 h) {
 			const size_t position_y = 120;
 			const size_t position_x = 60;
@@ -223,7 +224,9 @@ public:
 class EditConfigInt : public tsl::Gui {
 private:
 	std::string m_key;
-	std::string minmax;
+	std::string min_str;
+	std::string max_str;
+	std::string defaultvalue_str;
 	int64_t min;
 	int64_t max;
 	int64_t current_value;
@@ -238,21 +241,19 @@ public:
 		isNumeric(value, &current_value);
 		isNumeric(rangeMin, &min);
 		isNumeric(rangeMax, &max);
-		minmax = "Min: ";
 		if (defaultValue.length() > 0) {
 			isNumeric(defaultValue, &default_value);
-			minmax += rangeMin + "  \uE023  " + "Max: " + rangeMax + "  \uE023  " + "Default: " + defaultValue;
+			defaultvalue_str = std::to_string(default_value);
 		}
-		else minmax += rangeMin + "  \uE023  " + "Max: " + rangeMax;
+		min_str = std::to_string(min);
+		max_str = std::to_string(max);
 	}
 
 	virtual tsl::elm::Element* createUI() override {
-		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, std::string("Edit ") + m_key);
+		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, m_key);
 		auto Status = new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, u16 x, u16 y, u16 w, u16 h) {
 			const size_t fontsize2 = 60;
 			const size_t m_height = (360+fontsize2) - (fontsize2 / 2);
-            auto [width, height] = renderer->drawString(minmax.c_str(), false, 0, 20, 20, renderer->a(0x0000));
-			renderer->drawString(minmax.c_str(), false, (tsl::cfg::FramebufferWidth - width) / 2, m_height - 80, 20, renderer->a(0xFFFF));
 			std::string current = std::to_string(current_value);
 			auto [width2, height2] = renderer->drawString(current.c_str(), false, 0, fontsize2, fontsize2, renderer->a(0x0000));
 			renderer->drawString(current.c_str(), false, (tsl::cfg::FramebufferWidth - width2) / 2, m_height, fontsize2, renderer->a(0xFFFF));
@@ -260,9 +261,18 @@ public:
 			auto [width3, height3] = renderer->drawString(buttons.c_str(), false, 0, fontsize, fontsize, renderer->a(0x0000));
 			renderer->drawString(buttons.c_str(), false, (tsl::cfg::FramebufferWidth - width3) / 2, m_height+60, fontsize, renderer->a(0xFFFF));
 			auto [width4, height4] = renderer->drawString("\uE023", false, 0, fontsize, fontsize, renderer->a(0x0000));
-			renderer->drawString("\uE023", false, (tsl::cfg::FramebufferWidth - width4) / 2, m_height+60, fontsize, renderer->a(0xFFFF));
+			renderer->drawString("\uE023", false, (tsl::cfg::FramebufferWidth - width4) / 2 - 2, m_height+60, fontsize, renderer->a(0xFFFF));
 			auto [width5, height5] = renderer->drawString("\uE091      \uE090", false, 0, fontsize, fontsize, renderer->a(0x0000));
 			renderer->drawString("\uE091      \uE090", false, (tsl::cfg::FramebufferWidth - width5) / 2, m_height+36, fontsize, renderer->a(0xFFFF));
+			const size_t left_offset = (tsl::cfg::FramebufferWidth - width3) / 2;
+			const size_t right_offset = tsl::cfg::FramebufferWidth - left_offset;
+			auto [width6, height6] = renderer->drawString(min_str.c_str(), false, 0, fontsize, fontsize, renderer->a(0x0000));
+			renderer->drawString(min_str.c_str(), false, left_offset - 20 - width6, m_height+60, fontsize, renderer->a(0xFFFF));
+			renderer->drawString(max_str.c_str(), false, right_offset + 20, m_height+60, fontsize, renderer->a(0xFFFF));
+			std::string reset_str = "\uE0E2 ";
+			reset_str += defaultvalue_str;
+			auto [width7, height7] = renderer->drawString(reset_str.c_str(), false, 0, fontsize, fontsize, renderer->a(0x0000));
+			renderer->drawString(reset_str.c_str(), false, (tsl::cfg::FramebufferWidth - width7) / 2, m_height+120, fontsize, renderer->a(0xFFFF));
         });
 		rootFrame->setContent(Status);
 		return rootFrame;
@@ -277,6 +287,10 @@ public:
 		}
 		else if ((joyX > 0.25 && (joyY > -0.25 && joyY < 0.25)) || (keysDown & KEY_DRIGHT) || (keysDown & HidNpadButton_StickLRight)) {
 			if (current_value < max) current_value++;
+			return true;
+		}
+		if (keysDown & KEY_X) {
+			current_value = default_value;
 			return true;
 		}
 		if (keysDown & KEY_B) {
@@ -297,13 +311,25 @@ public:
 class ConfigurationSubMenu : public tsl::Gui {
 private:
 	std::string m_type;
+	std::string showType;
+	std::string m_name;
 public:
-	ConfigurationSubMenu(std::string type) {
+	ConfigurationSubMenu(std::string type, std::string name) {
 		m_type = type;
+		if (m_type.compare("bool") == 0) {
+			showType = "\uE142\uE14B\uE14C";
+		}
+		else if (m_type.compare("int") == 0) {
+			showType = "\uE047\uE048";
+		}
+		else if (m_type.compare("color") == 0) {
+			showType = "\uE135";
+		}
+		m_name = name + "\n" + showType;
 	}
 
 	virtual tsl::elm::Element* createUI() override {
-		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, m_type);
+		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, m_name);
 		auto list = new tsl::elm::List();
 
 		for (const auto& [key, data] : configs) {
@@ -410,54 +436,6 @@ private:
 			std::string rawLine(data + lineStart, end - lineStart);
 			lineStart = i + 1;
 
-			std::string trimmedRaw = trim(rawLine);
-
-			// 1. Intercept metadata lines BEFORE stripping comments
-			if (trimmedRaw.starts_with(";;User_")) {
-				size_t sep = std::string::npos;
-				int depth = 0; bool inStr = false;
-				
-				for (size_t j = 0; j < trimmedRaw.size(); ++j) {
-					char c = trimmedRaw[j];
-					if (inStr) {
-						if (c == '\\' && j + 1 < trimmedRaw.size()) { ++j; continue; }
-						if (c == '"') inStr = false;
-						continue;
-					}
-					if (c == '"') { inStr = true; continue; }
-					if (c == '{') ++depth;
-					else if (c == '}') --depth;
-					else if (depth == 0 && c == '=') { sep = j; break; }
-				}
-
-				if (sep != std::string::npos) {
-					std::string metaKey = trim(trimmedRaw.substr(2, sep - 2)); 
-					std::string rest = trim(trimmedRaw.substr(sep + 1));
-
-					if (metaKey.ends_with("_Range")) {
-						std::string sub_key = metaKey.substr(5, metaKey.size() - 5 - 6);
-						
-						if (!rest.empty() && rest.front() == '{') rest = rest.substr(1);
-						if (!rest.empty() && rest.back() == '}') rest.pop_back();
-						
-						size_t c1 = rest.find(',');
-						if (c1 != std::string::npos) {
-							size_t c2 = rest.find(',', c1 + 1);
-							if (c2 != std::string::npos) {
-								configs[sub_key].type = trim(rest.substr(0, c1));
-								configs[sub_key].rangeMin = trim(rest.substr(c1 + 1, c2 - c1 - 1));
-								configs[sub_key].rangeMax = trim(rest.substr(c2 + 1));
-							}
-						}
-					} 
-					else if (metaKey.ends_with("_DefaultValue")) {
-						std::string sub_key = metaKey.substr(5, metaKey.size() - 5 - 13);
-						configs[sub_key].defaultValue = rest;
-					}
-				}
-				continue; 
-			}
-
 			// 2. Standard configuration line processing
 			std::string line = StripLineComment(rawLine);
 			line = trim(line);
@@ -499,129 +477,180 @@ private:
 					} else if (rest.starts_with("LIST")) {
 						configs[sub_key].type = "list";
 					}
+					else if (rest.compare("true") == 0 || rest.compare("false") == 0) {
+						configs[sub_key].type = "bool";
+					}
 				}
+			}
+		}
+
+		lineStart = 0;
+		for (size_t i = 0; i < size; ++i) {
+			if (data[i] != '\n') continue;
+
+			// Slice the current line [lineStart, i), peeling off a trailing \r.
+			size_t end = i;
+			while (end > lineStart && data[end - 1] == '\r') --end;
+			std::string rawLine(data + lineStart, end - lineStart);
+			lineStart = i + 1;
+			std::string trimmedRaw = trim(rawLine);
+
+			// 1. Intercept metadata lines BEFORE stripping comments
+			if (trimmedRaw.starts_with(";;User_")) {
+				size_t sep = std::string::npos;
+				int depth = 0; bool inStr = false;
+				
+				for (size_t j = 0; j < trimmedRaw.size(); ++j) {
+					char c = trimmedRaw[j];
+					if (inStr) {
+						if (c == '\\' && j + 1 < trimmedRaw.size()) { ++j; continue; }
+						if (c == '"') inStr = false;
+						continue;
+					}
+					if (c == '"') { inStr = true; continue; }
+					if (c == '{') ++depth;
+					else if (c == '}') --depth;
+					else if (depth == 0 && c == '=') { sep = j; break; }
+				}
+
+				if (sep != std::string::npos) {
+					std::string metaKey = trim(trimmedRaw.substr(2, sep - 2)); 
+					std::string rest = trim(trimmedRaw.substr(sep + 1));
+
+					if (metaKey.ends_with("_Range")) {
+						std::string sub_key = metaKey.substr(5, metaKey.size() - 5 - 6);
+						
+						if (!rest.empty() && rest.front() == '{') rest = rest.substr(1);
+						if (!rest.empty() && rest.back() == '}') rest.pop_back();
+						
+						size_t c1 = rest.find(',');
+						if (c1 != std::string::npos) {
+							size_t c2 = rest.find(',', c1 + 1);
+							if (c2 != std::string::npos) {
+								if (configs.find(sub_key) != configs.end()) {
+									configs[sub_key].type = trim(rest.substr(0, c1));
+									configs[sub_key].rangeMin = trim(rest.substr(c1 + 1, c2 - c1 - 1));
+									configs[sub_key].rangeMax = trim(rest.substr(c2 + 1));
+								}
+							}
+						}
+					} 
+					else if (metaKey.ends_with("_DefaultValue")) {
+						std::string sub_key = metaKey.substr(5, metaKey.size() - 5 - 13);
+						if (configs.find(sub_key) != configs.end())
+							configs[sub_key].defaultValue = rest;
+					}
+				}
+				continue; 
 			}
 		}
 
 		// 3. Fallback check: If type is still completely blank, default to "bool"
 		for (auto& [key, data] : configs) {
 			if (data.type.empty()) {
-				data.type = "bool";
+				data.type = "error";
 			}
 		}
 
 		return;
 	}
 
-	// Returns a new buffer with every `User_<key> = <old>` rewritten to
-	// `User_<key> = <new>` using the current contents of `configs`.
-	// Lines after (and including) "Start:" are copied byte-for-byte.
-	std::string ReplaceConfigs(const char* data, size_t size) {
-		std::string out;
-		out.reserve(size);
-
-		bool pastStart  = false;
-		size_t lineStart = 0;
-
-		for (size_t i = 0; i <= size; ++i) {
-			if (i < size && data[i] != '\n') continue;
-
-			// ── Line boundaries ───────────────────────────────────────────────
-			size_t lineEnd = i;          // points at '\n' (or == size for last line)
-
-			// Strip trailing \r — identical to FindConfigs.
-			size_t contentEnd = lineEnd;
-			while (contentEnd > lineStart && data[contentEnd - 1] == '\r') --contentEnd;
-
-			// `line`    — no \r, no \n; used for analysis (mirrors FindConfigs exactly).
-			// `rawLine` — no \n, but keeps \r; used verbatim when we copy unchanged.
-			std::string line   (data + lineStart, contentEnd - lineStart);
-			std::string rawLine(data + lineStart, lineEnd    - lineStart);
-			lineStart = i + 1;
-
-			bool addNL = (i < size);
-			auto emitRaw = [&]{ out += rawLine; if (addNL) out += '\n'; };
-
-			// ── Past the "Start:" sentinel — copy verbatim ───────────────────
-			if (pastStart) { emitRaw(); continue; }
-
-			// ── Analysis — same pipeline as FindConfigs ───────────────────────
-			std::string stripped = StripLineComment(line);  // `line` has no \r here
-			size_t commentPos    = stripped.size();         // offset of ';' (or end) in `line`
-			line = trim(stripped);
-
-			if (line.empty())                              { emitRaw(); continue; }
-			if (line == "Start:" || line == "Start: ")    { pastStart = true; emitRaw(); continue; }
-
-			// Find the top-level '='.
-			size_t sep = std::string::npos;
-			{
-				int  depth = 0;
-				bool inStr = false;
-				for (size_t j = 0; j < line.size(); ++j) {
-					char c = line[j];
-					if (inStr) {
-						if (c == '\\' && j + 1 < line.size()) { ++j; continue; }
-						if (c == '"') inStr = false;
-						continue;
-					}
-					if (c == '"')       { inStr = true; continue; }
-					if (c == '{')         ++depth;
-					else if (c == '}')    --depth;
-					else if (depth == 0 && c == '=') { sep = j; break; }
-				}
-			}
-			if (sep == std::string::npos)                  { emitRaw(); continue; }
-
-			std::string key = trim(line.substr(0, sep));
-			if (!key.starts_with("User_"))                 { emitRaw(); continue; }
-
-			auto it = configs.find(key.substr(5));
-			if (it == configs.end())                       { emitRaw(); continue; }
-
-			// ── Rewrite ───────────────────────────────────────────────────────
-			// Find '=' in rawLine so we preserve the exact prefix
-			// (indentation, original spacing around '=').
-			size_t rawSep = std::string::npos;
-			{
-				int  depth = 0;
-				bool inStr = false;
-				for (size_t j = 0; j < rawLine.size(); ++j) {
-					char c = rawLine[j];
-					if (inStr) {
-						if (c == '\\' && j + 1 < rawLine.size()) { ++j; continue; }
-						if (c == '"') inStr = false;
-						continue;
-					}
-					if (c == '"')       { inStr = true; continue; }
-					if (c == '{')         ++depth;
-					else if (c == '}')    --depth;
-					else if (depth == 0 && c == '=') { rawSep = j; break; }
-				}
-			}
-			// rawSep must exist — `line` is derived from `rawLine` so '=' is
-			// always present. Assert in debug; fall back safely in release.
-			assert(rawSep != std::string::npos);
-			if (rawSep == std::string::npos) { emitRaw(); continue; }
-
-			// `commentTail` = everything from the ';' onward in rawLine
-			// (including any trailing \r).  `commentPos` was measured on `line`
-			// which has no \r, so it maps directly into rawLine only up to
-			// contentEnd; anything beyond contentEnd is the \r we must preserve.
-			std::string commentTail = rawLine.substr(commentPos);   // "; comment\r" or "\r" or ""
-
-			out += rawLine.substr(0, rawSep + 1);   // "  User_Foo ="  (exact original prefix)
-			out += ' ';
-			out += it->second.value;                // new value
-			out += commentTail;                     // inline comment + \r if any
-			if (addNL) out += '\n';
+	void setDataToIniFile(const std::string& fileToEdit, const std::string& desiredSection, const std::map<std::string, Data>& configs) {
+		FILE* configFile = fopen(fileToEdit.c_str(), "r");
+		if (!configFile) {
+			configFile = fopen(fileToEdit.c_str(), "w");
+			if (!configFile) return;
+			fprintf(configFile, "[%s]\n", desiredSection.c_str());
+			for (const auto& [key, data] : configs)
+				fprintf(configFile, "User_%s = %s\n", key.c_str(), trim(data.value).c_str());
+			fclose(configFile);
+			return;
 		}
 
-		return out;
+		std::string updatedContent;
+		std::string currentSection;
+		std::set<std::string> keysFound;
+		char line[131072];
+
+		bool sectionFound = false;
+		bool addNewLine   = false;
+
+		// Appends any keys from configs that haven't been written yet.
+		auto appendMissingKeys = [&]() {
+			for (const auto& [key, data] : configs) {
+				if (keysFound.count(key)) continue;
+				if (!updatedContent.empty() && updatedContent.substr(updatedContent.length() - 2) == "\n\n") {
+					updatedContent = updatedContent.substr(0, updatedContent.length() - 1);
+					addNewLine = true;
+				}
+				updatedContent += "User_" + key + " = " + trim(data.value) + "\n";
+				if (addNewLine) { updatedContent += "\n"; addNewLine = false; }
+			}
+		};
+
+		while (fgets(line, sizeof(line), configFile)) {
+			std::string trimmedLine = trim(line);
+
+			// Entering a new section header.
+			if (trimmedLine.size() >= 2 && trimmedLine[0] == '[' && trimmedLine.back() == ']') {
+				// Leaving the desired section — flush any keys not yet written.
+				if (sectionFound && trim(currentSection) == trim(desiredSection))
+					appendMissingKeys();
+
+				currentSection = removeQuotes(trimmedLine.substr(1, trimmedLine.length() - 2));
+			}
+
+			// Inside the desired section — check if this line holds one of our keys.
+			if (trim(currentSection) == trim(desiredSection)) {
+				sectionFound = true;
+				std::string::size_type delimiterPos = trimmedLine.find('=');
+
+				if (delimiterPos != std::string::npos) {
+					std::string lineKey = trim(trimmedLine.substr(0, delimiterPos));
+
+					// Strip prefix for map lookup — file stores "User_key", configs is keyed by "key"
+					std::string lookupKey = (lineKey.substr(0, 5) == "User_") ? lineKey.substr(5) : lineKey;
+					auto it = configs.find(lookupKey);
+
+					if (it != configs.end()) {
+						keysFound.insert(lookupKey); // track by unprefixed key, same as configs
+						if (!updatedContent.empty() && updatedContent.substr(updatedContent.length() - 2) == "\n\n") {
+							updatedContent = updatedContent.substr(0, updatedContent.length() - 1);
+							addNewLine = true;
+						}
+						updatedContent += "User_" + lookupKey + " = " + trim(it->second.value) + "\n";
+						if (addNewLine) { updatedContent += "\n"; addNewLine = false; }
+						continue;
+					}
+				}
+			}
+
+			updatedContent += line;
+		}
+
+		fclose(configFile);
+
+		// EOF while still inside the desired section.
+		if (sectionFound)
+			appendMissingKeys();
+
+		// Section was never encountered — append it at the end.
+		if (!sectionFound) {
+			updatedContent += "\n[" + desiredSection + "]\n";
+			for (const auto& [key, data] : configs)
+				updatedContent += "User_" + key + " = " + trim(data.value) + "\n";
+		}
+
+		configFile = fopen(fileToEdit.c_str(), "w");
+		if (!configFile) return;
+		fprintf(configFile, "%s", updatedContent.c_str());
+		fclose(configFile);
 	}
 public:
 	std::string filepath;
-	Configuration(std::string path) {
+	std::string m_name;
+	std::string m_show;
+	Configuration(std::string path, std::string name) {
 		tsl::hlp::requestForeground(true);
 		filepath = path;
 		FILE* file = fopen(filepath.c_str(), "rb");
@@ -633,6 +662,7 @@ public:
 			fread(buffer, 1, buffer_size, file);
 			fclose(file);
 			FindConfigs(buffer, buffer_size);
+			free(buffer);
 		}
 		for (const auto& [key, data] : configs) {
 			if (data.type.compare("bool") == 0) {
@@ -646,29 +676,45 @@ public:
 			}
 			else isError = true;
 		}
+		m_name = name;
+		m_show = std::string("\uE130 ") + m_name;
+		std::string section_name = filepath.substr(strlen("sdmc:/config/status-monitor-deux/modes/"));
+		for (const auto& [key, data] : configs) {
+			std::string temp = parseValueFromIniSection("sdmc:/config/status-monitor-deux/config.ini", section_name, std::string("User_") + key);
+			if (temp.empty()) continue;
+			int64_t value;
+			if (data.value.compare("true") == 0 || data.value.compare("false") == 0) {
+				if (temp.compare("true") != 0 && temp.compare("false") != 0) continue;
+			}
+			else if (data.value.starts_with("COLOR{") && data.value.length() == 13 && data.value.substr(6, 2).compare("0x") == 0 && data.value.substr(12).compare("}") == 0) {
+				if (temp.starts_with("COLOR{") == false || temp.length() != 13 || temp.substr(6, 2).compare("0x") || temp.substr(12).compare("}")) continue;
+			}
+			else if (isNumeric(data.value, &value) == true) {
+				if (isNumeric(temp, &value) == false) continue;
+			}
+			else if (data.value.starts_with("LIST{str, {\"") && data.value.ends_with("\"}}")) {
+				if (temp.starts_with("LIST{str, {\"") == false || temp.ends_with("\"}}") == false) continue;
+			}
+			else continue;
+			configs[key].value = temp;
+		}
 	}
 
 	~Configuration() {
-		if (buffer) {
-			std::string newBuffer = ReplaceConfigs(buffer, buffer_size);
-			free(buffer);
-			FILE* file = fopen(filepath.c_str(), "wb");
-			if (file) {
-				fwrite(newBuffer.c_str(), 1, newBuffer.length(), file);
-				fclose(file);
-			}
-		}
+		std::string section_name = filepath.substr(strlen("sdmc:/config/status-monitor-deux/modes/"));
+		setDataToIniFile("sdmc:/config/status-monitor-deux/config.ini", section_name, configs);
 		configs.clear();
 	}
 
 	virtual tsl::elm::Element* createUI() override {
-		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, "Configuration");
+
+		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, m_show);
 		auto list = new tsl::elm::List();
 		if (isBool == true) {
-			auto Item = new tsl::elm::ListItem("Bools", "\uE142");
-			Item->setClickListener([](uint64_t keys) {
+			auto Item = new tsl::elm::ListItem("Bools", "\uE142\uE14B\uE14C");
+			Item->setClickListener([this](uint64_t keys) {
 				if (keys & KEY_A) {
-					tsl::changeTo<ConfigurationSubMenu>("bool");
+					tsl::changeTo<ConfigurationSubMenu>("bool", m_show);
 					return true;
 				}
 				return false;
@@ -677,9 +723,9 @@ public:
 		}
 		if (isInt == true) {
 			auto Item = new tsl::elm::ListItem("Ints", "\uE047\uE048");
-			Item->setClickListener([](uint64_t keys) {
+			Item->setClickListener([this](uint64_t keys) {
 				if (keys & KEY_A) {
-					tsl::changeTo<ConfigurationSubMenu>("int");
+					tsl::changeTo<ConfigurationSubMenu>("int", m_show);
 					return true;
 				}
 				return false;
@@ -688,9 +734,9 @@ public:
 		}
 		if (isColor == true) {
 			auto Item = new tsl::elm::ListItem("Colors", "\uE135");
-			Item->setClickListener([](uint64_t keys) {
+			Item->setClickListener([this](uint64_t keys) {
 				if (keys & KEY_A) {
-					tsl::changeTo<ConfigurationSubMenu>("color");
+					tsl::changeTo<ConfigurationSubMenu>("color", m_show);
 					return true;
 				}
 				return false;
@@ -872,7 +918,7 @@ public:
 					std::string localPath = standard_path + item.name + "/";
 					std::string localName = lookupSMF(localPath);
 					std::string name = localName.length() == 0 ? item.name : localName;
-                    auto folderItem = new tsl::elm::ListItem(name, "\uE133");
+                    auto folderItem = new tsl::elm::ListItem(name, "\uE133", true);
                     folderItem->setClickListener([this, localPath, name](uint64_t keys) {
                         if (keys & KEY_A) {
                             tsl::changeTo<MainMenu>(localPath, name);
@@ -893,8 +939,6 @@ public:
                     
                     smd::Document::PeekInfo info;
                     smd::Document::Peek(full_path.c_str(), info, overrideLanguage.c_str());
-
-                    auto fileItem = new tsl::elm::ListItem(info.name.empty() ? item.name : info.name, info.name.empty() ? "\uE098" : "");
 					FILE* file = fopen(full_path.c_str(), "rb");
 					bool doesHaveConfig = false;
 					if (file) {
@@ -910,6 +954,10 @@ public:
 							free(buffer);
 						}
 					}
+					std::string second = "";
+					if (info.name.empty()) second = "\uE098";
+					else if (doesHaveConfig) second = "\uE04F";
+                    auto fileItem = new tsl::elm::ListItem(info.name.empty() ? item.name : info.name, second.c_str(), info.name.empty() ? true : false);
                     fileItem->setClickListener([this, item, info, full_path, rel_dir, doesHaveConfig](uint64_t keys) {
 						if (info.name.empty() == false) {
 							if (keys & KEY_A) {
@@ -933,8 +981,8 @@ public:
 								return true;
 							}
 							else if (doesHaveConfig == true) {
-								if (keys & KEY_X) {
-									tsl::changeTo<Configuration>(full_path);
+								if (keys & KEY_Y) {
+									tsl::changeTo<Configuration>(full_path, info.name);
 									return true;
 								}
 							}

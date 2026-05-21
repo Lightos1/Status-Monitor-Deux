@@ -5092,6 +5092,83 @@ bool Document::FormatConfigString(const char* key, std::string& out) {
 	return true;
 }
 
+// ===========================================================================
+// Config setters
+// ===========================================================================
+
+// Helper: keep the configMirror double in sync after an Integer/Bool change
+// so tinyexpr expressions see the new value immediately.
+static void SyncConfigMirror(Document::Impl& im, const std::string& key,
+                              int64_t newIntVal) {
+	auto mit = im.configMirror.find(key);
+	if (mit != im.configMirror.end() && mit->second)
+		*mit->second = (double)newIntVal;
+}
+
+bool Document::SetConfigInt(const char* key, int64_t value) {
+	auto it = m_impl->config.find(key);
+	if (it == m_impl->config.end()) return false;
+	ConfigValue& cv = it->second;
+	if (cv.kind != ConfigKind::Integer && cv.kind != ConfigKind::Bool)
+		return false;
+	cv.intVal  = value;
+	cv.boolVal = (value != 0);
+	SyncConfigMirror(*m_impl, key, value);
+	return true;
+}
+
+bool Document::SetConfigBool(const char* key, bool value) {
+	auto it = m_impl->config.find(key);
+	if (it == m_impl->config.end()) return false;
+	ConfigValue& cv = it->second;
+	if (cv.kind != ConfigKind::Bool && cv.kind != ConfigKind::Integer)
+		return false;
+	cv.boolVal = value;
+	cv.intVal  = value ? 1 : 0;
+	SyncConfigMirror(*m_impl, key, cv.intVal);
+	return true;
+}
+
+bool Document::SetConfigColor(const char* key, const char* value) {
+	auto it = m_impl->config.find(key);
+	if (it == m_impl->config.end()) return false;
+	ConfigValue& cv = it->second;
+	if (cv.kind != ConfigKind::Integer && cv.kind != ConfigKind::Bool)
+		return false;
+	// Reuse the load-time rewriter: run it on the raw string so COLOR{0xHHHH}
+	// gets nibble-swapped exactly as the parser does at load time.
+	std::string s = value ? std::string(value) : std::string();
+	RewriteLiteralColors(s);
+	s = Trim(s);
+	if (s.empty()) return false;
+	// Parse the resulting integer (hex or decimal).
+	char* endp = nullptr;
+	int base = 10;
+	if (s.size() > 2 && s[0] == '0' && (s[1] == 'x' || s[1] == 'X'))
+		base = 16;
+	long long n = std::strtoll(s.c_str(), &endp, base);
+	if (!endp || endp == s.c_str()) return false;
+	cv.intVal  = (int64_t)n;
+	cv.boolVal = (n != 0);
+	SyncConfigMirror(*m_impl, key, cv.intVal);
+	return true;
+}
+
+bool Document::SetConfigList(const char* key, const char* value) {
+	auto it = m_impl->config.find(key);
+	if (it == m_impl->config.end()) return false;
+	if (it->second.kind != ConfigKind::List) return false;
+	std::string err;
+	ConfigValue parsed;
+	if (!ParseConfigValue(value ? std::string(value) : std::string(),
+	                      parsed, err))
+		return false;
+	if (parsed.kind != ConfigKind::List) return false;
+	// Only replace the list payload; keep kind and isStateKind intact.
+	it->second.listVal = std::move(parsed.listVal);
+	return true;
+}
+
 } // namespace smd
 
 #pragma GCC pop_options

@@ -524,6 +524,7 @@ void searchSharedMemoryBlock(uintptr_t base) {
 void CheckIfGameRunning(void*) {
 	do {
 		if (R_FAILED(pmdmntGetApplicationProcessId(&PID))) {
+			PID = 0;
 			GameData.IsGameRunning = false;
 		}
 		else if (!GameData.IsGameRunning && SharedMemoryUsed) {
