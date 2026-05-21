@@ -184,8 +184,8 @@ namespace tsl {
 
 		constexpr u32 ScreenWidth = 1920;       ///< Width of the Screen
 		constexpr u32 ScreenHeight = 1080;      ///< Height of the Screen
-		constexpr u32 LayerMaxWidth = 1280;
-		constexpr u32 LayerMaxHeight = 720;
+		constexpr u32 FramebufferMaxWidth = 1280;
+		constexpr u32 FramebufferMaxHeight = 720;
 
 		extern u16 LayerWidth;                  ///< Width of the Tesla layer
 		extern u16 LayerHeight;                 ///< Height of the Tesla layer
@@ -193,6 +193,10 @@ namespace tsl {
 		extern u16 LayerPosY;                   ///< Y position of the Tesla layer
 		extern u16 FramebufferWidth;            ///< Width of the framebuffer
 		extern u16 FramebufferHeight;           ///< Height of the framebuffer
+		extern u16 OrigLayerWidth;              ///< Width of the initial Tesla layer
+		extern u16 OrigLayerHeight;             ///< Height of the initial Tesla layer
+		extern u16 LayerMaxWidth;
+		extern u16 LayerMaxHeight;
 
 	}
 
@@ -525,11 +529,10 @@ namespace tsl {
 			 * @param alpha Opacity
 			 * @return Blended color
 			 */
-			inline u8 blendColor(u8 src, u8 dst, u8 alpha) {
-				u8 oneMinusAlpha = 0x0F - alpha;
-
-				return (dst * alpha + src * oneMinusAlpha) / float(0xF);
-			}
+			// Source: https://github.com/ppkantorski/libultrahand/blob/e2ff5aa464154678cb4b6270ff45256e237c6f1e/libtesla/include/tesla.hpp#L1312
+            inline u8 __attribute__((always_inline)) blendColor(const u8 src, const u8 dst, const u8 alpha) {
+                return ((src * (15u - alpha)) + (dst * alpha)) >> 4;
+            }
 			
 			/**
 			 * @brief Draws a single source blended pixel onto the screen
@@ -549,7 +552,7 @@ namespace tsl {
 				end.r = this->blendColor(src.r, dst.r, dst.a);
 				end.g = this->blendColor(src.g, dst.g, dst.a);
 				end.b = this->blendColor(src.b, dst.b, dst.a);
-				end.a = src.a;
+				end.a = (dst.a + (src.a * (0xF - dst.a) >> 4));
 
 				this->setPixel(x, y, end);
 			}
@@ -572,7 +575,7 @@ namespace tsl {
 				end.r = this->blendColor(src.r, dst.r, dst.a);
 				end.g = this->blendColor(src.g, dst.g, dst.a);
 				end.b = this->blendColor(src.b, dst.b, dst.a);
-				end.a = dst.a;
+				end.a = (dst.a + (src.a * (0xF - dst.a) >> 4));
 
 				this->setPixel(x, y, end);
 			}
@@ -878,15 +881,17 @@ namespace tsl {
 				this->fillScreen({ 0x00, 0x00, 0x00, 0x00 });
 			}
 
-			inline void setLayerPos(u32 x, u32 y) {
-				float ratio = 1.5;
-				u32 maxX = cfg::ScreenWidth - (int)(ratio * cfg::FramebufferWidth);
-				u32 maxY = cfg::ScreenHeight - (int)(ratio * cfg::FramebufferHeight);
-				if (x > maxX || y > maxY) {
-					return;
-				}
-				setLayerPosImpl(x, y);
-			}
+            inline void setLayerPos(u32 x, u32 y) {
+                // Guard against placing the layer off-screen.
+                // Use cfg::LayerWidth/Height (the actual VI layer dimensions) rather than
+                // a hardcoded 1.5× factor so this works correctly in both 720p-scaled and
+                // 1080p pixel-perfect windowed modes.
+                if (x > cfg::ScreenWidth  - cfg::LayerWidth ||
+                    y > cfg::ScreenHeight - cfg::LayerHeight) {
+                    return;
+                }
+                setLayerPosImpl(x, y);
+            }
 
 			static Renderer& getRenderer() {
 				return get();
@@ -1185,13 +1190,16 @@ namespace tsl {
 				cfg::LayerPosY = 0;
 				cfg::FramebufferWidth = framebufferWidth;
 				cfg::FramebufferHeight = framebufferHeight;
-				cfg::LayerWidth  = cfg::ScreenWidth * (float(cfg::FramebufferWidth) / float(cfg::LayerMaxWidth));
-				cfg::LayerHeight = cfg::ScreenHeight * (float(cfg::FramebufferHeight) / float(cfg::LayerMaxHeight));
+				cfg::LayerWidth  = cfg::ScreenWidth * (float(cfg::FramebufferWidth) / float(cfg::FramebufferMaxWidth));
+				cfg::LayerHeight = cfg::ScreenHeight * (float(cfg::FramebufferHeight) / float(cfg::FramebufferMaxHeight));
+				cfg::OrigLayerWidth = cfg::LayerWidth;
+				cfg::OrigLayerHeight = cfg::LayerHeight;
 
 				if (this->m_initialized)
 					return;
 
 				tsl::hlp::doWithSmSession([this]{
+
 					ASSERT_FATAL(viInitialize(ViServiceType_Manager));
 					ASSERT_FATAL(viOpenDefaultDisplay(&this->m_display));
 					ASSERT_FATAL(viGetDisplayVsyncEvent(&this->m_display, &this->m_vsyncEvent));
@@ -1199,8 +1207,7 @@ namespace tsl {
 					ASSERT_FATAL(viCreateLayer(&this->m_display, &this->m_layer));
 					ASSERT_FATAL(viSetLayerScalingMode(&this->m_layer, ViScalingMode_FitToLayer));
 					
-					if (s32 layerZ = 0; R_SUCCEEDED(viGetZOrderCountMax(&this->m_display, &layerZ)) && layerZ > 0)
-						ASSERT_FATAL(viSetLayerZ(&this->m_layer, layerZ));
+					ASSERT_FATAL(viSetLayerZ(&this->m_layer, 34));
 
 					ASSERT_FATAL(tsl::hlp::viAddToLayerStack(&this->m_layer, ViLayerStack_Default));
 					ASSERT_FATAL(tsl::hlp::viAddToLayerStack(&this->m_layer, ViLayerStack_Screenshot));
@@ -3069,7 +3076,10 @@ namespace tsl::cfg {
 	u16 LayerPosY   = 0;
 	u16 FramebufferWidth  = 0;
 	u16 FramebufferHeight = 0;
-
+	u16 OrigLayerWidth = 0;
+	u16 OrigLayerHeight = 0;
+	u16 LayerMaxWidth = 1280;
+	u16 LayerMaxHeight = 720;
 }
 
 extern "C" void __libnx_init_time(void);
@@ -3099,6 +3109,7 @@ extern "C" {
 			ASSERT_FATAL(pmdmntInitialize());   // PID querying
 			ASSERT_FATAL(hidsysInitialize());   // Focus control
 			ASSERT_FATAL(setsysInitialize());   // Settings querying
+			ASSERT_FATAL(apmInitialize());
 		});
 		Service *plSrv = plGetServiceSession();
 		Service plClone;
@@ -3113,6 +3124,7 @@ extern "C" {
 	 * 
 	 */
 	void __appExit(void) {
+		apmExit();
 		fsExit();
 		hidExit();
 		plExit();
