@@ -96,60 +96,65 @@ static std::vector<std::string> split(const std::string& str, char delim = ' ') 
  */
 std::map<std::string, std::map<std::string, std::string>> getParsedDataFromIniFile(const std::string& configIniPath) {
     std::map<std::string, std::map<std::string, std::string>> parsedData;
-    std::string currentSection = ""; // Initialize the current section as empty
-    
+    std::string currentSection;
+
     FILE* configFileIn = fopen(configIniPath.c_str(), "rb");
-    if (!configFileIn) {
+    if (!configFileIn)
         return parsedData;
-    }
-    
-    // Determine the size of the INI file
+
     fseek(configFileIn, 0, SEEK_END);
     long fileSize = ftell(configFileIn);
     rewind(configFileIn);
-    
-    // Read the contents of the INI file
+
     char* fileData = new char[fileSize + 1];
     fread(fileData, sizeof(char), fileSize, configFileIn);
-    fileData[fileSize] = '\0';  // Add null-terminator to create a C-string
+    fileData[fileSize] = '\0';
     fclose(configFileIn);
-    
-    // Parse the INI data
-    std::string fileDataString(fileData, fileSize);
-    
-    // Normalize line endings to \n
-    fileDataString.erase(std::remove(fileDataString.begin(), fileDataString.end(), '\r'), fileDataString.end());
-    
-    // Split lines and parse
-    std::istringstream fileStream(fileDataString);
-    std::string line;
-    while (std::getline(fileStream, line)) {
-        // Remove leading and trailing whitespace
-        line = trim(line);
-        
-        // Check if this line is a section
-        if (line.size() > 2 && line.front() == '[' && line.back() == ']') {
-            // Remove the brackets to get the section name
-            currentSection = line.substr(1, line.size() - 2);
+
+    char* pos = fileData;
+    while (*pos) {
+        // Skip \r
+        if (*pos == '\r') { ++pos; continue; }
+
+        // Find end of line
+        char* lineStart = pos;
+        while (*pos && *pos != '\n') ++pos;
+        char* lineEnd = pos;
+        if (*pos == '\n') ++pos;
+
+        // Trim trailing \r
+        while (lineEnd > lineStart && *(lineEnd - 1) == '\r') --lineEnd;
+
+        // Skip leading whitespace
+        while (lineStart < lineEnd && (*lineStart == ' ' || *lineStart == '\t')) ++lineStart;
+        // Skip trailing whitespace
+        while (lineEnd > lineStart && (*(lineEnd - 1) == ' ' || *(lineEnd - 1) == '\t')) --lineEnd;
+
+        if (lineStart == lineEnd) continue; // empty line
+
+        if (*lineStart == '[' && *(lineEnd - 1) == ']') {
+            currentSection.assign(lineStart + 1, lineEnd - 1);
         } else {
-            // If not a section, parse as key-value pair
-            size_t delimiterPos = line.find('=');
-            if (delimiterPos != std::string::npos) {
-                std::string key = trim(line.substr(0, delimiterPos));
-                std::string value = trim(line.substr(delimiterPos + 1));
-                
-                // Store in the current section
-                parsedData[currentSection][key] = value;
+            char* delim = lineStart;
+            while (delim < lineEnd && *delim != '=') ++delim;
+            if (delim < lineEnd) {
+                char* keyEnd = delim;
+                while (keyEnd > lineStart && (*(keyEnd - 1) == ' ' || *(keyEnd - 1) == '\t')) --keyEnd;
+
+                char* valStart = delim + 1;
+                while (valStart < lineEnd && (*valStart == ' ' || *valStart == '\t')) ++valStart;
+
+                parsedData[currentSection].emplace(
+                    std::string(lineStart, keyEnd),
+                    std::string(valStart, lineEnd)
+                );
             }
         }
     }
-    
+
     delete[] fileData;
-    
     return parsedData;
 }
-
-
 
 /**
  * @brief Parses sections from an INI file and returns them as a list of strings.
@@ -452,8 +457,6 @@ void setIniFile(const std::string& fileToEdit, const std::string& desiredSection
     fprintf(configFile, "%s", updatedContent.c_str());
     fclose(configFile);
 }
-
-
 
 /**
  * @brief Sets the value of a key in an INI file within the specified section and cleans the formatting.

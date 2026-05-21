@@ -552,7 +552,7 @@ namespace tsl {
 				end.r = this->blendColor(src.r, dst.r, dst.a);
 				end.g = this->blendColor(src.g, dst.g, dst.a);
 				end.b = this->blendColor(src.b, dst.b, dst.a);
-				end.a = (dst.a + (src.a * (0xF - dst.a) >> 4));
+				end.a = src.a;
 
 				this->setPixel(x, y, end);
 			}
