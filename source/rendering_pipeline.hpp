@@ -34,8 +34,6 @@ private:
 	uint32_t m_base_y = 0;
 	int64_t m_anchor_offset_x = 0;
 	int64_t m_anchor_offset_y = 0;
-	// Saved screen-space top-left to restore on first frame with valid bounds.
-	// -1 means no restore pending.
 	int64_t m_saved_base_x = -1;
 	int64_t m_saved_base_y = -1;
 
@@ -291,10 +289,6 @@ public:
 				saved_x_pos = 0;
 				saved_y_pos = 0;
 			}
-			// saved_x/y_pos is the screen-space top-left (m_base_x/y) recorded at
-			// last close. We can't decompose it into layer+obj yet because s_rects
-			// (needed for mnx/mny) don't exist until the first Evaluate. Store it
-			// and apply in handleInput on the first frame that has valid bounds.
 			m_saved_base_x = (int64_t)saved_x_pos;
 			m_saved_base_y = (int64_t)saved_y_pos;
 			if (saved_x_pos == 1280) reachedMaxX = true;
@@ -324,7 +318,6 @@ public:
 		ClampToLayerRight  = doc.GetConfigBool("ClampToLayerRight",  false);
 		ClampToLayerBottom = doc.GetConfigBool("ClampToLayerBottom", false);
 		if (Movable && motionControl) {
-			hidsysSetAppletResourceUserId();
 			hidStartSixAxisSensor(sixaxisHandles[Controller_ProController]);
 			hidStartSixAxisSensor(sixaxisHandles[Controller_JoyConL]);
 			hidStartSixAxisSensor(sixaxisHandles[Controller_JoyConR]);
@@ -398,10 +391,6 @@ public:
 				renderer->drawString(error.c_str(), false, 20, 120, 20, renderer->a(0xFFFF));
 			}
 			else {
-				// A DryRun is needed when clamp flags require it, or when a
-				// saved position is pending (always the case on frame 1, since
-				// update() has already cleared s_rects before createUI runs).
-				// Run it once and use the results for both purposes.
 				bool needsDryRun = ((ClampToLayerRight || ClampToLayerBottom) && !changingPos)
 				                 || (m_saved_base_x >= 0);
 				if (needsDryRun) {
@@ -418,13 +407,11 @@ public:
 						}
 						int64_t layer_w = (int64_t)tsl::cfg::FramebufferWidth;
 						int64_t layer_h = (int64_t)tsl::cfg::FramebufferHeight;
-						// Apply saved position first (frame 1 restore).
 						if (m_saved_base_x >= 0) {
 							touch_pos_x    = m_saved_base_x + mnx;
 							touch_pos_y    = m_saved_base_y + mny;
 							m_anchor_offset_x = 0;
 							m_anchor_offset_y = 0;
-							// Decompose into layer + obj offset (same split as a real drag).
 							int64_t T_screen_x = touch_pos_x - mnx;
 							int64_t T_screen_y = touch_pos_y - mny;
 							int64_t T_win_x = T_screen_x * 3 / 2;
@@ -449,7 +436,6 @@ public:
 							m_saved_base_x = -1;
 							m_saved_base_y = -1;
 						}
-						// Then apply edge clamps.
 						if (ClampToLayerRight  && reachedMaxX) m_obj_offset_x_screen = layer_w - mxx;
 						if (ClampToLayerBottom && reachedMaxY) m_obj_offset_y_screen = layer_h - mxy;
 					}
@@ -483,7 +469,7 @@ public:
 
 	virtual bool handleInput(uint64_t keysDown, uint64_t keysHeld, touchPosition touchInput, JoystickPosition leftJoyStick, JoystickPosition rightJoyStick) override {
 		if (error.length() != 0) {
-			if (isKeyComboPressed(keysHeld, keysDown, mappedButtons, 20'000'000)) {
+			if (isKeyComboPressed(keysHeld, keysDown, mappedButtons, 20'000'000)) [[unlikely]] {
 				tsl::goBack();
 				if (m_double_back == true) tsl::goBack();
 				return true;
@@ -505,7 +491,6 @@ public:
 			m_base_y = (uint32_t)std::max<int64_t>(0,
 				mny + (m_layer_pos_y_window * 2 / 3) + m_obj_offset_y_screen);
 		}
-		bool m_touchScreen = false;
 
 		auto applyDragFromTouchPos = [&]() {
 			if (!haveBounds) return;
@@ -550,6 +535,8 @@ public:
 			tsl::gfx::Renderer::getRenderer().setLayerPos((uint32_t)m_layer_pos_x_window, (uint32_t)m_layer_pos_y_window);
 		};
 
+		bool m_touchScreen = touchScreen;
+		bool m_motionControl = motionControl;
 		if (Movable == true) {
 			if ((ClampToLayerRight || ClampToLayerBottom) && !changingPos && haveBounds) {
 				int64_t mxx = s_rects[0].x + s_rects[0].w;
@@ -577,8 +564,7 @@ public:
 				}
 				(void)changed;
 			}
-			m_touchScreen = touchScreen;
-			if (__builtin_expect(m_touchScreen && (sixaxisChangingPos == false), false)) {
+			if (m_touchScreen && sixaxisChangingPos == false) [[unlikely]] {
 				if (!changingPos && *touchInput.delta_time != 0) {
 					if (IsInsideTouchRange(*touchInput.x, *touchInput.y)) {
 						changingPos = true;
@@ -597,7 +583,7 @@ public:
 					applyDragFromTouchPos();
 				}
 			}
-			if (changingPos == false || sixaxisChangingPos == true) {
+			if (m_motionControl == true && (changingPos == false || sixaxisChangingPos == true)) [[unlikely]] {
 				HidSixAxisSensorState sixaxis = {0};
 				static bool start = false;
 				s32 id = -1;
@@ -651,27 +637,31 @@ public:
 		if (!changingPos) {
 			uint64_t new_time = armTicksToNs(svcGetSystemTick());
 			do {
-				if (Movable == true && m_touchScreen == true) {
-					HidTouchScreenState state = {0};
-					if (hidGetTouchScreenStates(&state, 1) && state.count && IsInsideTouchRange(state.touches[0].x, state.touches[0].y)) {
-						break;
+				if (Movable == true) {
+					if (m_touchScreen == true) {
+						HidTouchScreenState state = {0};
+						if (hidGetTouchScreenStates(&state, 1) && state.count && IsInsideTouchRange(state.touches[0].x, state.touches[0].y)) {
+							break;
+						}
+					}
+					if (m_motionControl == true) {
+						u64 style_set = padGetStyleSet(&pad);
+						if (style_set & HidNpadStyleTag_NpadJoyDual) {
+							if ((keysHeld & leftJoyconMotionMappedButtons) == leftJoyconMotionMappedButtons) break;
+							else if ((keysHeld & rightJoyconMotionMappedButtons) == rightJoyconMotionMappedButtons) break;
+						}
+						else if (style_set & HidNpadStyleTag_NpadJoyLeft) {
+							if ((keysHeld & leftJoyconMotionMappedButtons) == leftJoyconMotionMappedButtons) break;
+						}
+						else if (style_set & HidNpadStyleTag_NpadJoyRight) {
+							if ((keysHeld & rightJoyconMotionMappedButtons) == rightJoyconMotionMappedButtons) break;
+						}
+						else if (style_set & HidNpadStyleTag_NpadJoyRight) {
+							if ((keysHeld & proControllerMotionMappedButtons) == proControllerMotionMappedButtons) break;
+						}
 					}
 				}
-				u64 style_set = padGetStyleSet(&pad);
-				if (style_set & HidNpadStyleTag_NpadJoyDual) {
-					if ((keysHeld & leftJoyconMotionMappedButtons) == leftJoyconMotionMappedButtons) break;
-					else if ((keysHeld & rightJoyconMotionMappedButtons) == rightJoyconMotionMappedButtons) break;
-				}
-				else if (style_set & HidNpadStyleTag_NpadJoyLeft) {
-					if ((keysHeld & leftJoyconMotionMappedButtons) == leftJoyconMotionMappedButtons) break;
-				}
-				else if (style_set & HidNpadStyleTag_NpadJoyRight) {
-					if ((keysHeld & rightJoyconMotionMappedButtons) == rightJoyconMotionMappedButtons) break;
-				}
-				else if (style_set & HidNpadStyleTag_NpadJoyRight) {
-					if ((keysHeld & proControllerMotionMappedButtons) == proControllerMotionMappedButtons) break;
-				}
-				if (isKeyComboPressed(keysHeld, keysDown, mappedButtons, UseCustomExitCombo ? 200'000'000 : 20'000'000)) {
+				if (isKeyComboPressed(keysHeld, keysDown, mappedButtons, UseCustomExitCombo ? 200'000'000 : 20'000'000)) [[unlikely]] {
 					tsl::goBack();
 					if (m_double_back == true) tsl::goBack();
 					return true;
