@@ -236,7 +236,7 @@ VAR{Lines, 0}
 	#if $EnableGame
 		#if $Game_IsGameRunning
 			#if $User_ShowFPS and $category == "FPS"
-				VAR{LeftText, LeftTex + IETF_GET{FpsTextCat} + " \n"}
+				VAR{LeftText, LeftText + IETF_GET{FpsTextCat} + " \n"}
 				VAR{FpsAvg, User_OldFpsAverage ? Game_FpsAvgOld_float : Game_FpsAvg_float}
 				#if FpsAvg == 254 or FpsAvg < 0
 					VAR{RightText, RightText + IETF_GET{NoDataText} + "\n"}
