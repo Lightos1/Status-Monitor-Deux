@@ -69,8 +69,8 @@ IETF_LOCALE{ReadSpeedUnkTextFormat,    "PL-PL", "Prędkość odczytu: b/d"}
 IETF_LOCALE{CpuUsageText,              "PL-PL", "Użycie CPU:"}
 IETF_LOCALE{GpuUsageText,              "PL-PL", "Użycie GPU:"}
 IETF_LOCALE{RamUsageText,              "PL-PL", "Użycie RAM:"}
-IETF_LOCALE{BoardUsageText,            "PL-PL", "Osprzęt"}
-IETF_LOCALE{TemperatureText,           "PL-PL", "Temperatury: "}
+IETF_LOCALE{BoardUsageText,            "PL-PL", "Osprzęt:"}
+IETF_LOCALE{TemperatureText,           "PL-PL", "Temperatury:"}
 IETF_LOCALE{ThermalSensorsText,        "PL-PL", "SOC \nPCB \nObudowa "}
 IETF_LOCALE{GameText,                  "PL-PL", "Gra:"}
 IETF_LOCALE{Resolutions1Text,          "PL-PL", "Rozdzielczości: %dx%d"}
@@ -110,7 +110,7 @@ RotationText: {IETF_GET{FanRotationTextFormat}, Board_FanRotationPercentageLevel
 EnableGame = true
 FpsText: {"PFPS: %u; FPS: %2.1f", Game_FPS_int, User_OldFpsAverage ? Game_FpsAvgOld_float : Game_FpsAvg_float}
 FpsNoDataText = IETF_GET{FpsNDText}
-ReadSpeedText: {IETF_GET{ReadSpeedTextTextFormat}, Game_ReadSpeedPerSecond_float / 1048576}
+ReadSpeedText: {IETF_GET{ReadSpeedTextFormat}, Game_ReadSpeedPerSecond_float / 1048576}
 ReadSpeedUnkText = IETF_GET{ReadSpeedUnkTextFormat}
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -122,25 +122,29 @@ Start:
 	
 	#if $CPU_RealHz_int and $User_ShowRealFrequencies
 		VAR{height_offset, 162}
+		GET_DIMENSIONS{RealDims, 15, CPURealFreqText}
 	#endif
 	
-	#if $User_ShowRealFrequencies
+	#if $User_ShowTargetFrequencies
 		TEXT{0, height_offset, 15, 0xFFFF, CPUTargetFreqText}
+		GET_DIMENSIONS{TargetDims, 15, CPUTargetFreqText}
 	#endif
+
+	VAR{DeltaOffset, TargetDims.x > RealDims.x ? TargetDims.x : RealDims.x}
 
 	#if $CPU_RealHz_int
 		#if $User_ShowRealFrequencies
 			TEXT{0, height_offset - 15, 15, 0xFFFF, CPURealFreqText}
 			#if $User_ShowFrequenceDeltas
 				#if $User_ShowRealFrequencies
-					TEXT{230, height_offset - 7, 15, 0xFFFF, CPUdeltaText}
+					TEXT{DeltaOffset + 20, height_offset - 7, 15, 0xFFFF, CPUdeltaText}
 				#else
-					TEXT{230, height_offset - 15, 15, 0xFFFF, CPUdeltaText}
+					TEXT{DeltaOffset + 20, height_offset - 15, 15, 0xFFFF, CPUdeltaText}
 				#endif
 			#endif
 		#elif $User_ShowFrequenceDeltas
 			#if $User_ShowRealFrequencies or $User_ShowTargetFrequencies
-				TEXT{230, height_offset, 15, 0xFFFF, CPUdeltaText}
+				TEXT{DeltaOffset + 20, height_offset, 15, 0xFFFF, CPUdeltaText}
 			#endif
 		#endif
 	#endif
@@ -152,25 +156,30 @@ Start:
 	VAR{height_offset, 320}
 	#if $GPU_RealHz_int and $User_ShowRealFrequencies
 		VAR{height_offset, 327}
+		GET_DIMENSIONS{RealDims, 15, GPURealFreqText}
 	#endif
 
 	TEXT{0, 285, 20, 0xFFFF, IETF_GET{GpuUsageText}}
-	#if $User_ShowRealFrequencies
+	#if $User_ShowTargetFrequencies
 		TEXT{0, height_offset, 15, 0xFFFF, GPUTargetFreqText}
+		GET_DIMENSIONS{TargetDims, 15, GPUTargetFreqText}
 	#endif
+
+	VAR{DeltaOffset, TargetDims.x > RealDims.x ? TargetDims.x : RealDims.x}
+
 	#if $GPU_RealHz_int
 		#if $User_ShowRealFrequencies
 			TEXT{0, height_offset - 15, 15, 0xFFFF, GPURealFreqText}
 			#if $User_ShowFrequenceDeltas
 				#if $User_ShowRealFrequencies
-					TEXT{230, height_offset - 7, 15, 0xFFFF, GPUdeltaText}
+					TEXT{DeltaOffset + 20, height_offset - 7, 15, 0xFFFF, GPUdeltaText}
 				#else
-					TEXT{230, height_offset - 15, 15, 0xFFFF, GPUdeltaText}
+					TEXT{DeltaOffset + 20, height_offset - 15, 15, 0xFFFF, GPUdeltaText}
 				#endif
 			#endif
 		#elif $User_ShowFrequenceDeltas
 			#if $User_ShowRealFrequencies or $User_ShowRealFrequencies
-				TEXT{230, height_offset, 15, 0xFFFF, GPUdeltaText}
+				TEXT{DeltaOffset + 20, height_offset, 15, 0xFFFF, GPUdeltaText}
 			#endif
 		#endif
 	#endif
@@ -183,27 +192,31 @@ Start:
 	VAR{height_offset, 410}
 	#if $RAM_RealHz_int and $User_ShowRealFrequencies
 		VAR{height_offset, height_offset + 7}
+		GET_DIMENSIONS{RealDims, 15, RAMRealFreqText}
 	#endif
 
 	TEXT{0, 375, 20, 0xFFFF, IETF_GET{RamUsageText}}
 
-	#if $User_ShowRealFrequencies
+	#if $User_ShowTargetFrequencies
 		TEXT{0, height_offset, 15, 0xFFFF, RAMTargetFreqText}
+		GET_DIMENSIONS{TargetDims, 15, RAMTargetFreqText}
 	#endif
+
+	VAR{DeltaOffset, TargetDims.x > RealDims.x ? TargetDims.x : RealDims.x}
 
 	#if $RAM_RealHz_int
 		#if $User_ShowRealFrequencies
 			TEXT{0, height_offset - 15, 15, 0xFFFF, RAMRealFreqText}
 			#if $User_ShowFrequenceDeltas
 				#if $User_ShowRealFrequencies
-					TEXT{230, height_offset - 7, 15, 0xFFFF, RAMdeltaText}
+					TEXT{DeltaOffset + 20, height_offset - 7, 15, 0xFFFF, RAMdeltaText}
 				#else
-					TEXT{230, height_offset - 15, 15, 0xFFFF, RAMdeltaText}
+					TEXT{DeltaOffset + 20, height_offset - 15, 15, 0xFFFF, RAMdeltaText}
 				#endif
 			#endif
 		#elif $User_ShowFrequenceDeltas
 			#if $User_ShowRealFrequencies or $User_ShowRealFrequencies
-				TEXT{230, height_offset, 15, 0xFFFF, RAMdeltaText}
+				TEXT{DeltaOffset + 20, height_offset, 15, 0xFFFF, RAMdeltaText}
 			#endif
 		#endif
 		#if $RAM_LoadAll_int
