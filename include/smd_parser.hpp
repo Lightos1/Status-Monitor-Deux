@@ -276,6 +276,24 @@ public:
     bool               GetConfigBool  (const char* key, bool def = false)      const;
     const char*        GetConfigString(const char* key, const char* def = "")  const;
 
+    // Overwrite an existing config entry at runtime. Returns true when the key
+    // exists and the value was updated; false when the key is not found (no
+    // new keys are ever created). Compile() must have been called first.
+    //
+    // SetConfigInt   -- works on Integer and Bool entries; updates both intVal
+    //                   and boolVal so expression mirrors stay consistent.
+    // SetConfigBool  -- same dual-field update as SetConfigInt.
+    // SetConfigColor -- accepts a "COLOR{0xHHHH}" string (or any bare hex /
+    //                   decimal integer); applies the same nibble-swap that
+    //                   the parser applies at load time and stores the result
+    //                   into an Integer entry (colors have no dedicated kind).
+    // SetConfigList  -- accepts a "LIST{type, {e,e,...}}" string and replaces
+    //                   the ListValue of an existing List entry in-place.
+    bool SetConfigInt   (const char* key, int64_t     value);
+    bool SetConfigBool  (const char* key, bool        value);
+    bool SetConfigColor (const char* key, const char* value);
+    bool SetConfigList  (const char* key, const char* value);
+
     bool FormatConfigString(const char* key, std::string& out);
 
     const char* LastError() const;
