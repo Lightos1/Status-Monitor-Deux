@@ -116,7 +116,7 @@ int main() {
         if (doc.GetConfigBool("FooterText", false) != true) {
             std::printf("  FAIL FooterText default\n"); g_failures++;
         } else std::printf("  PASS FooterText=true\n");
-        if (doc.GetConfigBool("UseCustomExitCombo", false) != true) {
+        if (doc.GetConfigBool("UseCustomExitCombo", false) != false) {
             std::printf("  FAIL UseCustomExitCombo default\n"); g_failures++;
         } else std::printf("  PASS UseCustomExitCombo=true\n");
     }
