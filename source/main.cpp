@@ -1127,8 +1127,6 @@ public:
     virtual void onHide() override {}
 
     virtual std::unique_ptr<tsl::Gui> loadInitialGui() override {
-		TimeLocationName out;
-		setsysGetDeviceTimeZoneLocationName(&out);
 		remove("sdmc:/dddd.dddd");
 		FsFileSystem* filesystem = fsdevGetDeviceFileSystem("sdmc");
 		char out_path[FS_MAX_PATH] = "";
@@ -1140,7 +1138,6 @@ public:
 			stat("sdmc:/dddd.dddd", &attr);
 			remove("sdmc:/dddd.dddd");
 			LocalTime.timestamp = attr.st_mtime;
-			LocalTime.timezone = convertTimeLocationNameToTimeZone(&out);
 		}
 		if (file_to_load.length() == 0)
         	return initially<MainMenu>("");

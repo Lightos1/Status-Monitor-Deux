@@ -500,9 +500,8 @@ public:
 		uint64_t deltaTick = tick - LocalTime.relative_tick;
 		int64_t seconds_passed = deltaTick / systemtickfrequency; 
 		time_t new_timestamp = LocalTime.timestamp + seconds_passed;
-		time_t adjusted_timestamp = getLocalPosixTime(new_timestamp, LocalTime.timezone);
 		struct tm local_time;
-		gmtime_r(&adjusted_timestamp, &local_time);
+		gmtime_r(&new_timestamp, &local_time);
 		SystemData.ClockHour = local_time.tm_hour;
 		SystemData.ClockMinute = local_time.tm_min;
 		SystemData.ClockSecond = local_time.tm_sec;
