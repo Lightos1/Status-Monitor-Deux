@@ -1270,6 +1270,7 @@ void ParseIniFile() {
 	config = getParsedDataFromIniFile(configIniPath.c_str());
 	auto it = config.find("status-monitor-deux");
 	bool override_check = false;
+	std::string temp_overrideLanguage;
 	if (it != config.end()) {
 		auto settings = it->second;
 		for (const auto& [key, value] : settings) {
@@ -1329,22 +1330,21 @@ void ParseIniFile() {
 			else if (key.compare("jump_immediately_to_single_smd") == 0 and value.length() > 0) {
 				std::string temp = value;
 				convertToUpper(temp);
-				jumpImmediatelyToSingleSmd = value.compare("FALSE");
+				jumpImmediatelyToSingleSmd = temp.compare("FALSE");
 			}
 			else if (key.compare("save_and_load_movable_overlay_position") == 0 and value.length() > 0) {
 				std::string temp = value;
 				convertToUpper(temp);
-				saveAndLoadMovableOverlayPosition = value.compare("FALSE");
+				saveAndLoadMovableOverlayPosition = temp.compare("FALSE");
 			}
 			else if (key.compare("override_language") == 0 and value.length() > 0) {
 				std::string temp = value;
 				convertToUpper(temp);
-				override_check = !value.compare("TRUE");
+				override_check = !temp.compare("TRUE");
 			}		
-			else if (override_check == true && key.compare("override_language_ietf_code") == 0 && value.length() > 0) {
-				std::string temp = value;
-				convertToUpper(temp);
-				overrideLanguage = temp;
+			else if (key.compare("override_language_ietf_code") == 0 && value.length() > 0) {
+				temp_overrideLanguage = value;
+				convertToUpper(temp_overrideLanguage);
 			}
 		}
 	}
@@ -1390,15 +1390,15 @@ void ParseIniFile() {
 		}
 	}
 
-	FILE* localeFileIn = fopen(localeIniPath.c_str(), "r");
-	if (localeFileIn) {
-		std::string section = "EN-US";
-		if (overrideLanguage.length() != 0) section = overrideLanguage;
-
-		std::string temp = parseValueFromIniSectionF(localeFileIn, section, "Footer");
-		if (temp.length() != 0) defaultButtonView = resolveHexEscapes(temp);
-		
-		fclose(localeFileIn);
+	if (override_check == true && temp_overrideLanguage.length() > 0) {
+		overrideLanguage = temp_overrideLanguage;
+		FILE* localeFileIn = fopen(localeIniPath.c_str(), "r");
+		if (localeFileIn) {
+			std::string temp = parseValueFromIniSectionF(localeFileIn, overrideLanguage, "Footer");
+			if (temp.length() != 0) defaultButtonView = resolveHexEscapes(temp);
+			
+			fclose(localeFileIn);
+		}
 	}
 }
 
