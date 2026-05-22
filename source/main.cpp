@@ -19,14 +19,13 @@ struct Data {
 	std::string rangeMax;
 	std::string defaultValue;
 };
-std::map<std::string, Data> configs;
 
 class EditConfigColor : public tsl::Gui {
 private:
 	std::string m_key;
 	tsl::elm::ColorListItem* m_item;
 	u16 m_color;
-
+	std::map<std::string, Data>* configs;
 public:
 	uint64_t start_tick;
 	int32_t row = 0;
@@ -37,7 +36,8 @@ public:
 	int32_t selected_predefined;
 	std::array<u16, 16> predefinedColors = {0xFF7A, 0xFFF0, 0xFF80, 0xFF8E, 0xF053, 0xF0FF, 0xFFDC, 0xF808, 0xFEEE, 0xF80F, 0xF6CC, 0xF0F8, 0xF744, 0xFAAF, 0xF080, 0xF82E};
 
-	EditConfigColor(std::string key, tsl::elm::ColorListItem* item) {
+	EditConfigColor(std::string key, tsl::elm::ColorListItem* item, std::map<std::string, Data>* m_configs) {
+		configs = m_configs;
 		tsl::hlp::requestForeground(true);
 		m_item = item;
 		m_key = key;
@@ -212,7 +212,7 @@ public:
 			uint32_t b = (m_color >> 8) & 0xF;
 			uint16_t in_color = (r << 12) + (g << 8) + (b << 4) + selected_a;
 			snprintf(buffer, sizeof(buffer), "COLOR{0x%04X}", in_color);
-			configs[m_key].value = buffer;
+			configs->at(m_key).value = buffer;
 			m_item->setColor((m_color & 0xFFF) + (selected_a << 12));
 			tsl::goBack();
 			return true;
@@ -233,8 +233,10 @@ private:
 	int64_t default_value;
 	std::string buttons = "\uE0B1/\uE0C1      \uE0C1/\uE0B2";
 	tsl::elm::ListItem* m_item;
+	std::map<std::string, Data>* configs;
 public:
-	EditConfigInt(std::string key, std::string value, std::string rangeMin, std::string rangeMax, std::string defaultValue, tsl::elm::ListItem* item) {
+	EditConfigInt(std::string key, std::string value, std::string rangeMin, std::string rangeMax, std::string defaultValue, tsl::elm::ListItem* item, std::map<std::string, Data>* m_configs) {
+		configs = m_configs;
 		tsl::hlp::requestForeground(true);
 		m_item = item;
 		m_key = key;
@@ -299,7 +301,7 @@ public:
 		}
 		if (keysDown & KEY_A) {
 			std::string temp = std::to_string(current_value);
-			configs[m_key].value = temp;
+			configs->at(m_key).value = temp;
 			m_item->setValue(temp, false);
 			tsl::goBack();
 			return true;
@@ -313,8 +315,10 @@ private:
 	std::string m_type;
 	std::string showType;
 	std::string m_name;
+	std::map<std::string, Data>* configs;
 public:
-	ConfigurationSubMenu(std::string type, std::string name) {
+	ConfigurationSubMenu(std::string type, std::string name, std::map<std::string, Data>* m_configs) {
+		configs = m_configs;
 		m_type = type;
 		if (m_type.compare("bool") == 0) {
 			showType = "\uE142\uE14B\uE14C";
@@ -332,7 +336,7 @@ public:
 		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, m_name);
 		auto list = new tsl::elm::List();
 
-		for (const auto& [key, data] : configs) {
+		for (const auto& [key, data] : *configs) {
 			if (data.type.compare(m_type) == 0) {
 				if (m_type.compare("int") == 0) {
 					int64_t temp;
@@ -340,7 +344,7 @@ public:
 						auto Item = new tsl::elm::ListItem(key, data.value);
 						Item->setClickListener([this, key, data, Item](uint64_t keys) {
 							if (keys & KEY_A) {
-								tsl::changeTo<EditConfigInt>(key, configs[key].value, data.rangeMin, data.rangeMax, data.defaultValue, Item);
+								tsl::changeTo<EditConfigInt>(key, configs->at(key).value, data.rangeMin, data.rangeMax, data.defaultValue, Item, configs);
 								return true;
 							}
 							return false;
@@ -355,9 +359,9 @@ public:
 				else if (data.type.compare("bool") == 0) {
 					bool isTrue = data.value.compare("true") == 0;
 					auto Item = new tsl::elm::ToggleListItem(key, isTrue);
-					Item->setClickListener([key, Item](uint64_t keys) {
+					Item->setClickListener([this, key, Item](uint64_t keys) {
 						if (keys & KEY_A) {
-							configs[key].value = Item->getState() ? "true" : "false";
+							configs->at(key).value = Item->getState() ? "true" : "false";
 							return true;
 						}
 						return false;
@@ -383,9 +387,9 @@ public:
 					}
 					if (isValid) {
 						auto Item = new tsl::elm::ColorListItem(key, color);
-						Item->setClickListener([key, Item, color](uint64_t keys) {
+						Item->setClickListener([this, key, Item, color](uint64_t keys) {
 							if (keys & KEY_A) {
-								tsl::changeTo<EditConfigColor>(key, Item);
+								tsl::changeTo<EditConfigColor>(key, Item, configs);
 								return true;
 							}
 							return false;
@@ -424,7 +428,7 @@ private:
 	bool isInt = false;
 	bool isColor = false;
 	bool isError = false;
-
+	std::map<std::string, Data> configs;
 	void FindConfigs(const char* data, size_t size) {
 		size_t lineStart = 0;
 		for (size_t i = 0; i < size; ++i) {
@@ -651,6 +655,7 @@ public:
 	std::string m_name;
 	std::string m_show;
 	std::string section_name;
+	std::vector<std::string> list_keys;
 	Configuration(std::string path, std::string name) {
 		tsl::hlp::requestForeground(true);
 		filepath = path;
@@ -682,11 +687,13 @@ public:
 		section_name = filepath.substr(strlen("sdmc:/config/status-monitor-deux/modes/"));
 		auto it = config.find(section_name);
 		if (it == config.end()) return;
-		auto settings = it->second;
-		for (const auto& [key, data] : configs) {
+		auto settings = it->second; //to co znaleziono w pliku ini
+		file = fopen("sdmc:/data.txt", "w");
+		for (const auto& [key, data] : configs) { //To co znaleziono w pliku SMD
 			auto it2 = settings.find("User_" + key);
 			if (it2 == settings.end()) continue;
 			std::string temp = it2->second;
+			fprintf(file, "[%s] \"%s\" ][ \"%s\"\n", key.c_str(), data.value.c_str(), temp.c_str());
 			int64_t value;
 			if (data.value.compare("true") == 0 || data.value.compare("false") == 0) {
 				if (temp.compare("true") != 0 && temp.compare("false") != 0) continue;
@@ -698,21 +705,42 @@ public:
 				if (isNumeric(temp, &value) == false) continue;
 			}
 			else if (data.value.starts_with("LIST{str, {\"") && data.value.ends_with("\"}}")) {
-				if (temp.starts_with("LIST{str, {\"") == false || temp.ends_with("\"}}") == false) continue;
+				std::string temp2 = flatListToList(temp);
+				temp = temp2;
+				list_keys.emplace_back(key);
 			}
 			else continue;
 			configs[key].value = temp;
 		}
+		fclose(file);
 	}
 
 	~Configuration() {
+		std::vector<std::string> key_to_reverse;
+		for (const auto& [key, data] : configs) {
+			if (configs[key].value.starts_with("LIST")) {
+				key_to_reverse.emplace_back(key);
+				std::string list = listToFlatList(configs[key].value);
+				configs[key].value = list;
+			}
+		}
 		setDataToIniFile("sdmc:/config/status-monitor-deux/config.ini", section_name, configs);
+
 		auto it = config.find(section_name);
 		if (it == config.end()) return;
-		auto settings = it->second;
-		for (const auto& [key, data] : configs) {
-			settings["User_" + key] = configs[key].value;
+		auto settings = &it->second;
+		
+		for (size_t i = 0; i < key_to_reverse.size(); i++) {
+			std::string flatList = flatListToList(configs[key_to_reverse[i]].value);
+			configs[key_to_reverse[i]].value = flatList;
 		}
+		FILE* file = fopen("sdmc:/on_save.txt", "w");
+		for (const auto& [key, data] : configs) {
+			std::string m_key = "User_" + key;
+			fprintf(file, "[%s] %s\n", m_key.c_str(), configs[key].value.c_str());
+			settings->at(m_key) = configs[key].value;
+		}
+		fclose(file);
 	}
 
 	virtual tsl::elm::Element* createUI() override {
@@ -723,7 +751,7 @@ public:
 			auto Item = new tsl::elm::ListItem("Bools", "\uE142\uE14B\uE14C");
 			Item->setClickListener([this](uint64_t keys) {
 				if (keys & KEY_A) {
-					tsl::changeTo<ConfigurationSubMenu>("bool", m_show);
+					tsl::changeTo<ConfigurationSubMenu>("bool", m_show, &configs);
 					return true;
 				}
 				return false;
@@ -734,7 +762,7 @@ public:
 			auto Item = new tsl::elm::ListItem("Ints", "\uE047\uE048");
 			Item->setClickListener([this](uint64_t keys) {
 				if (keys & KEY_A) {
-					tsl::changeTo<ConfigurationSubMenu>("int", m_show);
+					tsl::changeTo<ConfigurationSubMenu>("int", m_show, &configs);
 					return true;
 				}
 				return false;
@@ -745,7 +773,7 @@ public:
 			auto Item = new tsl::elm::ListItem("Colors", "\uE135");
 			Item->setClickListener([this](uint64_t keys) {
 				if (keys & KEY_A) {
-					tsl::changeTo<ConfigurationSubMenu>("color", m_show);
+					tsl::changeTo<ConfigurationSubMenu>("color", m_show, &configs);
 					return true;
 				}
 				return false;

@@ -315,11 +315,13 @@ public:
 		std::string section_name = rel_filepath;
 		auto section = config.find(section_name);
 
+		FILE* file = fopen("sdmc:/data.txt", "w");
 		if (section != config.end()) {
 			for (const auto& [m_key, value] : section->second) {
 				auto key = m_key.c_str();
 				const smd::ConfigValue* entry = doc.GetConfig(key);
 				if (entry != nullptr) {
+					fprintf(file, "[%s] [type=%d] %s\n", m_key.c_str(), (u32)entry->kind, value.c_str());
 					switch(entry->kind) {
 						case smd::ConfigKind::Integer: {
 							int64_t int_value;
@@ -334,15 +336,18 @@ public:
 							if (isTrue || isFalse) doc.SetConfigBool(key, isTrue);
 							break;
 						}
-						case smd::ConfigKind::List:
-							if (value.starts_with("LIST{str, \"") && value.ends_with("\"}}")) doc.SetConfigList(key, value.c_str());
+						case smd::ConfigKind::List: {
+							std::string flat = flatListToList(value);
+							doc.SetConfigList(key, flat.c_str());
 							break;
+						}
 						default:
 							break;
 					}
 				}
 			}
 		}
+		fclose(file);
 		auto test = doc.GetConfigInt("User_BackgroundColor", 0xFFFFFF);
 		if (test == 0xFFFFFF) backgroundColor = (uint16_t)doc.GetConfigInt("BackgroundColor", 0xD000);
 		else backgroundColor = (uint16_t)test;

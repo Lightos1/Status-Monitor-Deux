@@ -131,7 +131,6 @@ std::map<std::string, std::map<std::string, std::string>> config;
 struct {
 	time_t timestamp;
 	uint64_t relative_tick;
-	TimeZone timezone;
 } LocalTime;
 
 //Checks
@@ -1496,4 +1495,53 @@ static std::string StripLineComment(const std::string& line) {
 		else if (c == ';' && !inStr) return line.substr(0, i);
 	}
 	return line;
+}
+
+std::string listToFlatList(const std::string& input) {
+    size_t firstOpen = input.find('{');
+    if (firstOpen == std::string::npos) return "";
+
+    size_t innerOpen = input.find('{', firstOpen + 1);
+    size_t innerClose = input.rfind('}');
+    if (innerOpen == std::string::npos || innerClose == std::string::npos) return "";
+
+    std::string body = input.substr(innerOpen + 1, innerClose - innerOpen - 1);
+
+    std::string result;
+    size_t pos = 0;
+    while (pos < body.size()) {
+        size_t quoteOpen = body.find('"', pos);
+        if (quoteOpen == std::string::npos) break;
+        size_t quoteClose = body.find('"', quoteOpen + 1);
+        if (quoteClose == std::string::npos) return "";
+
+        if (!result.empty()) result += '+';
+        result += body.substr(quoteOpen + 1, quoteClose - quoteOpen - 1);
+        pos = quoteClose + 1;
+    }
+    return result;
+}
+
+std::string flatListToList(const std::string& input) {
+    if (input.empty()) return "";
+
+    std::string result = "LIST{str, {";
+    size_t pos = 0;
+    bool first = true;
+    while (pos <= input.size()) {
+        size_t next = input.find('+', pos);
+        if (next == std::string::npos) next = input.size();
+
+        std::string token = input.substr(pos, next - pos);
+        if (!token.empty()) {
+            if (!first) result += ", ";
+            result += '"' + token + '"';
+            first = false;
+        }
+        pos = next + 1;
+    }
+
+    if (first) return ""; // no tokens found
+    result += "}}";
+    return result;
 }
