@@ -195,6 +195,7 @@ extern "C" time_t getLocalPosixTimeSafe(time_t posix_time, TimeLocationName* nam
     return 0; // Fallback
 }
 
+//It checks only to first unique byte, currently you can save 1400 bytes at -O3 with it.
 extern "C" time_t getLocalPosixTimeUnsafe(time_t posix_time, TimeLocationName* name) {
     const time_t last_valid_posix_time = 1779460399; // May 22, 2026
     if (posix_time < last_valid_posix_time) return 0;
