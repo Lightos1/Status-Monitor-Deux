@@ -8,7 +8,6 @@
 #include <numeric>
 #include <sys/stat.h>
 #include "smd_parser.hpp"
-#include "timeOffsetter.h"
 
 #if defined(__cplusplus)
 extern "C"
