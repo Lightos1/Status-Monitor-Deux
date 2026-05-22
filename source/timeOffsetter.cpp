@@ -1,3 +1,7 @@
+//Simple and fast timezone clock offset calculator.
+//Supports all timezones possible to set in Nintendo Switch.
+//It doesn't support anything before 22.05.2026
+
 #include <switch.h>
 #include <string.h>
 #include <time.h>
