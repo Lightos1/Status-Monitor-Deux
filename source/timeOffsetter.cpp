@@ -30,6 +30,7 @@ constexpr uint32_t hash_tz(const char* str) {
     return hash;
 }
 
+//Hash based lookup. At the end there is static assert that checks at compile time that there are no hash collissions.
 extern "C" time_t getLocalPosixTimeSafe(time_t posix_time, TimeLocationName* name) {
     const time_t last_valid_posix_time = 1779460399; // May 22, 2026
     if (posix_time < last_valid_posix_time) return 0;
