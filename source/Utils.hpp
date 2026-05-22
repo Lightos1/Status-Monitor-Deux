@@ -8,6 +8,7 @@
 #include <numeric>
 #include <sys/stat.h>
 #include "smd_parser.hpp"
+#include "timeOffsetter.h"
 
 #if defined(__cplusplus)
 extern "C"
@@ -128,8 +129,9 @@ bool saveAndLoadMovableOverlayPosition = true;
 std::string overrideLanguage;
 std::map<std::string, std::map<std::string, std::string>> config;
 struct {
-	struct tm timestamp;
+	time_t timestamp;
 	uint64_t relative_tick;
+	TimeZone timezone;
 } LocalTime;
 
 //Checks

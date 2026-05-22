@@ -3,7 +3,6 @@
 #include "Utils.hpp"
 #include <malloc.h>
 #include <set>
-#include "timeOffsetter.h"
 
 #include <cstdlib>
 
@@ -1140,9 +1139,8 @@ public:
 			struct stat attr;
 			stat("sdmc:/dddd.dddd", &attr);
 			remove("sdmc:/dddd.dddd");
-			time_t time = attr.st_mtime;
-			time_t adjusted_time = getLocalPosixTimeSafe(time, &out);
-			gmtime_r(&adjusted_time, &LocalTime.timestamp);
+			LocalTime.timestamp = attr.st_mtime;
+			LocalTime.timezone = convertTimeLocationNameToTimeZone(&out);
 		}
 		if (file_to_load.length() == 0)
         	return initially<MainMenu>("");

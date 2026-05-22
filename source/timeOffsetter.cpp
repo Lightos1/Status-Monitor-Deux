@@ -1,11 +1,8 @@
-//Simple and fast timezone clock offset calculator.
-//Supports all timezones possible to set in Nintendo Switch.
-//It doesn't support anything before 22.05.2026
-
 #include <switch.h>
 #include <string.h>
 #include <time.h>
 #include <array>
+#include "timeOffsetter.h"
 
 static inline int64_t hourMinutesToSecond(int64_t hour, int64_t minutes) {
     return (hour * 3600) + (minutes * 60);    
@@ -30,15 +27,112 @@ constexpr uint32_t hash_tz(const char* str) {
     return hash;
 }
 
-//Hash based lookup. At the end of file there is static assert that checks at compile time that there are no hash collissions.
-extern "C" time_t getLocalPosixTimeSafe(time_t posix_time, TimeLocationName* name) {
+extern "C" TimeZone convertTimeLocationNameToTimeZone(TimeLocationName* name) {
+    const char* m_name = name->name;
+    uint32_t current_hash_tz = hash_tz(m_name);
+    
+    switch(current_hash_tz) {
+        case hash_tz("Africa/Brazzaville"): return TimeZone_AfricaBrazzaville;
+        case hash_tz("Africa/Casablanca"): return TimeZone_AfricaCasablanca;
+        case hash_tz("Africa/Dakar"): return TimeZone_AfricaDakar;
+        case hash_tz("Africa/Harare"): return TimeZone_AfricaHarare;
+        case hash_tz("Africa/Nairobi"): return TimeZone_AfricaNairobi;
+        case hash_tz("Africa/Windhoek"): return TimeZone_AfricaWindhoek;
+        case hash_tz("Africa/Cairo"): return TimeZone_AfricaCairo;
+        case hash_tz("America/Anchorage"): return TimeZone_AmericaAnchorage;
+        case hash_tz("America/Asuncion"): return TimeZone_AmericaAsuncion;
+        case hash_tz("America/Barbados"): return TimeZone_AmericaBarbados;
+        case hash_tz("America/Bogota"): return TimeZone_AmericaBogota;
+        case hash_tz("America/Buenos_Aires"): return TimeZone_AmericaBuenos_Aires;
+        case hash_tz("America/Caracas"): return TimeZone_AmericaCaracas;
+        case hash_tz("America/Chicago"): return TimeZone_AmericaChicago;
+        case hash_tz("America/Chihuahua"): return TimeZone_AmericaChihuahua;
+        case hash_tz("America/Ciudad_Juarez"): return TimeZone_AmericaCiudad_Juarez;
+        case hash_tz("America/Costa_Rica"): return TimeZone_AmericaCosta_Rica;
+        case hash_tz("America/Denver"): return TimeZone_AmericaDenver;
+        case hash_tz("America/Godthab"): return TimeZone_AmericaGodthab;
+        case hash_tz("America/Halifax"): return TimeZone_AmericaHalifax;
+        case hash_tz("America/Lima"): return TimeZone_AmericaLima;
+        case hash_tz("America/Los_Angeles"): return TimeZone_AmericaLos_Angeles;
+        case hash_tz("America/Manaus"): return TimeZone_AmericaManaus;
+        case hash_tz("America/Mexico_City"): return TimeZone_AmericaMexico_City;
+        case hash_tz("America/Montevideo"): return TimeZone_AmericaMontevideo;
+        case hash_tz("America/New_York"): return TimeZone_AmericaNew_York;
+        case hash_tz("America/Ojinaga"): return TimeZone_AmericaOjinaga;
+        case hash_tz("America/Phoenix"): return TimeZone_AmericaPhoenix;
+        case hash_tz("America/Recife"): return TimeZone_AmericaRecife;
+        case hash_tz("America/Regina"): return TimeZone_AmericaRegina;
+        case hash_tz("America/Santiago"): return TimeZone_AmericaSantiago;
+        case hash_tz("America/Sao_Paulo"): return TimeZone_AmericaSao_Paulo;
+        case hash_tz("America/South_Georgia"): return TimeZone_AmericaSouth_Georgia;
+        case hash_tz("America/St_Johns"): return TimeZone_AmericaSt_Johns;
+        case hash_tz("America/Tijuana"): return TimeZone_AmericaTijuana;
+        case hash_tz("Asia/Almaty"): return TimeZone_AsiaAlmaty;
+        case hash_tz("Asia/Amman"): return TimeZone_AsiaAmman;
+        case hash_tz("Asia/Baghdad"): return TimeZone_AsiaBaghdad;
+        case hash_tz("Asia/Baku"): return TimeZone_AsiaBaku;
+        case hash_tz("Asia/Bangkok"): return TimeZone_AsiaBangkok;
+        case hash_tz("Asia/Beirut"): return TimeZone_AsiaBeirut;
+        case hash_tz("Asia/Calcutta"): return TimeZone_AsiaCalcutta;
+        case hash_tz("Asia/Colombo"): return TimeZone_AsiaColombo;
+        case hash_tz("Asia/Dhaka"): return TimeZone_AsiaDhaka;
+        case hash_tz("Asia/Dubai"): return TimeZone_AsiaDubai;
+        case hash_tz("Asia/Irkutsk"): return TimeZone_AsiaIrkutsk;
+        case hash_tz("Asia/Jerusalem"): return TimeZone_AsiaJerusalem;
+        case hash_tz("Asia/Kabul"): return TimeZone_AsiaKabul;
+        case hash_tz("Asia/Karachi"): return TimeZone_AsiaKarachi;
+        case hash_tz("ASia/Katmandu"): return TimeZone_AsiaKatmandu;
+        case hash_tz("Asia/Krasnoyarsk"): return TimeZone_AsiaKrasnoyarsk;
+        case hash_tz("Asia/Kuala_Lumpur"): return TimeZone_AsiaKuala_Lumpur;
+        case hash_tz("Asia/Kuwait"): return TimeZone_AsiaKuwait;
+        case hash_tz("Asia/Magadan"): return TimeZone_AsiaMagadan;
+        case hash_tz("Asia/Oral"): return TimeZone_AsiaOral;
+        case hash_tz("Asia/Riyadh"): return TimeZone_AsiaRiyadh;
+        case hash_tz("Asia/Seoul"): return TimeZone_AsiaSeoul;
+        case hash_tz("Asia/Shanghai"): return TimeZone_AsiaShanghai;
+        case hash_tz("Asia/Taipei"): return TimeZone_AsiaTaipei;
+        case hash_tz("Asia/Tbilisi"): return TimeZone_AsiaTbilisi;
+        case hash_tz("Asia/Tehran"): return TimeZone_AsiaTehran;
+        case hash_tz("Asia/Tokyo"): return TimeZone_AsiaTokyo;
+        case hash_tz("Asia/Vladivostok"): return TimeZone_AsiaVladivostok;
+        case hash_tz("Asia/Yakutsk"): return TimeZone_AsiaYakutsk;
+        case hash_tz("Asia/Yekaterinburg"): return TimeZone_AsiaYekaterinburg;
+        case hash_tz("Asia/Yerevan"): return TimeZone_AsiaYerevan;
+        case hash_tz("Atlantic/Azores"): return TimeZone_AtlanticAzores;
+        case hash_tz("Atlantic/Cape_Verde"): return TimeZone_AtlanticCape_Verde;
+        case hash_tz("Atlantic/Reykjavik"): return TimeZone_AtlanticReykjavik;
+        case hash_tz("Australia/Adelaide"): return TimeZone_AustraliaAdelaide;
+        case hash_tz("Australia/Brisbane"): return TimeZone_AustraliaBrisbane;
+        case hash_tz("Australia/Darwin"): return TimeZone_AustraliaDarwin;
+        case hash_tz("Australia/Hobart"): return TimeZone_AustraliaHobart;
+        case hash_tz("Australia/Perth"): return TimeZone_AustraliaPerth;
+        case hash_tz("Australia/Sydney"): return TimeZone_AustraliaSydney;
+        case hash_tz("Europe/Athens"): return TimeZone_EuropeAthens;
+        case hash_tz("Europe/Belgrade"): return TimeZone_EuropeBelgrade;
+        case hash_tz("Europe/Berlin"): return TimeZone_EuropeBerlin;
+        case hash_tz("Europe/Copenhagen"): return TimeZone_EuropeCopenhagen;
+        case hash_tz("Europe/Helsinki"): return TimeZone_EuropeHelsinki;
+        case hash_tz("Europe/Istanbul"): return TimeZone_EuropeIstanbul;
+        case hash_tz("Europe/London"): return TimeZone_EuropeLondon;
+        case hash_tz("Europe/Madrid"): return TimeZone_EuropeMadrid;
+        case hash_tz("Europe/Minsk"): return TimeZone_EuropeMinsk;
+        case hash_tz("Europe/Moscow"): return TimeZone_EuropeMoscow;
+        case hash_tz("Europe/Sarajevo"): return TimeZone_EuropeSarajevo;
+        case hash_tz("Pacific/Auckland"): return TimeZone_PacificAuckland;
+        case hash_tz("Pacific/Fiji"): return TimeZone_PacificFiji;
+        case hash_tz("Pacific/Guam"): return TimeZone_PacificGuam;
+        case hash_tz("Pacific/Honolulu"): return TimeZone_PacificHonolulu;
+        case hash_tz("Pacific/Majuro"): return TimeZone_PacificMajuro;
+        case hash_tz("Pacific/Midway"): return TimeZone_PacificMidway;
+        case hash_tz("Pacific/Noumea"): return TimeZone_PacificNoumea;
+        case hash_tz("Pacific/Tongatapu"): return TimeZone_PacificTongatapu;
+        default: return TimeZone_Invalid;
+    }
+}
+
+extern "C" time_t getLocalPosixTime(time_t posix_time, TimeZone name) {
     const time_t last_valid_posix_time = 1779460399; // May 22, 2026
     if (posix_time < last_valid_posix_time) return 0;
-
-    const char* m_name = name->name;
-
-    // Hash the runtime string exactly ONCE
-    uint32_t current_tz_hash = hash_tz(m_name);
 
     time_t raw_time = (time_t)posix_time;
     struct tm utc;
@@ -55,101 +149,110 @@ extern "C" time_t getLocalPosixTimeSafe(time_t posix_time, TimeLocationName* nam
     int standard_au_offset_h = 0, standard_au_offset_m = 0, is_au_zone = 0;
 
         // O(1) jump table via integer switch
-    switch (current_tz_hash) {
+    switch (name) {
         // --- PERMANENT / NO DST ZONES ---
-        case hash_tz("Africa/Brazzaville"):   return posix_time + hourMinutesToSecond(1, 0);
-        case hash_tz("Africa/Dakar"):         return posix_time + hourMinutesToSecond(0, 0);
-        case hash_tz("Africa/Harare"):        return posix_time + hourMinutesToSecond(2, 0);
-        case hash_tz("Africa/Nairobi"):       return posix_time + hourMinutesToSecond(3, 0);
-        case hash_tz("Africa/Windhoek"):      return posix_time + hourMinutesToSecond(2, 0);
+		case TimeZone_AfricaBrazzaville:   return posix_time + hourMinutesToSecond(1, 0);
+		case TimeZone_AfricaDakar:         return posix_time + hourMinutesToSecond(0, 0);
+		case TimeZone_AfricaHarare:        return posix_time + hourMinutesToSecond(2, 0);
+		case TimeZone_AfricaNairobi:       return posix_time + hourMinutesToSecond(3, 0);
+		case TimeZone_AfricaWindhoek:      return posix_time + hourMinutesToSecond(2, 0);
 
-        case hash_tz("America/Anchorage"):     standard_us_offset = -9; is_us_zone = 1; break;
-        case hash_tz("America/Asuncion"):     return posix_time + hourMinutesToSecond(-3, 0);
-        case hash_tz("America/Barbados"):     return posix_time + hourMinutesToSecond(-4, 0);
-        case hash_tz("America/Bogota"):       return posix_time + hourMinutesToSecond(-5, 0);
-        case hash_tz("America/Buenos_Aires"): return posix_time + hourMinutesToSecond(-3, 0);
-        case hash_tz("America/Caracas"):      return posix_time + hourMinutesToSecond(-4, 0);
-        case hash_tz("America/Chicago"):       standard_us_offset = -6; is_us_zone = 1; break;
-        case hash_tz("America/Chihuahua"):    return posix_time + hourMinutesToSecond(-6, 0);
-        case hash_tz("America/Ciudad_Juarez"): standard_us_offset = -7; is_us_zone = 1; break;
-        case hash_tz("America/Costa_Rica"):   return posix_time + hourMinutesToSecond(-6, 0);
-        case hash_tz("America/Denver"):        standard_us_offset = -7; is_us_zone = 1; break;
-        case hash_tz("America/Godthab"):   standard_eu_offset = -2; is_eu_zone = 1; break;
-        case hash_tz("America/Halifax"):       standard_us_offset = -4; is_us_zone = 1; break;
-        case hash_tz("America/Lima"):         return posix_time + hourMinutesToSecond(-5, 0);
-        case hash_tz("America/Los_Angeles"):   standard_us_offset = -8; is_us_zone = 1; break;
-        case hash_tz("America/Manaus"):       return posix_time + hourMinutesToSecond(-4, 0);
-        case hash_tz("America/Mexico_City"):  return posix_time + hourMinutesToSecond(-6, 0);
-        case hash_tz("America/Montevideo"):   return posix_time + hourMinutesToSecond(-3, 0);
-        case hash_tz("America/New_York"):      standard_us_offset = -5; is_us_zone = 1; break;
-        case hash_tz("America/Ojinaga"):       standard_us_offset = -6; is_us_zone = 1; break;
-        case hash_tz("America/Phoenix"):      return posix_time + hourMinutesToSecond(-7, 0);
-        case hash_tz("America/Recife"):       return posix_time + hourMinutesToSecond(-3, 0);
-        case hash_tz("America/Regina"):       return posix_time + hourMinutesToSecond(-6, 0);
-        case hash_tz("America/Sao_Paulo"):    return posix_time + hourMinutesToSecond(-3, 0);
-        case hash_tz("America/Tijuana"):       standard_us_offset = -8; is_us_zone = 1; break;
+		case TimeZone_AmericaAnchorage:    standard_us_offset = -9; is_us_zone = 1; break;
+		case TimeZone_AmericaAsuncion:     return posix_time + hourMinutesToSecond(-3, 0);
+		case TimeZone_AmericaBarbados:     return posix_time + hourMinutesToSecond(-4, 0);
+		case TimeZone_AmericaBogota:       return posix_time + hourMinutesToSecond(-5, 0);
+		case TimeZone_AmericaBuenos_Aires: return posix_time + hourMinutesToSecond(-3, 0);
+		case TimeZone_AmericaCaracas:      return posix_time + hourMinutesToSecond(-4, 0);
+		case TimeZone_AmericaChicago:      standard_us_offset = -6; is_us_zone = 1; break;
+		case TimeZone_AmericaChihuahua:    return posix_time + hourMinutesToSecond(-6, 0);
+		case TimeZone_AmericaCiudad_Juarez:standard_us_offset = -7; is_us_zone = 1; break;
+		case TimeZone_AmericaCosta_Rica:   return posix_time + hourMinutesToSecond(-6, 0);
+		case TimeZone_AmericaDenver:       standard_us_offset = -7; is_us_zone = 1; break;
+		case TimeZone_AmericaGodthab:      standard_eu_offset = -2; is_eu_zone = 1; break;
+		case TimeZone_AmericaHalifax:      standard_us_offset = -4; is_us_zone = 1; break;
+		case TimeZone_AmericaLima:         return posix_time + hourMinutesToSecond(-5, 0);
+		case TimeZone_AmericaLos_Angeles:  standard_us_offset = -8; is_us_zone = 1; break;
+		case TimeZone_AmericaManaus:       return posix_time + hourMinutesToSecond(-4, 0);
+		case TimeZone_AmericaMexico_City:  return posix_time + hourMinutesToSecond(-6, 0);
+		case TimeZone_AmericaMontevideo:   return posix_time + hourMinutesToSecond(-3, 0);
+		case TimeZone_AmericaNew_York:     standard_us_offset = -5; is_us_zone = 1; break;
+		case TimeZone_AmericaOjinaga:      standard_us_offset = -6; is_us_zone = 1; break;
+		case TimeZone_AmericaPhoenix:      return posix_time + hourMinutesToSecond(-7, 0);
+		case TimeZone_AmericaRecife:       return posix_time + hourMinutesToSecond(-3, 0);
+		case TimeZone_AmericaRegina:       return posix_time + hourMinutesToSecond(-6, 0);
+		case TimeZone_AmericaSao_Paulo:    return posix_time + hourMinutesToSecond(-3, 0);
+		case TimeZone_AmericaTijuana:      standard_us_offset = -8; is_us_zone = 1; break;
 
-        case hash_tz("Asia/Almaty"):          return posix_time + hourMinutesToSecond(5, 0);
-        case hash_tz("Asia/Amman"):           return posix_time + hourMinutesToSecond(3, 0);
-        case hash_tz("Asia/Baghdad"):         return posix_time + hourMinutesToSecond(3, 0);
-        case hash_tz("Asia/Baku"):            return posix_time + hourMinutesToSecond(4, 0);
-        case hash_tz("Asia/Bangkok"):         return posix_time + hourMinutesToSecond(7, 0);
-        case hash_tz("Asia/Calcutta"):        return posix_time + hourMinutesToSecond(5, 30);
-        case hash_tz("Asia/Colombo"):         return posix_time + hourMinutesToSecond(5, 30);
-        case hash_tz("Asia/Dhaka"):           return posix_time + hourMinutesToSecond(6, 0);
-        case hash_tz("Asia/Dubai"):           return posix_time + hourMinutesToSecond(4, 0);
-        case hash_tz("Asia/Irkutsk"):         return posix_time + hourMinutesToSecond(8, 0);
-        case hash_tz("Asia/Kabul"):           return posix_time + hourMinutesToSecond(4, 30);
-        case hash_tz("Asia/Karachi"):         return posix_time + hourMinutesToSecond(5, 0);
-        case hash_tz("Asia/Katmandu"):        return posix_time + hourMinutesToSecond(5, 45);
-        case hash_tz("Asia/Krasnoyarsk"):     return posix_time + hourMinutesToSecond(7, 0);
-        case hash_tz("Asia/Kuala_Lumpur"):    return posix_time + hourMinutesToSecond(8, 0);
-        case hash_tz("Asia/Kuwait"):          return posix_time + hourMinutesToSecond(3, 0);
-        case hash_tz("Asia/Magadan"):         return posix_time + hourMinutesToSecond(11, 0);
-        case hash_tz("Asia/Oral"):            return posix_time + hourMinutesToSecond(5, 0);
-        case hash_tz("Asia/Riyadh"):          return posix_time + hourMinutesToSecond(3, 0);
-        case hash_tz("Asia/Seoul"):           return posix_time + hourMinutesToSecond(9, 0);
-        case hash_tz("Asia/Shanghai"):        return posix_time + hourMinutesToSecond(8, 0);
-        case hash_tz("Asia/Taipei"):          return posix_time + hourMinutesToSecond(8, 0);
-        case hash_tz("Asia/Tbilisi"):         return posix_time + hourMinutesToSecond(4, 0);
-        case hash_tz("Asia/Tehran"):          return posix_time + hourMinutesToSecond(3, 30);
-        case hash_tz("Asia/Tokyo"):           return posix_time + hourMinutesToSecond(9, 0);
-        case hash_tz("Asia/Vladivostok"):     return posix_time + hourMinutesToSecond(10, 0);
-        case hash_tz("Asia/Yakutsk"):         return posix_time + hourMinutesToSecond(9, 0);
-        case hash_tz("Asia/Yekaterinburg"):   return posix_time + hourMinutesToSecond(5, 0);
-        case hash_tz("Asia/Yerevan"):         return posix_time + hourMinutesToSecond(4, 0);
+		case TimeZone_AsiaAlmaty:          return posix_time + hourMinutesToSecond(5, 0);
+		case TimeZone_AsiaAmman:           return posix_time + hourMinutesToSecond(3, 0);
+		case TimeZone_AsiaBaghdad:         return posix_time + hourMinutesToSecond(3, 0);
+		case TimeZone_AsiaBaku:            return posix_time + hourMinutesToSecond(4, 0);
+		case TimeZone_AsiaBangkok:         return posix_time + hourMinutesToSecond(7, 0);
+		case TimeZone_AsiaCalcutta:        return posix_time + hourMinutesToSecond(5, 30);
+		case TimeZone_AsiaColombo:         return posix_time + hourMinutesToSecond(5, 30);
+		case TimeZone_AsiaDhaka:           return posix_time + hourMinutesToSecond(6, 0);
+		case TimeZone_AsiaDubai:           return posix_time + hourMinutesToSecond(4, 0);
+		case TimeZone_AsiaIrkutsk:         return posix_time + hourMinutesToSecond(8, 0);
+		case TimeZone_AsiaKabul:           return posix_time + hourMinutesToSecond(4, 30);
+		case TimeZone_AsiaKarachi:         return posix_time + hourMinutesToSecond(5, 0);
+		case TimeZone_AsiaKatmandu:        return posix_time + hourMinutesToSecond(5, 45);
+		case TimeZone_AsiaKrasnoyarsk:     return posix_time + hourMinutesToSecond(7, 0);
+		case TimeZone_AsiaKuala_Lumpur:    return posix_time + hourMinutesToSecond(8, 0);
+		case TimeZone_AsiaKuwait:          return posix_time + hourMinutesToSecond(3, 0);
+		case TimeZone_AsiaMagadan:         return posix_time + hourMinutesToSecond(11, 0);
+		case TimeZone_AsiaOral:            return posix_time + hourMinutesToSecond(5, 0);
+		case TimeZone_AsiaRiyadh:          return posix_time + hourMinutesToSecond(3, 0);
+		case TimeZone_AsiaSeoul:           return posix_time + hourMinutesToSecond(9, 0);
+		case TimeZone_AsiaShanghai:        return posix_time + hourMinutesToSecond(8, 0);
+		case TimeZone_AsiaTaipei:          return posix_time + hourMinutesToSecond(8, 0);
+		case TimeZone_AsiaTbilisi:         return posix_time + hourMinutesToSecond(4, 0);
+		case TimeZone_AsiaTehran:          return posix_time + hourMinutesToSecond(3, 30);
+		case TimeZone_AsiaTokyo:           return posix_time + hourMinutesToSecond(9, 0);
+		case TimeZone_AsiaVladivostok:     return posix_time + hourMinutesToSecond(10, 0);
+		case TimeZone_AsiaYakutsk:         return posix_time + hourMinutesToSecond(9, 0);
+		case TimeZone_AsiaYekaterinburg:   return posix_time + hourMinutesToSecond(5, 0);
+		case TimeZone_AsiaYerevan:         return posix_time + hourMinutesToSecond(4, 0);
 
-        case hash_tz("Atlantic/Azores"):   standard_eu_offset = -1; is_eu_zone = 1; break;
-        case hash_tz("Atlantic/Cape_Verde"):  return posix_time + hourMinutesToSecond(-1, 0);
-        case hash_tz("Atlantic/Reykjavik"):   return posix_time + hourMinutesToSecond(0, 0);
+		case TimeZone_AtlanticAzores:      standard_eu_offset = -1; is_eu_zone = 1; break;
+		case TimeZone_AtlanticCape_Verde:  return posix_time + hourMinutesToSecond(-1, 0);
+		case TimeZone_AtlanticReykjavik:   return posix_time + hourMinutesToSecond(0, 0);
 
-        case hash_tz("Australia/Adelaide"): standard_au_offset_h = 9;  standard_au_offset_m = 30; is_au_zone = 1; break;
-        case hash_tz("Australia/Brisbane"):   return posix_time + hourMinutesToSecond(10, 0);
-        case hash_tz("Australia/Darwin"):     return posix_time + hourMinutesToSecond(9, 30);
-        case hash_tz("Australia/Hobart"):   standard_au_offset_h = 10; standard_au_offset_m = 0;  is_au_zone = 1; break;
-        case hash_tz("Australia/Perth"):      return posix_time + hourMinutesToSecond(8, 0);
-        case hash_tz("Australia/Sydney"):   standard_au_offset_h = 10; standard_au_offset_m = 0;  is_au_zone = 1; break;
+		case TimeZone_AustraliaAdelaide:   standard_au_offset_h = 9;  standard_au_offset_m = 30; is_au_zone = 1; break;
+		case TimeZone_AustraliaBrisbane:   return posix_time + hourMinutesToSecond(10, 0);
+		case TimeZone_AustraliaDarwin:     return posix_time + hourMinutesToSecond(9, 30);
+		case TimeZone_AustraliaHobart:     standard_au_offset_h = 10; standard_au_offset_m = 0;  is_au_zone = 1; break;
+		case TimeZone_AustraliaPerth:      return posix_time + hourMinutesToSecond(8, 0);
+		case TimeZone_AustraliaSydney:     standard_au_offset_h = 10; standard_au_offset_m = 0;  is_au_zone = 1; break;
 
-        case hash_tz("Europe/Athens"):     standard_eu_offset =  2; is_eu_zone = 1; break;
-        case hash_tz("Europe/Belgrade"):   standard_eu_offset =  1; is_eu_zone = 1; break;
-        case hash_tz("Europe/Berlin"):     standard_eu_offset =  1; is_eu_zone = 1; break;
-        case hash_tz("Europe/Copenhagen"): standard_eu_offset =  1; is_eu_zone = 1; break;
-        case hash_tz("Europe/Helsinki"):   standard_eu_offset =  2; is_eu_zone = 1; break;
-        case hash_tz("Europe/Istanbul"):      return posix_time + hourMinutesToSecond(3, 0);
-        case hash_tz("Europe/London"):     standard_eu_offset =  0; is_eu_zone = 1; break;
-        case hash_tz("Europe/Madrid"):     standard_eu_offset =  1; is_eu_zone = 1; break;
-        case hash_tz("Europe/Minsk"):         return posix_time + hourMinutesToSecond(3, 0);
-        case hash_tz("Europe/Moscow"):        return posix_time + hourMinutesToSecond(3, 0);
-        case hash_tz("Europe/Sarajevo"):   standard_eu_offset =  1; is_eu_zone = 1; break;
+		case TimeZone_EuropeAthens:        standard_eu_offset =  2; is_eu_zone = 1; break;
+		case TimeZone_EuropeBelgrade:      standard_eu_offset =  1; is_eu_zone = 1; break;
+		case TimeZone_EuropeBerlin:        standard_eu_offset =  1; is_eu_zone = 1; break;
+		case TimeZone_EuropeCopenhagen:    standard_eu_offset =  1; is_eu_zone = 1; break;
+		case TimeZone_EuropeHelsinki:      standard_eu_offset =  2; is_eu_zone = 1; break;
+		case TimeZone_EuropeIstanbul:      return posix_time + hourMinutesToSecond(3, 0);
+		case TimeZone_EuropeLondon:        standard_eu_offset =  0; is_eu_zone = 1; break;
+		case TimeZone_EuropeMadrid:        standard_eu_offset =  1; is_eu_zone = 1; break;
+		case TimeZone_EuropeMinsk:         return posix_time + hourMinutesToSecond(3, 0);
+		case TimeZone_EuropeMoscow:        return posix_time + hourMinutesToSecond(3, 0);
+		case TimeZone_EuropeSarajevo:      standard_eu_offset =  1; is_eu_zone = 1; break;
 
-        case hash_tz("Pacific/Auckland"):   standard_au_offset_h = 12; standard_au_offset_m = 0;  is_au_zone = 1; break;
-        case hash_tz("Pacific/Fiji"):         return posix_time + hourMinutesToSecond(12, 0);
-        case hash_tz("Pacific/Guam"):         return posix_time + hourMinutesToSecond(10, 0);
-        case hash_tz("Pacific/Honolulu"):     return posix_time + hourMinutesToSecond(-10, 0);
-        case hash_tz("Pacific/Majuro"):       return posix_time + hourMinutesToSecond(12, 0);
-        case hash_tz("Pacific/Midway"):       return posix_time + hourMinutesToSecond(-11, 0);
-        case hash_tz("Pacific/Noumea"):       return posix_time + hourMinutesToSecond(11, 0);
-        case hash_tz("Pacific/Tongatapu"):    return posix_time + hourMinutesToSecond(13, 0);
+		case TimeZone_PacificAuckland:     standard_au_offset_h = 12; standard_au_offset_m = 0;  is_au_zone = 1; break;
+		case TimeZone_PacificFiji:         return posix_time + hourMinutesToSecond(12, 0);
+		case TimeZone_PacificGuam:         return posix_time + hourMinutesToSecond(10, 0);
+		case TimeZone_PacificHonolulu:     return posix_time + hourMinutesToSecond(-10, 0);
+		case TimeZone_PacificMajuro:       return posix_time + hourMinutesToSecond(12, 0);
+		case TimeZone_PacificMidway:       return posix_time + hourMinutesToSecond(-11, 0);
+		case TimeZone_PacificNoumea:       return posix_time + hourMinutesToSecond(11, 0);
+		case TimeZone_PacificTongatapu:    return posix_time + hourMinutesToSecond(13, 0);
+        case TimeZone_AmericaSt_Johns: {
+            int march_dst_day = 14 - get_day_of_week(year, 3, 1);
+            int nov_dst_day = 7 - get_day_of_week(year, 11, 1);
+            int is_dst = (month > 3 && month < 11) || 
+                        (month == 3 && (day > march_dst_day || (day == march_dst_day && hour >= 7))) || 
+                        (month == 11 && (day < nov_dst_day || (day == nov_dst_day && hour < 6)));
+            return posix_time + (is_dst ? hourMinutesToSecond(-2, -30) : hourMinutesToSecond(-3, -30));            
+        }
+        default: return 0;
     }
 
     // Process dynamic zones based on flags set in the switch statement
@@ -183,200 +286,7 @@ extern "C" time_t getLocalPosixTimeSafe(time_t posix_time, TimeLocationName* nam
         return posix_time + hourMinutesToSecond(standard_au_offset_h + (is_dst ? 1 : 0), standard_au_offset_m);
     }
 
-    // Special case for St. Johns, as it wasn't grouped easily into the base integer flags
-    if (current_tz_hash == hash_tz("America/St_Johns")) {
-        int march_dst_day = 14 - get_day_of_week(year, 3, 1);
-        int nov_dst_day = 7 - get_day_of_week(year, 11, 1);
-        int is_dst = (month > 3 && month < 11) || 
-                     (month == 3 && (day > march_dst_day || (day == march_dst_day && hour >= 7))) || 
-                     (month == 11 && (day < nov_dst_day || (day == nov_dst_day && hour < 6)));
-        return posix_time + (is_dst ? hourMinutesToSecond(-2, -30) : hourMinutesToSecond(-3, -30));
-    }
-
-    return 0; // Fallback
-}
-
-//It checks only to first unique byte, currently you can save 1400 bytes at -O3 with it.
-extern "C" time_t getLocalPosixTimeUnsafe(time_t posix_time, TimeLocationName* name) {
-    const time_t last_valid_posix_time = 1779460399; // May 22, 2026
-    if (posix_time < last_valid_posix_time) return 0;
-
-    const char* m_name = name->name;
-
-    time_t raw_time = (time_t)posix_time;
-    struct tm utc;
-    gmtime_r(&raw_time, &utc);
-
-    int year = utc.tm_year + 1900;
-    int month = utc.tm_mon + 1;
-    int day = utc.tm_mday;
-    int hour = utc.tm_hour;
-
-    // DST State Trackers
-    int standard_us_offset = 0, is_us_zone = 0;
-    int standard_eu_offset = 0, is_eu_zone = 0;
-    int standard_au_offset_h = 0, standard_au_offset_m = 0, is_au_zone = 0;
-
-    switch(m_name[0]) {
-        case 'A': {
-            switch(m_name[1]) {
-                case 'f': { //Africa
-                    if (m_name[7] == 'B') return posix_time + hourMinutesToSecond(1, 0);
-                    if (m_name[7] == 'D') return posix_time;
-                    if (m_name[7] == 'H') return posix_time + hourMinutesToSecond(2, 0);
-                    if (m_name[7] == 'N') return posix_time + hourMinutesToSecond(3, 0);
-                    if (m_name[7] == 'W') return posix_time + hourMinutesToSecond(1, 0);
-                    break;
-                }
-                case 'm': { //America
-                    if (m_name[8] == 'A' && m_name[9] == 'n') {standard_us_offset = -9; is_us_zone = 1; break;}
-                    if (m_name[8] == 'A' && m_name[9] == 's') return posix_time + hourMinutesToSecond(-3, 0);
-                    if (m_name[8] == 'B' && m_name[9] == 'a') return posix_time + hourMinutesToSecond(-4, 0);
-                    if (m_name[8] == 'B' && m_name[9] == 'o') return posix_time + hourMinutesToSecond(-5, 0);
-                    if (m_name[8] == 'B' && m_name[9] == 'u') return posix_time + hourMinutesToSecond(-3, 0);
-                    if (m_name[8] == 'C' && m_name[9] == 'a') return posix_time + hourMinutesToSecond(-4, 0);
-                    if (m_name[8] == 'C' && m_name[9] == 'h' && m_name[10] == 'i' && m_name[11] == 'c') {standard_us_offset = -6; is_us_zone = 1; break;}
-                    if (m_name[8] == 'C' && m_name[9] == 'h' && m_name[10] == 'i' && m_name[11] == 'h') return posix_time + hourMinutesToSecond(-6, 0);
-                    if (m_name[8] == 'C' && m_name[9] == 'i') {standard_us_offset = -7; is_us_zone = 1; break;}
-                    if (m_name[8] == 'C' && m_name[9] == 'o') return posix_time + hourMinutesToSecond(-6, 0);
-                    if (m_name[8] == 'D') {standard_us_offset = -7; is_us_zone = 1; break;}
-                    if (m_name[8] == 'G') {standard_eu_offset = -2; is_eu_zone = 1; break;}
-                    if (m_name[8] == 'H') {standard_us_offset = -4; is_us_zone = 1; break;}
-                    if (m_name[8] == 'L' && m_name[9] == 'i') return posix_time + hourMinutesToSecond(-5, 0);
-                    if (m_name[8] == 'L' && m_name[9] == 'o') {standard_us_offset = -8; is_us_zone = 1; break;}
-                    if (m_name[8] == 'M' && m_name[9] == 'a') return posix_time + hourMinutesToSecond(-4, 0);
-                    if (m_name[8] == 'M' && m_name[9] == 'e') return posix_time + hourMinutesToSecond(-6, 0);
-                    if (m_name[8] == 'M' && m_name[9] == 'o') return posix_time + hourMinutesToSecond(-3, 0);
-                    if (m_name[8] == 'N') {standard_us_offset = -5; is_us_zone = 1; break;}
-                    if (m_name[8] == 'O') {standard_us_offset = -6; is_us_zone = 1; break;}
-                    if (m_name[8] == 'P') return posix_time + hourMinutesToSecond(-7, 0);
-                    if (m_name[8] == 'R' && m_name[9] == 'e' && m_name[10] == 'c') return posix_time + hourMinutesToSecond(-3, 0);
-                    if (m_name[8] == 'R' && m_name[9] == 'e' && m_name[10] == 'g') return posix_time + hourMinutesToSecond(-6, 0);
-                    if (m_name[8] == 'S' && m_name[8] == 'a') return posix_time + hourMinutesToSecond(-3, 0);
-                    if (m_name[8] == 'S' && m_name[8] == 't') {
-                        int march_dst_day = 14 - get_day_of_week(year, 3, 1);
-                        int nov_dst_day = 7 - get_day_of_week(year, 11, 1);
-                        int is_dst = (month > 3 && month < 11) || 
-                                    (month == 3 && (day > march_dst_day || (day == march_dst_day && hour >= 7))) || 
-                                    (month == 11 && (day < nov_dst_day || (day == nov_dst_day && hour < 6)));
-                        return posix_time + (is_dst ? hourMinutesToSecond(-2, -30) : hourMinutesToSecond(-3, -30));
-                    }
-                    if (m_name[8] == 'T') {standard_us_offset = -8; is_us_zone = 1; break;}
-                    break;
-                }
-                case 's': { //Asia
-                    if (m_name[5] == 'A' && m_name[6] == 'l') return posix_time + hourMinutesToSecond(5, 0);
-                    if (m_name[5] == 'A' && m_name[6] == 'n') return posix_time + hourMinutesToSecond(3, 0);
-                    if (m_name[5] == 'B' && m_name[6] == 'a' && m_name[7] == 'g') return posix_time + hourMinutesToSecond(3, 0);
-                    if (m_name[5] == 'B' && m_name[6] == 'a' && m_name[7] == 'k') return posix_time + hourMinutesToSecond(4, 0);
-                    if (m_name[5] == 'B' && m_name[6] == 'a' && m_name[7] == 'n') return posix_time + hourMinutesToSecond(7, 0);
-                    if (m_name[5] == 'C') return posix_time + hourMinutesToSecond(5, 30);
-                    if (m_name[5] == 'D' && m_name[6] == 'h') return posix_time + hourMinutesToSecond(6, 0);
-                    if (m_name[5] == 'D' && m_name[6] == 'u') return posix_time + hourMinutesToSecond(4, 0);
-                    if (m_name[5] == 'I') return posix_time + hourMinutesToSecond(8, 0);
-                    if (m_name[5] == 'K' && m_name[6] == 'a' && m_name[7] == 'b') return posix_time + hourMinutesToSecond(4, 30);
-                    if (m_name[5] == 'K' && m_name[6] == 'a' && m_name[7] == 'r') return posix_time + hourMinutesToSecond(5, 0);
-                    if (m_name[5] == 'K' && m_name[6] == 'a' && m_name[7] == 't') return posix_time + hourMinutesToSecond(5, 45);
-                    if (m_name[5] == 'K' && m_name[6] == 'r') return posix_time + hourMinutesToSecond(7, 0);
-                    if (m_name[5] == 'K' && m_name[6] == 'u' && m_name[7] == 'a') return posix_time + hourMinutesToSecond(8, 0);
-                    if (m_name[5] == 'K' && m_name[6] == 'u' && m_name[7] == 'w') return posix_time + hourMinutesToSecond(3, 0);
-                    if (m_name[5] == 'M') return posix_time + hourMinutesToSecond(11, 0);
-                    if (m_name[5] == 'O') return posix_time + hourMinutesToSecond(5, 0);
-                    if (m_name[5] == 'R') return posix_time + hourMinutesToSecond(3, 0);
-                    if (m_name[5] == 'S' && m_name[6] == 'e') return posix_time + hourMinutesToSecond(9, 0);
-                    if (m_name[5] == 'S' && m_name[6] == 'h') return posix_time + hourMinutesToSecond(8, 0);
-                    if (m_name[5] == 'T' && m_name[6] == 'a') return posix_time + hourMinutesToSecond(8, 0);
-                    if (m_name[5] == 'T' && m_name[6] == 'b') return posix_time + hourMinutesToSecond(4, 0);
-                    if (m_name[5] == 'T' && m_name[6] == 'e') return posix_time + hourMinutesToSecond(3, 30);
-                    if (m_name[5] == 'T' && m_name[6] == 'o') return posix_time + hourMinutesToSecond(9, 0);
-                    if (m_name[5] == 'V') return posix_time + hourMinutesToSecond(10, 0);
-                    if (m_name[5] == 'Y' && m_name[6] == 'a') return posix_time + hourMinutesToSecond(9, 0);
-                    if (m_name[5] == 'Y' && m_name[6] == 'e' && m_name[7] == 'k') return posix_time + hourMinutesToSecond(5, 0);
-                    if (m_name[5] == 'Y' && m_name[6] == 'e' && m_name[7] == 'r') return posix_time + hourMinutesToSecond(4, 0);
-                    break;
-                }
-                case 't': { //Atlantic
-                    if (m_name[9] == 'A') {standard_eu_offset = -1; is_eu_zone = 1; break;}
-                    if (m_name[9] == 'C') return posix_time + hourMinutesToSecond(-1, 0);
-                    if (m_name[9] == 'R') return posix_time;
-                    break; 
-                }
-                case 'u': { //Australia
-                    if (m_name[10] == 'A') {standard_au_offset_h = 9;  standard_au_offset_m = 30; is_au_zone = 1; break;}
-                    if (m_name[10] == 'B') return posix_time + hourMinutesToSecond(10, 0);
-                    if (m_name[10] == 'D') return posix_time + hourMinutesToSecond(9, 30);
-                    if (m_name[10] == 'H' || m_name[10] == 'S') {standard_au_offset_h = 10; standard_au_offset_m = 0;  is_au_zone = 1; break;}
-                    if (m_name[10] == 'P') return posix_time + hourMinutesToSecond(8, 0);
-                    break;
-                }
-            }
-            break;
-        }
-        case 'E': { //Europe
-            switch(m_name[7]) {
-                case 'A': 
-                case 'H': standard_eu_offset = 2; is_eu_zone = 1; break;
-                case 'B':
-                case 'C': 
-                case 'M':
-                    if (m_name[8] == 'a') {standard_eu_offset =  1; is_eu_zone = 1; break;}
-                    if (m_name[8] == 'i' || m_name[8] == 'o') return posix_time + hourMinutesToSecond(3, 0);
-                    break;
-                case 'S': standard_eu_offset = 1; is_eu_zone = 1; break;
-                case 'I': 
-                case 'L': standard_eu_offset = 0; is_eu_zone = 1; break;
-            }
-            break;
-        }
-        case 'P': { //Pacific
-            switch(m_name[8]) {
-                case 'A': standard_au_offset_h = 12; standard_au_offset_m = 0;  is_au_zone = 1; break;
-                case 'F': return posix_time + hourMinutesToSecond(12, 0);
-                case 'G': return posix_time + hourMinutesToSecond(10, 0);
-                case 'H': return posix_time + hourMinutesToSecond(-10, 0);
-                case 'M':
-                    if (m_name[9] == 'a') return posix_time + hourMinutesToSecond(12, 0);
-                    if (m_name[9] == 'i') return posix_time + hourMinutesToSecond(-11, 0);
-                    break;
-                case 'N': return posix_time + hourMinutesToSecond(11, 0);
-                case 'T': return posix_time + hourMinutesToSecond(13, 0);
-            }
-            break;
-        }
-    }
-
-    // Process dynamic zones based on flags set in the switch statement
-    if (is_us_zone) {
-        int march_dst_day = 14 - get_day_of_week(year, 3, 1);
-        int nov_dst_day = 7 - get_day_of_week(year, 11, 1);
-        int is_dst = 0;
-        if (month > 3 && month < 11) is_dst = 1;
-        else if (month == 3 && (day > march_dst_day || (day == march_dst_day && hour >= 7))) is_dst = 1;
-        else if (month == 11 && (day < nov_dst_day || (day == nov_dst_day && hour < 6))) is_dst = 1;
-        return posix_time + hourMinutesToSecond(standard_us_offset + (is_dst ? 1 : 0), 0);
-    }
-
-    if (is_eu_zone) {
-        int march_last_sun = 31 - get_day_of_week(year, 3, 31);
-        int oct_last_sun = 31 - get_day_of_week(year, 10, 31);
-        int is_dst = 0;
-        if (month > 3 && month < 10) is_dst = 1;
-        else if (month == 3 && (day > march_last_sun || (day == march_last_sun && hour >= 1))) is_dst = 1;
-        else if (month == 10 && (day < oct_last_sun || (day == oct_last_sun && hour < 1))) is_dst = 1;
-        return posix_time + hourMinutesToSecond(standard_eu_offset + (is_dst ? 1 : 0), 0);
-    }
-
-    if (is_au_zone) {
-        int apr_first_sun = 7 - get_day_of_week(year, 4, 1);
-        int oct_first_sun = 7 - get_day_of_week(year, 10, 1);
-        int is_dst = 0;
-        if (month < 4 || month > 10) is_dst = 1;
-        else if (month == 4 && (day < apr_first_sun || (day == apr_first_sun && hour < 15))) is_dst = 1;
-        else if (month == 10 && (day > oct_first_sun || (day == oct_first_sun && hour >= 16))) is_dst = 1;
-        return posix_time + hourMinutesToSecond(standard_au_offset_h + (is_dst ? 1 : 0), standard_au_offset_m);
-    }
-
-    return 0; // Fallback
+    return 0;
 }
 
 constexpr uint32_t hashes[] = {
