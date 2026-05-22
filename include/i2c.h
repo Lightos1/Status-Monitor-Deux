@@ -1,6 +1,6 @@
 #pragma once
 
-Result I2cReadRegHandler16(u8 reg, I2cDevice dev, u16 *out)
+inline Result I2cReadRegHandler16(u8 reg, I2cDevice dev, u16 *out)
 {
 	struct readReg {
         u8 send;
@@ -38,7 +38,7 @@ Result I2cReadRegHandler16(u8 reg, I2cDevice dev, u16 *out)
 	return 0;
 }
 
-Result I2cReadRegHandler8(u8 reg, I2cDevice dev, u8 *out)
+inline Result I2cReadRegHandler8(u8 reg, I2cDevice dev, u8 *out)
 {
 	struct readReg {
         u8 send;

@@ -150,7 +150,7 @@ u32 max17050_get_cached_batt_volt();
 */
 #endif /* __MAX17050_H_ */
 
-Result Max17050ReadReg(u8 reg, u16 *out)
+inline Result Max17050ReadReg(u8 reg, u16 *out)
 {
 	u16 data = 0;
 	Result res = I2cReadRegHandler16(reg, I2cDevice_Max17050, &data);
