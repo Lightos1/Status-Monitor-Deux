@@ -1,3 +1,4 @@
+#pragma once
 #include <switch.h>
 
 extern Handle saltysd_orig;

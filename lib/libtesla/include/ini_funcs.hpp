@@ -93,7 +93,7 @@ static std::vector<std::string> split(const std::string& str, char delim = ' ') 
  * @param configIniPath The path to the INI file to be parsed.
  * @return A map representing the parsed INI data.
  */
-std::map<std::string, std::map<std::string, std::string>> getParsedDataFromIniFile(const std::string& configIniPath) {
+static inline std::map<std::string, std::map<std::string, std::string>> getParsedDataFromIniFile(const std::string& configIniPath) {
     std::map<std::string, std::map<std::string, std::string>> parsedData;
     std::string currentSection;
 
@@ -163,7 +163,7 @@ std::map<std::string, std::map<std::string, std::string>> getParsedDataFromIniFi
  * @param filePath The path to the INI file.
  * @return A vector of section names.
  */
-std::vector<std::string> parseSectionsFromIni(const std::string& filePath) {
+static inline std::vector<std::string> parseSectionsFromIni(const std::string& filePath) {
     std::vector<std::string> sections;
     
     FILE* file = fopen(filePath.c_str(), "r");
@@ -189,7 +189,7 @@ std::vector<std::string> parseSectionsFromIni(const std::string& filePath) {
 
 
 
-std::string parseValueFromIniSection(const std::string& filePath, const std::string& sectionName, const std::string& keyName) {
+static inline std::string parseValueFromIniSection(const std::string& filePath, const std::string& sectionName, const std::string& keyName) {
     std::string value = "";
     
     FILE* file = fopen(filePath.c_str(), "r");
@@ -228,7 +228,7 @@ std::string parseValueFromIniSection(const std::string& filePath, const std::str
 }
 
 
-std::string parseValueFromIniSectionF(FILE*& file, const std::string& sectionName, const std::string& keyName) {
+static inline std::string parseValueFromIniSectionF(FILE*& file, const std::string& sectionName, const std::string& keyName) {
     std::string value = "";
     
     if (file == nullptr) {
@@ -276,7 +276,7 @@ std::string parseValueFromIniSectionF(FILE*& file, const std::string& sectionNam
  *
  * @param filePath The path to the INI file to be cleaned.
  */
-void cleanIniFormatting(const std::string& filePath) {
+static inline void cleanIniFormatting(const std::string& filePath) {
     FILE* inputFile = fopen(filePath.c_str(), "r");
     if (!inputFile) {
         // Failed to open the input file
@@ -334,7 +334,7 @@ void cleanIniFormatting(const std::string& filePath) {
  * @param desiredValue    The new value for the key-value pair.
  * @param desiredNewKey   (Optional) If provided, the function will rename the key while preserving the original value.
  */
-void setIniFile(const std::string& fileToEdit, const std::string& desiredSection, const std::string& desiredKey, const std::string& desiredValue, const std::string& desiredNewKey) {
+static inline void setIniFile(const std::string& fileToEdit, const std::string& desiredSection, const std::string& desiredKey, const std::string& desiredValue, const std::string& desiredNewKey) {
     FILE* configFile = fopen(fileToEdit.c_str(), "r");
     if (!configFile) {
         configFile = fopen(fileToEdit.c_str(), "w");
@@ -466,7 +466,7 @@ void setIniFile(const std::string& fileToEdit, const std::string& desiredSection
  * @param desiredKey      The key for the key-value pair to be added or updated.
  * @param desiredValue    The new value for the key-value pair.
  */
-void setIniFileValue(const std::string& fileToEdit, const std::string& desiredSection, const std::string& desiredKey, const std::string& desiredValue) {
+static inline void setIniFileValue(const std::string& fileToEdit, const std::string& desiredSection, const std::string& desiredKey, const std::string& desiredValue) {
     setIniFile(fileToEdit, desiredSection, desiredKey, desiredValue, "");
     //cleanIniFormatting(fileToEdit);
 }
@@ -483,7 +483,7 @@ void setIniFileValue(const std::string& fileToEdit, const std::string& desiredSe
  * @param desiredKey      The key name to be changed.
  * @param desiredNewKey   The new key name to replace the original key name.
  */
-void setIniFileKey(const std::string& fileToEdit, const std::string& desiredSection, const std::string& desiredKey, const std::string& desiredNewKey) {
+static inline void setIniFileKey(const std::string& fileToEdit, const std::string& desiredSection, const std::string& desiredKey, const std::string& desiredNewKey) {
     setIniFile(fileToEdit, desiredSection, desiredKey, "", desiredNewKey);
     //cleanIniFormatting(fileToEdit);
 }
@@ -499,7 +499,7 @@ void setIniFileKey(const std::string& fileToEdit, const std::string& desiredSect
  * @param filePath The path to the INI file.
  * @param sectionName The name of the section to add.
  */
-void addIniSection(const char* filePath, const char* sectionName) {
+static inline void addIniSection(const char* filePath, const char* sectionName) {
     if (!isFileOrDirectory(filePath)) {
         // INI file doesn't exist, handle the error accordingly
         //std::cerr << "Error: INI file not found." << std::endl;
@@ -567,7 +567,7 @@ void addIniSection(const char* filePath, const char* sectionName) {
  * @param currentSectionName The name of the section to rename.
  * @param newSectionName The new name for the section.
  */
-void renameIniSection(const std::string& filePath, const std::string& currentSectionName, const std::string& newSectionName) {
+static inline void renameIniSection(const std::string& filePath, const std::string& currentSectionName, const std::string& newSectionName) {
     FILE* configFile = fopen(filePath.c_str(), "r");
     if (!configFile) {
         // The INI file doesn't exist, handle the error accordingly
@@ -640,7 +640,7 @@ void renameIniSection(const std::string& filePath, const std::string& currentSec
  * @param filePath The path to the INI file.
  * @param sectionName The name of the section to remove.
  */
-void removeIniSection(const std::string& filePath, const std::string& sectionName) {
+static inline void removeIniSection(const std::string& filePath, const std::string& sectionName) {
     FILE* configFile = fopen(filePath.c_str(), "r");
     if (!configFile) {
         // The INI file doesn't exist, or there was an error opening it.

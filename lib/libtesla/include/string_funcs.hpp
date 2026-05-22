@@ -36,7 +36,7 @@ template <typename T> bool isNumeric (const std::string& str, T* result) {
  * @param str The input string to trim.
  * @return The trimmed string.
  */
-std::string trim(const std::string& str) {
+static inline std::string trim(const std::string& str) {
     size_t first = str.find_first_not_of(" \t\n\r\f\v");
     size_t last = str.find_last_not_of(" \t\n\r\f\v");
     if (first == std::string::npos || last == std::string::npos)
@@ -54,7 +54,7 @@ std::string trim(const std::string& str) {
  * @param str The input string to remove white spaces from.
  * @return The string with white spaces removed.
  */
-std::string removeWhiteSpaces(const std::string& str) {
+static inline std::string removeWhiteSpaces(const std::string& str) {
     std::string result;
     for (char c : str) {
         if (!std::isspace(static_cast<unsigned char>(c))) {
@@ -74,7 +74,7 @@ std::string removeWhiteSpaces(const std::string& str) {
  * @param str The input string to remove quotes from.
  * @return The string with quotes removed.
  */
-std::string removeQuotes(const std::string& str) {
+static inline std::string removeQuotes(const std::string& str) {
     std::size_t firstQuote = str.find_first_of("'\"");
     std::size_t lastQuote = str.find_last_of("'\"");
     if (firstQuote != std::string::npos && lastQuote != std::string::npos && firstQuote < lastQuote) {
@@ -91,7 +91,7 @@ std::string removeQuotes(const std::string& str) {
  * @param input The input string to process.
  * @return The string with multiple slashes replaced.
  */
-std::string replaceMultipleSlashes(const std::string& input) {
+static inline std::string replaceMultipleSlashes(const std::string& input) {
     std::string output;
     bool previousSlash = false;
 
@@ -118,7 +118,7 @@ std::string replaceMultipleSlashes(const std::string& input) {
  * @param pathPattern The input string representing a path pattern.
  * @return The string with the leading slash removed.
  */
-std::string removeLeadingSlash(const std::string& pathPattern) {
+static inline std::string removeLeadingSlash(const std::string& pathPattern) {
     if (!pathPattern.empty() && pathPattern[0] == '/') {
         return pathPattern.substr(1);
     }
@@ -133,7 +133,7 @@ std::string removeLeadingSlash(const std::string& pathPattern) {
  * @param pathPattern The input string representing a path pattern.
  * @return The string with the trailing slash removed.
  */
-std::string removeEndingSlash(const std::string& pathPattern) {
+static inline std::string removeEndingSlash(const std::string& pathPattern) {
     if (!pathPattern.empty() && pathPattern.back() == '/') {
         return pathPattern.substr(0, pathPattern.length() - 1);
     }
@@ -149,7 +149,7 @@ std::string removeEndingSlash(const std::string& pathPattern) {
  * @param path The input path string to preprocess.
  * @return The preprocessed path string.
  */
-std::string preprocessPath(const std::string& path) {
+static inline std::string preprocessPath(const std::string& path) {
     std::string formattedPath = replaceMultipleSlashes(removeQuotes(path));
     if (formattedPath.compare(0, 5, "sdmc:") != 0) {
         return std::string("sdmc:") + formattedPath;
@@ -167,7 +167,7 @@ std::string preprocessPath(const std::string& path) {
  * @param filename The input filename from which to drop the extension.
  * @return The filename without the extension.
  */
-std::string dropExtension(const std::string& filename) {
+static inline std::string dropExtension(const std::string& filename) {
     size_t lastDotPos = filename.find_last_of(".");
     if (lastDotPos != std::string::npos) {
         return filename.substr(0, lastDotPos);
@@ -184,7 +184,7 @@ std::string dropExtension(const std::string& filename) {
  * @param prefix The prefix to check for.
  * @return True if the string starts with the prefix, false otherwise.
  */
-bool startsWith(const std::string& str, const std::string& prefix) {
+static inline bool startsWith(const std::string& str, const std::string& prefix) {
     return str.compare(0, prefix.length(), prefix) == 0;
 }
 
@@ -196,7 +196,7 @@ bool startsWith(const std::string& str, const std::string& prefix) {
  * @param path The path to check.
  * @return True if the path is a directory, false otherwise.
  */
-bool isDirectory(const std::string& path) {
+static inline bool isDirectory(const std::string& path) {
     struct stat pathStat;
     if (stat(path.c_str(), &pathStat) == 0) {
         return S_ISDIR(pathStat.st_mode);
@@ -212,7 +212,7 @@ bool isDirectory(const std::string& path) {
  * @param path The path to check.
  * @return True if the path points to a file or directory, false otherwise.
  */
-bool isFileOrDirectory(const std::string& path) {
+static inline bool isFileOrDirectory(const std::string& path) {
     struct stat buffer;
     return (stat(path.c_str(), &buffer) == 0);
 }
@@ -228,7 +228,7 @@ bool isFileOrDirectory(const std::string& path) {
  * @param str The input string to split.
  * @return A vector of strings containing the split values.
  */
-std::vector<std::string> stringToList(const std::string& str) {
+static inline std::vector<std::string> stringToList(const std::string& str) {
     std::string values, token;
     std::vector<std::string> result;
     

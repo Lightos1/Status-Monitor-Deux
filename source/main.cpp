@@ -6,7 +6,7 @@
 
 #include <cstdlib>
 
-static tsl::elm::OverlayFrame* rootFrame = nullptr;
+tsl::elm::OverlayFrame* rootFrame = nullptr;
 
 std::string file_to_load = "";
 HidSixAxisSensorHandle sixaxisHandles[Controller_Max];

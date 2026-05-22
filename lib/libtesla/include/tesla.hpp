@@ -46,16 +46,20 @@
 #define touchPosition const HidTouchState
 #define touchInput &touchPos
 #define JoystickPosition HidAnalogStickState
-float M_PI = 3.14159265358979323846;
+inline float M_PI = 3.14159265358979323846;
 
 #include <switch.h>
 #include <cstdlib>
 #include <filesystem>
 
 extern "C" {
+#ifdef TESLA_INIT_IMPL
 	void __assert_func(const char *_file, int _line, const char *_func, const char *_expr ) {
 		abort();
 	}
+#else
+	void __assert_func(const char *_file, int _line, const char *_func, const char *_expr);
+#endif
 }
 
 #include <stdlib.h>
@@ -79,7 +83,7 @@ extern "C" {
 #include "ini_funcs.hpp"
 
 
-bool isValid888HexColor(const std::string& hexColor) {
+inline bool isValid888HexColor(const std::string& hexColor) {
     // Check if the string is a valid hexadecimal color of the format "#RRGGBB"
     if (hexColor.size() != 6) {
         return false; // Must be exactly 6 characters long
@@ -94,7 +98,7 @@ bool isValid888HexColor(const std::string& hexColor) {
     return true;
 }
 
-bool isValid4444HexColor(const std::string& hexColor) {
+inline bool isValid4444HexColor(const std::string& hexColor) {
     // Check if the string is a valid hexadecimal color of the format "#RRGGBB"
     if (hexColor.size() != 6) {
         return false; // Must be exactly 6 characters long
@@ -134,15 +138,15 @@ bool isValid4444HexColor(const std::string& hexColor) {
 #define ASSERT_FATAL(x) if (Result res = x; R_FAILED(res)) fatalThrow(res)
 #define ELEMENT_BOUNDS(elem) elem->getX(), elem->getY(), elem->getWidth(), elem->getHeight()
 
-u16 backgroundColor = 0xD000;
-bool FullMode = true;
-PadState pad;
-uint16_t framebufferWidth = 448;
-uint16_t framebufferHeight = 720;
-bool deactivateOriginalFooter = false;
-bool fontCache = true;
-bool isChineseTraditionalOverride = false;
-std::string defaultButtonView = "\uE0E1  Back     \uE0E0  OK";
+inline u16 backgroundColor = 0xD000;
+inline bool FullMode = true;
+inline PadState pad;
+inline uint16_t framebufferWidth = 448;
+inline uint16_t framebufferHeight = 720;
+inline bool deactivateOriginalFooter = false;
+inline bool fontCache = true;
+inline bool isChineseTraditionalOverride = false;
+inline std::string defaultButtonView = "\uE0E1  Back     \uE0E0  OK";
 
 using namespace std::literals::chrono_literals;
 
@@ -174,7 +178,7 @@ struct KeyPairEqual {
 	}
 };
 
-std::unordered_map<std::pair<s32, float>, GlyphInfo, KeyPairHash, KeyPairEqual> cache;
+inline std::unordered_map<std::pair<s32, float>, GlyphInfo, KeyPairHash, KeyPairEqual> cache;
 
 namespace tsl {
 
@@ -438,7 +442,7 @@ namespace tsl {
 			inline Color(u8 r, u8 g, u8 b, u8 a): r(r), g(g), b(b), a(a) {}
 		};
 
-        Color RGB888(std::string hexColor, std::string defaultHexColor = "#FFFFFF") {
+        inline Color RGB888(std::string hexColor, std::string defaultHexColor = "#FFFFFF") {
             // Remove the '#' character if it's present
             if (!hexColor.empty() && hexColor[0] == '#') {
                 hexColor = hexColor.substr(1);

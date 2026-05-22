@@ -30,7 +30,7 @@
  * @param filePath The path to the file to be read.
  * @return The content of the file as a string.
  */
-std::string getFileContents(const std::string& filePath) {
+static inline std::string getFileContents(const std::string& filePath) {
     std::string content;
     FILE* file = fopen(filePath.c_str(), "rb");
     if (file) {
@@ -56,7 +56,7 @@ std::string getFileContents(const std::string& filePath) {
  * @param fileName The name of the file.
  * @return The destination path as a string.
  */
-std::string getDestinationPath(const std::string& destinationDir, const std::string& fileName) {
+static inline std::string getDestinationPath(const std::string& destinationDir, const std::string& fileName) {
     return destinationDir + "/" + fileName;
 }
 
@@ -66,7 +66,7 @@ std::string getDestinationPath(const std::string& destinationDir, const std::str
  * @param line The string line containing a key-value pair (e.g., "key=value").
  * @return The extracted value as a string. If no value is found, an empty string is returned.
  */
-std::string getValueFromLine(const std::string& line) {
+static inline std::string getValueFromLine(const std::string& line) {
     std::size_t equalsPos = line.find('=');
     if (equalsPos != std::string::npos) {
         std::string value = line.substr(equalsPos + 1);
@@ -82,7 +82,7 @@ std::string getValueFromLine(const std::string& line) {
  * @return The extracted name as a string. If the path indicates a directory, it extracts the last directory name.
  * If the path is empty or no name is found, an empty string is returned.
  */
-std::string getNameFromPath(const std::string& path) {
+static inline std::string getNameFromPath(const std::string& path) {
     size_t lastSlash = path.find_last_of('/');
     if (lastSlash != std::string::npos) {
         std::string name = path.substr(lastSlash + 1);
@@ -105,7 +105,7 @@ std::string getNameFromPath(const std::string& path) {
  * @param url The URL from which to extract the file name.
  * @return The extracted file name.
  */
-std::string getFileNameFromURL(const std::string& url) {
+static inline std::string getFileNameFromURL(const std::string& url) {
     size_t lastSlash = url.find_last_of('/');
     if (lastSlash != std::string::npos)
         return url.substr(lastSlash + 1);
@@ -120,7 +120,7 @@ std::string getFileNameFromURL(const std::string& url) {
  * @param path The file path from which to extract the parent directory name.
  * @return The parent directory name.
  */
-std::string getParentDirNameFromPath(const std::string& path) {
+static inline std::string getParentDirNameFromPath(const std::string& path) {
     // Find the position of the last occurrence of the directory separator '/'
     std::size_t lastSlashPos = removeEndingSlash(path).rfind('/');
 
@@ -156,7 +156,7 @@ std::string getParentDirNameFromPath(const std::string& path) {
  * @param path The file path from which to extract the parent directory path.
  * @return The parent directory path.
  */
-std::string getParentDirFromPath(const std::string& path) {
+static inline std::string getParentDirFromPath(const std::string& path) {
     size_t lastSlash = path.find_last_of('/');
     if (lastSlash != std::string::npos) {
         std::string parentDir = path.substr(0, lastSlash + 1);
@@ -173,7 +173,7 @@ std::string getParentDirFromPath(const std::string& path) {
  * @param directoryPath The path of the directory to search.
  * @return A vector of strings containing the names of subdirectories.
  */
-std::vector<std::string> getSubdirectories(const std::string& directoryPath) {
+static inline std::vector<std::string> getSubdirectories(const std::string& directoryPath) {
     std::vector<std::string> subdirectories;
 
     DIR* dir = opendir(directoryPath.c_str());
@@ -205,7 +205,7 @@ std::vector<std::string> getSubdirectories(const std::string& directoryPath) {
  * @param directoryPath The path of the directory to search.
  * @return A vector of strings containing the paths of the files.
  */
-std::vector<std::string> getFilesListFromDirectory(const std::string& directoryPath) {
+static inline std::vector<std::string> getFilesListFromDirectory(const std::string& directoryPath) {
     std::vector<std::string> fileList;
 
     DIR* dir = opendir(directoryPath.c_str());
@@ -242,7 +242,7 @@ std::vector<std::string> getFilesListFromDirectory(const std::string& directoryP
  * @param pathPattern The wildcard pattern to match files and folders.
  * @return A vector of strings containing the paths of matching files and folders.
  */
-std::vector<std::string> getFilesListByWildcard(const std::string& pathPattern) {
+static inline std::vector<std::string> getFilesListByWildcard(const std::string& pathPattern) {
     std::string dirPath = "";
     std::string wildcard = "";
 
@@ -327,7 +327,7 @@ std::vector<std::string> getFilesListByWildcard(const std::string& pathPattern) 
  * @param pathPattern The wildcard pattern to match files and folders.
  * @return A vector of strings containing the paths of matching files and folders.
  */
-std::vector<std::string> getFilesListByWildcards(const std::string& pathPattern) {
+static inline std::vector<std::string> getFilesListByWildcards(const std::string& pathPattern) {
     std::vector<std::string> fileList;
 
     // Check if the pattern contains multiple wildcards
