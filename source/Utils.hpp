@@ -127,6 +127,10 @@ bool jumpImmediatelyToSingleSmd = true;
 bool saveAndLoadMovableOverlayPosition = true;
 std::string overrideLanguage;
 std::map<std::string, std::map<std::string, std::string>> config;
+struct {
+	struct tm timestamp;
+	uint64_t relative_tick;
+} LocalTime;
 
 //Checks
 Result clkrstCheck = 1;
@@ -230,6 +234,9 @@ struct {
 	int64_t KeysDown_int;
 	int64_t KeysHeld_int;
 	std::string formattedKeyCombo;
+	int64_t ClockHour;
+	int64_t ClockMinute;
+	int64_t ClockSecond;
 } SystemData = {0};
 
 struct {
@@ -314,6 +321,9 @@ inline void BindAllPredefined(smd::Document& doc) {
     doc.BindBool  ("System_IsDocked",                     		&SystemData.IsDocked);
     doc.BindInt64 ("System_KeysDown_int",                 		&SystemData.KeysDown_int);
     doc.BindInt64 ("System_KeysHeld_int",                 		&SystemData.KeysHeld_int);
+	doc.BindInt64 ("System_ClockSecond_int",                 	&SystemData.ClockSecond);
+	doc.BindInt64 ("System_ClockMinute_int",                 	&SystemData.ClockMinute);
+	doc.BindInt64 ("System_ClockHour_int",                  	&SystemData.ClockHour);
     doc.BindString("formattedKeyCombo",                  		&SystemData.formattedKeyCombo);
     doc.BindBool  ("Misc_IsWiFiPassphrase",               		&MiscData.IsWiFiPassphrase);
     doc.BindInt64 ("Misc_NvDecHz_int",                    		&MiscData.NvDecHz_int);

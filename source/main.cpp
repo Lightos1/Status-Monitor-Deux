@@ -3,6 +3,7 @@
 #include "Utils.hpp"
 #include <malloc.h>
 #include <set>
+#include "timeOffsetter.h"
 
 #include <cstdlib>
 
@@ -1127,6 +1128,22 @@ public:
     virtual void onHide() override {}
 
     virtual std::unique_ptr<tsl::Gui> loadInitialGui() override {
+		TimeLocationName out;
+		setsysGetDeviceTimeZoneLocationName(&out);
+		remove("sdmc:/dddd.dddd");
+		FsFileSystem* filesystem = fsdevGetDeviceFileSystem("sdmc");
+		char out_path[FS_MAX_PATH] = "";
+		fsdevTranslatePath("sdmc:/dddd.dddd", &filesystem, out_path);
+		LocalTime.relative_tick = svcGetSystemTick();
+		Result rc = fsFsCreateFile(filesystem, out_path, 0, 0);
+		if (R_SUCCEEDED(rc)) {
+			struct stat attr;
+			stat("sdmc:/dddd.dddd", &attr);
+			remove("sdmc:/dddd.dddd");
+			time_t time = attr.st_mtime;
+			time_t adjusted_time = getLocalPosixTimeSafe(time, &out);
+			gmtime_r(&adjusted_time, &LocalTime.timestamp);
+		}
 		if (file_to_load.length() == 0)
         	return initially<MainMenu>("");
 		else {
