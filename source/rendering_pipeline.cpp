@@ -142,6 +142,8 @@ void RenderingPipeline::RecordCallback(smd::RenderCommand& cmd, void* user) {
 			RenderGraphLineChart(cmd, m_renderer);
 			TrackRect(COMMON_MARGIN + orig_x, orig_y, cmd.width, cmd.height);
 			break;
+		default:
+			break;
 	}
 	cmd.x = orig_x; cmd.y = orig_y;
 	cmd.x2 = orig_x2; cmd.y2 = orig_y2;
@@ -176,6 +178,8 @@ void RenderingPipeline::DryRunCallback(smd::RenderCommand& cmd, void* user) {
 		}
 		case smd::RenderCmdType::GraphLineChart:
 			TrackRect(COMMON_MARGIN + cmd.x, cmd.y, cmd.width, cmd.height);
+			break;
+		default:
 			break;
 	}
 }
@@ -282,7 +286,7 @@ RenderingPipeline::RenderingPipeline(std::string filepath, bool double_back) {
 	std::string section_name = rel_filepath;
 	auto section = config.find(section_name);
 
-	FILE* file = fopen("sdmc:/data.txt", "w");
+	FILE* file = fopen("sdmc:/datarender.txt", "w");
 	if (section != config.end()) {
 		for (const auto& [m_key, value] : section->second) {
 			auto key = m_key.c_str();
@@ -304,8 +308,8 @@ RenderingPipeline::RenderingPipeline(std::string filepath, bool double_back) {
 						break;
 					}
 					case smd::ConfigKind::List: {
-						std::string flat = flatListToList(value);
-						doc.SetConfigList(key, flat.c_str());
+						if (value.starts_with("LIST")) doc.SetConfigList(key, value.c_str());
+						else doc.SetConfigList(key, flatListToList(value).c_str());
 						break;
 					}
 					default:

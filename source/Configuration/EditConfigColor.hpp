@@ -5,7 +5,6 @@ private:
 	std::string m_key;
 	tsl::elm::ColorListItem* m_item;
 	u16 m_color;
-	std::map<std::string, Data>* configs;
 public:
 	uint64_t start_tick;
 	int32_t row = 0;
@@ -16,8 +15,7 @@ public:
 	int32_t selected_predefined;
 	std::array<u16, 16> predefinedColors = {0xFF7A, 0xFFF0, 0xFF80, 0xFF8E, 0xF053, 0xF0FF, 0xFFDC, 0xF808, 0xFEEE, 0xF80F, 0xF6CC, 0xF0F8, 0xF744, 0xFAAF, 0xF080, 0xF82E};
 
-	EditConfigColor(std::string key, tsl::elm::ColorListItem* item, std::map<std::string, Data>* m_configs) {
-		configs = m_configs;
+	EditConfigColor(std::string key, tsl::elm::ColorListItem* item) {
 		tsl::hlp::requestForeground(true);
 		m_item = item;
 		m_key = key;
@@ -192,7 +190,7 @@ public:
 			uint32_t b = (m_color >> 8) & 0xF;
 			uint16_t in_color = (r << 12) + (g << 8) + (b << 4) + selected_a;
 			snprintf(buffer, sizeof(buffer), "COLOR{0x%04X}", in_color);
-			configs->at(m_key).value = buffer;
+			configs.at(m_key).value = buffer;
 			m_item->setColor((m_color & 0xFFF) + (selected_a << 12));
 			tsl::goBack();
 			return true;

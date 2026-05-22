@@ -8,7 +8,6 @@ private:
 	bool isInt = false;
 	bool isColor = false;
 	bool isError = false;
-	std::map<std::string, Data> configs;
 	void FindConfigs(const char* data, size_t size) {
 		size_t lineStart = 0;
 		for (size_t i = 0; i < size; ++i) {
@@ -139,7 +138,7 @@ private:
 		return;
 	}
 
-	void setDataToIniFile(const std::string& fileToEdit, const std::string& desiredSection, const std::map<std::string, Data>& configs) {
+	void setDataToIniFile(const std::string& fileToEdit, const std::string& desiredSection) {
 		FILE* configFile = fopen(fileToEdit.c_str(), "r");
 		if (!configFile) {
 			configFile = fopen(fileToEdit.c_str(), "w");
@@ -235,7 +234,7 @@ public:
 	std::string m_name;
 	std::string m_show;
 	std::string section_name;
-	std::vector<std::string> list_keys;
+	std::vector<std::string> keys_to_convert;
 	Configuration(std::string path, std::string name) {
 		tsl::hlp::requestForeground(true);
 		filepath = path;
@@ -266,7 +265,10 @@ public:
 		m_show = std::string("\uE130 ") + m_name;
 		section_name = filepath.substr(strlen("sdmc:/config/status-monitor-deux/modes/"));
 		auto it = config.find(section_name);
-		if (it == config.end()) return;
+		if (it == config.end()) {
+			config[section_name] = std::map<std::string, std::string>();
+			return; //nie znaleziono sekcji w pliku ini
+		}
 		auto settings = it->second; //to co znaleziono w pliku ini
 		file = fopen("sdmc:/data.txt", "w");
 		for (const auto& [key, data] : configs) { //To co znaleziono w pliku SMD
@@ -285,9 +287,14 @@ public:
 				if (isNumeric(temp, &value) == false) continue;
 			}
 			else if (data.value.starts_with("LIST{str, {\"") && data.value.ends_with("\"}}")) {
-				std::string temp2 = flatListToList(temp);
+				std::string temp2 = temp;
+				if (temp.starts_with("LIST{str, {\"") == false) {
+					temp2 = flatListToList(temp);
+				}
+				fprintf(file, "After [%s] \"%s\" ][ \"%s\"\n", key.c_str(), temp.c_str(), temp2.c_str());
 				temp = temp2;
-				list_keys.emplace_back(key);
+				keys_to_convert.emplace_back(key);
+
 			}
 			else continue;
 			configs[key].value = temp;
@@ -296,30 +303,48 @@ public:
 	}
 
 	~Configuration() {
-		std::vector<std::string> key_to_reverse;
-		for (const auto& [key, data] : configs) {
+		FILE* file = fopen("sdmc:/on_save.txt", "w");
+		if (keys_to_convert.empty()) for (const auto& [key, data] : configs) {
 			if (configs[key].value.starts_with("LIST")) {
-				key_to_reverse.emplace_back(key);
+				keys_to_convert.emplace_back(key);
+				//fprintf(file, "Before [%s] %s\n", key.c_str(), configs[key].value.c_str());
 				std::string list = listToFlatList(configs[key].value);
 				configs[key].value = list;
 			}
 		}
-		setDataToIniFile("sdmc:/config/status-monitor-deux/config.ini", section_name, configs);
-
-		auto it = config.find(section_name);
-		if (it == config.end()) return;
-		auto settings = &it->second;
-		
-		for (size_t i = 0; i < key_to_reverse.size(); i++) {
-			std::string flatList = flatListToList(configs[key_to_reverse[i]].value);
-			configs[key_to_reverse[i]].value = flatList;
+		else if (configs.size() > 0) for (size_t i = 0; i < keys_to_convert.size(); i++) {
+			auto it = configs.find(keys_to_convert[i]);
+			if (it != configs.end()) {
+				//fprintf(file, "Before [%s] %s\n", keys_to_convert[i].c_str(), configs[keys_to_convert[i]].value.c_str());
+				std::string list = listToFlatList(it->second.value);
+				it->second.value = list;
+			}
 		}
-		FILE* file = fopen("sdmc:/on_save.txt", "w");
+		setDataToIniFile("sdmc:/config/status-monitor-deux/config.ini", section_name);
+		fprintf(file, "Step1\n");
+
+		auto settings = config.find(section_name);
+		if (settings == config.end()) {
+			fclose(file);
+			configs.clear();
+			return;
+		}
+		fprintf(file, "Step2\n");
+		
+		for (size_t i = 0; i < keys_to_convert.size(); i++) {
+			auto it = configs.find(keys_to_convert[i]);
+			if (it != configs.end()) {
+				std::string list = flatListToList(it->second.value);
+				it->second.value = list;
+			}
+		}
+		fprintf(file, "Step3\n");
 		for (const auto& [key, data] : configs) {
 			std::string m_key = "User_" + key;
-			fprintf(file, "[%s] %s\n", m_key.c_str(), configs[key].value.c_str());
-			settings->at(m_key) = configs[key].value;
+			fprintf(file, "After [%s] %s\n", m_key.c_str(), configs[key].value.c_str());
+			settings->second[m_key] = configs[key].value;
 		}
+		configs.clear();
 		fclose(file);
 	}
 
@@ -331,7 +356,7 @@ public:
 			auto Item = new tsl::elm::ListItem("Bools", "\uE142\uE14B\uE14C");
 			Item->setClickListener([this](uint64_t keys) {
 				if (keys & KEY_A) {
-					tsl::changeTo<ConfigurationSubMenu>("bool", m_show, &configs);
+					tsl::changeTo<ConfigurationSubMenu>("bool", m_show);
 					return true;
 				}
 				return false;
@@ -342,7 +367,7 @@ public:
 			auto Item = new tsl::elm::ListItem("Ints", "\uE047\uE048");
 			Item->setClickListener([this](uint64_t keys) {
 				if (keys & KEY_A) {
-					tsl::changeTo<ConfigurationSubMenu>("int", m_show, &configs);
+					tsl::changeTo<ConfigurationSubMenu>("int", m_show);
 					return true;
 				}
 				return false;
@@ -353,7 +378,7 @@ public:
 			auto Item = new tsl::elm::ListItem("Colors", "\uE135");
 			Item->setClickListener([this](uint64_t keys) {
 				if (keys & KEY_A) {
-					tsl::changeTo<ConfigurationSubMenu>("color", m_show, &configs);
+					tsl::changeTo<ConfigurationSubMenu>("color", m_show);
 					return true;
 				}
 				return false;

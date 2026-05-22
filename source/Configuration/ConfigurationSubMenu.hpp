@@ -5,10 +5,8 @@ private:
 	std::string m_type;
 	std::string showType;
 	std::string m_name;
-	std::map<std::string, Data>* configs;
 public:
-	ConfigurationSubMenu(std::string type, std::string name, std::map<std::string, Data>* m_configs) {
-		configs = m_configs;
+	ConfigurationSubMenu(std::string type, std::string name) {
 		m_type = type;
 		if (m_type.compare("bool") == 0) {
 			showType = "\uE142\uE14B\uE14C";
@@ -26,7 +24,7 @@ public:
 		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, m_name);
 		auto list = new tsl::elm::List();
 
-		for (const auto& [key, data] : *configs) {
+		for (const auto& [key, data] : configs) {
 			if (data.type.compare(m_type) == 0) {
 				if (m_type.compare("int") == 0) {
 					int64_t temp;
@@ -34,7 +32,7 @@ public:
 						auto Item = new tsl::elm::ListItem(key, data.value);
 						Item->setClickListener([this, key, data, Item](uint64_t keys) {
 							if (keys & KEY_A) {
-								tsl::changeTo<EditConfigInt>(key, configs->at(key).value, data.rangeMin, data.rangeMax, data.defaultValue, Item, configs);
+								tsl::changeTo<EditConfigInt>(key, configs.at(key).value, data.rangeMin, data.rangeMax, data.defaultValue, Item);
 								return true;
 							}
 							return false;
@@ -51,7 +49,7 @@ public:
 					auto Item = new tsl::elm::ToggleListItem(key, isTrue);
 					Item->setClickListener([this, key, Item](uint64_t keys) {
 						if (keys & KEY_A) {
-							configs->at(key).value = Item->getState() ? "true" : "false";
+							configs.at(key).value = Item->getState() ? "true" : "false";
 							return true;
 						}
 						return false;
@@ -79,7 +77,7 @@ public:
 						auto Item = new tsl::elm::ColorListItem(key, color);
 						Item->setClickListener([this, key, Item, color](uint64_t keys) {
 							if (keys & KEY_A) {
-								tsl::changeTo<EditConfigColor>(key, Item, configs);
+								tsl::changeTo<EditConfigColor>(key, Item);
 								return true;
 							}
 							return false;

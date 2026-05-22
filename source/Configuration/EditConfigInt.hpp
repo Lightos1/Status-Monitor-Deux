@@ -12,10 +12,8 @@ private:
 	int64_t default_value;
 	std::string buttons = "\uE0B1/\uE0C1      \uE0C1/\uE0B2";
 	tsl::elm::ListItem* m_item;
-	std::map<std::string, Data>* configs;
 public:
-	EditConfigInt(std::string key, std::string value, std::string rangeMin, std::string rangeMax, std::string defaultValue, tsl::elm::ListItem* item, std::map<std::string, Data>* m_configs) {
-		configs = m_configs;
+	EditConfigInt(std::string key, std::string value, std::string rangeMin, std::string rangeMax, std::string defaultValue, tsl::elm::ListItem* item) {
 		tsl::hlp::requestForeground(true);
 		m_item = item;
 		m_key = key;
@@ -80,7 +78,7 @@ public:
 		}
 		if (keysDown & KEY_A) {
 			std::string temp = std::to_string(current_value);
-			configs->at(m_key).value = temp;
+			configs.at(m_key).value = temp;
 			m_item->setValue(temp, false);
 			tsl::goBack();
 			return true;

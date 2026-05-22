@@ -7,4 +7,4 @@ struct Data {
 	std::string rangeMax;
 	std::string defaultValue;
 };
- 
+std::map<std::string, Data> configs;
