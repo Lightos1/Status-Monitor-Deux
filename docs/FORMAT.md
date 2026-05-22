@@ -599,7 +599,8 @@ Available only with sys-clk or hoc-clk: `GPU_RealHz_int`, `GPU_DeltaHz_int`
 `RAM_Hz_int`, `RAM_UsedAllMB_float`, `RAM_TotalAllMB_float`, `RAM_UsedApplicationMB_float`, `RAM_TotalApplicationMB_float`, `RAM_UsedAppletMB_float`, `RAM_TotalAppletMB_float`, `RAM_UsedSystemMB_float`, `RAM_TotalSystemMB_float`, `RAM_UsedSystemUnsafeMB_float`, `RAM_TotalSystemUnsafeMB_float`.
 
 Available only with sys-clk or hoc-clk:  `RAM_RealHz_int`, `RAM_DeltaHz_int`, `RAM_LoadAll_int`, `RAM_LoadCPU_int`
-Avaialble only with hoc-clk: `RAM_HocClkRamBWAll_int`, `RAM_HocClkRamBWCpu_int`, `RAM_HocClkRamBWGpu_int`, `RAM_HocClkRamBWPeak_int`
+
+Available only with hoc-clk: `RAM_HocClkRamBWAll_int`, `RAM_HocClkRamBWCpu_int`, `RAM_HocClkRamBWGpu_int`, `RAM_HocClkRamBWPeak_int`
 
 ### Board
 `Board_ChargerCurrentLimit_int`, `Board_ChargerVoltageLimit_int`, `Board_ChargerConnected_int`, `Board_BatteryCurrentAvg_float`, `Board_BatteryVoltageAvg_float`, `Board_IsBatteryFiltered`, `Board_BatteryAgePercentage_float`, `Board_BatteryChargePercentage_float`, `Board_BatteryTemperatureCelcius_float`, `Board_DesignedFullBatteryCapacity_float`, `Board_ActualFullBatteryCapacity_float`, `Board_PowerConsumption_float`, `Board_BatteryTimeEstimateInMinutes_int`, `Board_SocTemperatureCelsius_float`, `Board_PcbTemperatureCelsius_float`, `Board_SkinTemperatureMiliCelsius_int`, `Board_FanRotationPercentageLevel_float`.
