@@ -41,7 +41,7 @@ APP_TITLE	:=	Status Monitor Deux
 APP_VERSION	:=	0.1.0
 TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build
-SOURCES		:=	source source/Ext lib/tinyexpr
+SOURCES		:=	source source/Ext lib/tinyexpr source/System
 INCLUDES	:=	include include/Ext lib/Atmosphere-libs/libstratosphere/source/dmnt lib/Atmosphere-libs/libstratosphere/source lib/libtesla/include lib/tinyexpr
 NO_ICON		:=	1
 #ROMFS		:=	romfs
@@ -49,14 +49,18 @@ NO_ICON		:=	1
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
-ARCH		:=	-march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE
+ARCH		:=	-march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE -flto=auto
 
 CFLAGS	:=	-g -Wall -Werror -Os -ffunction-sections -fdata-sections -ffast-math \
 			$(ARCH) $(DEFINES)
 
-CFLAGS		+=	$(INCLUDE) -D__SWITCH__ -DAPP_VERSION="\"$(APP_VERSION)\"" -DAPP_TITLE="\"$(APP_TITLE)\""
+CFLAGS		+=	$(INCLUDE) -DTDATA="africa asia australiasia europe northamerica southamerica" -DZFLAGS="-r @946684800"-DBACKWARD= -D__SWITCH__ -DAPP_VERSION="\"$(APP_VERSION)\"" -DAPP_TITLE="\"$(APP_TITLE)\""
 
 CXXFLAGS	:=	$(CFLAGS) -fno-exceptions -std=c++23
+
+ifdef DEBUG
+    CXXFLAGS += -DDEBUG
+endif
 
 ASFLAGS		:=	-g $(ARCH)
 LDFLAGS		=	-specs=$(DEVKITPRO)/libnx/switch.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
