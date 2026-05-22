@@ -650,6 +650,7 @@ public:
 	std::string filepath;
 	std::string m_name;
 	std::string m_show;
+	std::string section_name;
 	Configuration(std::string path, std::string name) {
 		tsl::hlp::requestForeground(true);
 		filepath = path;
@@ -678,10 +679,14 @@ public:
 		}
 		m_name = name;
 		m_show = std::string("\uE130 ") + m_name;
-		std::string section_name = filepath.substr(strlen("sdmc:/config/status-monitor-deux/modes/"));
+		section_name = filepath.substr(strlen("sdmc:/config/status-monitor-deux/modes/"));
+		auto it = config.find(section_name);
+		if (it == config.end()) return;
+		auto settings = it->second;
 		for (const auto& [key, data] : configs) {
-			std::string temp = parseValueFromIniSection("sdmc:/config/status-monitor-deux/config.ini", section_name, std::string("User_") + key);
-			if (temp.empty()) continue;
+			auto it2 = settings.find("User_" + key);
+			if (it2 == settings.end()) continue;
+			std::string temp = it2->second;
 			int64_t value;
 			if (data.value.compare("true") == 0 || data.value.compare("false") == 0) {
 				if (temp.compare("true") != 0 && temp.compare("false") != 0) continue;
@@ -701,9 +706,13 @@ public:
 	}
 
 	~Configuration() {
-		std::string section_name = filepath.substr(strlen("sdmc:/config/status-monitor-deux/modes/"));
 		setDataToIniFile("sdmc:/config/status-monitor-deux/config.ini", section_name, configs);
-		configs.clear();
+		auto it = config.find(section_name);
+		if (it == config.end()) return;
+		auto settings = it->second;
+		for (const auto& [key, data] : configs) {
+			settings["User_" + key] = configs[key].value;
+		}
 	}
 
 	virtual tsl::elm::Element* createUI() override {
@@ -1092,8 +1101,6 @@ public:
 		Hinted = envIsSyscallHinted(0x6F);
 		hidGetSixAxisSensorHandles(&sixaxisHandles[Controller_ProController], 1, HidNpadIdType_No1,      HidNpadStyleTag_NpadFullKey);
 		hidGetSixAxisSensorHandles(&sixaxisHandles[Controller_JoyConL], 2, HidNpadIdType_No1,      HidNpadStyleTag_NpadJoyDual);
-		std::string tmp = lookupLocale("sdmc:/config/status-monitor-deux/locale.txt");
-		if (tmp.length() > 0) defaultButtonView = tmp;
 	}
 
 	virtual void exitServices() override {

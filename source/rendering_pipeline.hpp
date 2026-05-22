@@ -312,7 +312,6 @@ public:
 			}
 		}
 		COMMON_MARGIN = doc.GetConfigInt("COMMON_MARGIN", 20);
-		std::map<std::string, std::map<std::string, std::string>> config = getParsedDataFromIniFile("sdmc:/config/status-monitor-deux/config.ini");
 		std::string section_name = rel_filepath;
 		auto section = config.find(section_name);
 

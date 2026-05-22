@@ -23,6 +23,7 @@
 #include <string>   // For std::string
 #include <vector>   // For std::vector
 #include <map>      // For std::map
+#include <sstream>  // For std::istringstream
 #include <algorithm> // For std::remove_if
 #include <cctype>   // For ::isspace
 #include <get_funcs.hpp>
@@ -228,10 +229,9 @@ std::string parseValueFromIniSection(const std::string& filePath, const std::str
 }
 
 
-std::string parseValueFromIniSectionF(FILE*& file, const std::string& filePath, const std::string& sectionName, const std::string& keyName) {
+std::string parseValueFromIniSectionF(FILE*& file, const std::string& sectionName, const std::string& keyName) {
     std::string value = "";
     
-    //FILE* file = fopen(filePath.c_str(), "r");
     if (file == nullptr) {
         return value; // Return an empty string if the file cannot be opened
     }
@@ -260,8 +260,6 @@ std::string parseValueFromIniSectionF(FILE*& file, const std::string& filePath, 
             }
         }
     }
-    
-    //fclose(file);
     
     return value;
 }

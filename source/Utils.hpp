@@ -126,6 +126,7 @@ bool motionControl = true;
 bool jumpImmediatelyToSingleSmd = true;
 bool saveAndLoadMovableOverlayPosition = true;
 std::string overrideLanguage;
+std::map<std::string, std::map<std::string, std::string>> config;
 
 //Checks
 Result clkrstCheck = 1;
@@ -1177,15 +1178,18 @@ ALWAYS_INLINE bool isKeyComboPressed(uint64_t keysHeld, uint64_t keysDown, uint6
 void createDefaultFile(std::string filepath) {
 	mkdir("sdmc:/config/", 69);
 	mkdir("sdmc:/config/status-monitor-deux/", 420);
-	//setIniFile(filepath, "status-monitor-deux", "key_combo", "L+DDOWN+RSTICK", "");
+	setIniFile(filepath, "status-monitor-deux", ";key_combo", "L+DDOWN+RSTICK", "");
 	setIniFile(filepath, "status-monitor-deux", "battery_avg_iir_filter", "false", "");
 	setIniFile(filepath, "status-monitor-deux", "battery_time_left_refreshrate", "10", "");
-	setIniFile(filepath, "status-monitor-deux", "font_cache", "true", "");
 	setIniFile(filepath, "status-monitor-deux", "touch_screen", "true", "");
 	setIniFile(filepath, "status-monitor-deux", "motion_control", "true", "");
 	setIniFile(filepath, "status-monitor-deux", "left_joycon_motion_key_combo", "ZL+L+LSTICK", "");
 	setIniFile(filepath, "status-monitor-deux", "right_joycon_motion_key_combo", "ZR+R+RSTICK", "");
-	setIniFile(filepath, "status-monitor-deux", "pro_controller_motion_key_combo", "ZR+R+RSTICK", "");
+	setIniFile(filepath, "status-monitor-deux", "pro_controller_motion_key_combo", "true", "");
+	setIniFile(filepath, "status-monitor-deux", "jump_immediately_to_single_smd", "ZR+R+RSTICK", "");
+	setIniFile(filepath, "status-monitor-deux", "save_and_load_movable_overlay_position", "true", "");
+	setIniFile(filepath, "status-monitor-deux", "override_language", "false", "");
+	setIniFile(filepath, "status-monitor-deux", "override_language_ietf_code", "EN-US", "");
 }
 
 bool ProcessSmdSettings(std::string filename, uint32_t crc32, uint16_t* x, uint16_t* y) {
@@ -1228,6 +1232,21 @@ bool ProcessSmdSettings(std::string filename, uint32_t crc32, uint16_t* x, uint1
 	return false;
 }
 
+static std::string resolveHexEscapes(const std::string& s) {
+    std::string result;
+    for (size_t i = 0; i < s.size(); ++i) {
+        if (s[i] == '\\' && i + 3 <= s.size() && s[i + 1] == 'x' &&
+            std::isxdigit(static_cast<unsigned char>(s[i + 2])) &&
+            std::isxdigit(static_cast<unsigned char>(s[i + 3]))) {
+            result += static_cast<char>(std::stoul(s.substr(i + 2, 2), nullptr, 16));
+            i += 3;
+        } else {
+            result += s[i];
+        }
+    }
+    return result;
+}
+
 // Custom utility function for parsing an ini file
 void ParseIniFile() {
 	std::string overlayName;
@@ -1237,58 +1256,40 @@ void ParseIniFile() {
 	std::string configIniPath = directoryPath + "config.ini";
 	std::string ultrahandConfigIniPath = ultrahandDirectoryPath + "config.ini";
 	std::string teslaConfigIniPath = teslaDirectoryPath + "config.ini";
+	std::string localeIniPath = directoryPath + "locale.ini";
 	tsl::hlp::ini::IniData parsedData;
 	
 	struct stat st;
 	if (stat(directoryPath.c_str(), &st) != 0) {
 		mkdir(directoryPath.c_str(), 0777);
 	}
-
 	
-	bool readExternalCombo = false;
-	// Open the INI file
-	FILE* configFileIn = fopen(configIniPath.c_str(), "r");
-	if (configFileIn) {
-		// Determine the size of the INI file
-		fseek(configFileIn, 0, SEEK_END);
-		long fileSize = ftell(configFileIn);
-		rewind(configFileIn);
-			
-		// Parse the INI data
-		std::string fileDataString(fileSize, '\0');
-		fread(&fileDataString[0], sizeof(char), fileSize, configFileIn);
-		fclose(configFileIn);
+	bool readExternalCombo = true;
 
-		parsedData = tsl::hlp::ini::parseIni(fileDataString);
-		
-		// Access and use the parsed data as needed
-		// For example, print the value of a specific section and key
-		if (parsedData.find("status-monitor-deux") != parsedData.end()) {
-			if (parsedData["status-monitor-deux"].find("key_combo") != parsedData["status-monitor-deux"].end()) {
-				keyCombo = parsedData["status-monitor-deux"]["key_combo"]; // load keyCombo variable
-				removeSpaces(keyCombo); // format combo
+	// Open the INI file
+	config = getParsedDataFromIniFile(configIniPath.c_str());
+	auto it = config.find("status-monitor-deux");
+	bool override_check = false;
+	if (it != config.end()) {
+		auto settings = it->second;
+		for (const auto& [key, value] : settings) {
+			if (key.compare("key_combo") == 0 and value.length() > 0) {
+				keyCombo = value;
+				removeSpaces(keyCombo);
 				convertToUpper(keyCombo);
-			} 
-			else {
-				readExternalCombo = true;
+				readExternalCombo = false;
 			}
-			if (parsedData["status-monitor-deux"].find("battery_avg_iir_filter") != parsedData["status-monitor-deux"].end()) {
-				auto key = parsedData["status-monitor-deux"]["battery_avg_iir_filter"];
-				convertToUpper(key);
-				BoardData.IsBatteryFiltered = !key.compare("TRUE");
+			else if (key.compare("battery_avg_iir_filter") == 0 and value.length() > 0) {
+				std::string temp = value;
+				convertToUpper(temp);
+				BoardData.IsBatteryFiltered = !temp.compare("TRUE");
 			}
-			if (parsedData["status-monitor-deux"].find("font_cache") != parsedData["status-monitor-deux"].end()) {
-				auto key = parsedData["status-monitor-deux"]["font_cache"];
-				convertToUpper(key);
-				fontCache = !key.compare("TRUE");
-			}
-			if (parsedData["status-monitor-deux"].find("battery_time_left_refreshrate") != parsedData["status-monitor-deux"].end()) {
-				auto key = parsedData["status-monitor-deux"]["battery_time_left_refreshrate"];
+			else if (key.compare("battery_time_left_refreshrate") == 0 and value.length() > 0) {
 				constexpr uint32_t maxSeconds = 60;
 				constexpr uint32_t minSeconds = 1;
 		
 				uint32_t rate;
-				auto [ptr, ec] = std::from_chars(key.data(), key.data() + key.size(), rate);
+				auto [ptr, ec] = std::from_chars(value.data(), value.data() + value.size(), rate);
 
 				if (ec == std::errc{}) {
 					if (rate > maxSeconds) {
@@ -1300,63 +1301,54 @@ void ParseIniFile() {
 					batteryTimeLeftRefreshRate = rate;
 				}
 			}
-			if (parsedData["status-monitor-deux"].find("touch_screen") != parsedData["status-monitor-deux"].end()) {
-				auto key = parsedData["status-monitor-deux"]["touch_screen"];
-				convertToUpper(key);
-				touchScreen = key.compare("FALSE");
+			else if (key.compare("touch_screen") == 0 and value.length() > 0) {
+				std::string temp = value;
+				convertToUpper(temp);
+				touchScreen = temp.compare("FALSE");
 			}
-			if (parsedData["status-monitor-deux"].find("motion_control") != parsedData["status-monitor-deux"].end()) {
-				auto key = parsedData["status-monitor-deux"]["motion_control"];
-				convertToUpper(key);
-				motionControl = key.compare("FALSE");
+			else if (key.compare("motion_control") == 0 and value.length() > 0) {
+				std::string temp = value;
+				convertToUpper(temp);
+				motionControl = temp.compare("FALSE");
 			}
-			if (motionControl == true) {
-				if (parsedData["status-monitor-deux"].find("left_joycon_motion_key_combo") != parsedData["status-monitor-deux"].end()) {
-					leftJoyconMotionKeyCombo = parsedData["status-monitor-deux"]["left_joycon_motion_key_combo"];
-					removeSpaces(leftJoyconMotionKeyCombo);
-					convertToUpper(leftJoyconMotionKeyCombo);
-				}
-				if (parsedData["status-monitor-deux"].find("right_joycon_motion_key_combo") != parsedData["status-monitor-deux"].end()) {
-					rightJoyconMotionKeyCombo = parsedData["status-monitor-deux"]["right_joycon_motion_key_combo"];
-					removeSpaces(rightJoyconMotionKeyCombo);
-					convertToUpper(rightJoyconMotionKeyCombo);
-				}
-				if (parsedData["status-monitor-deux"].find("pro_controller_motion_key_combo") != parsedData["status-monitor-deux"].end()) {
-					proControllerMotionKeyCombo = parsedData["status-monitor-deux"]["pro_controller_motion_key_combo"];
-					removeSpaces(proControllerMotionKeyCombo);
-					convertToUpper(proControllerMotionKeyCombo);
-				}
+			else if (key.compare("left_joycon_motion_key_combo") == 0 and value.length() > 0) {
+				leftJoyconMotionKeyCombo = value;
+				removeSpaces(leftJoyconMotionKeyCombo);
+				convertToUpper(leftJoyconMotionKeyCombo);
 			}
-			if (parsedData["status-monitor-deux"].find("jump_immediately_to_single_smd") != parsedData["status-monitor-deux"].end()) {
-				auto key = parsedData["status-monitor-deux"]["jump_immediately_to_single_smd"];
-				convertToUpper(key);
-				jumpImmediatelyToSingleSmd = key.compare("FALSE");
+			else if (key.compare("right_joycon_motion_key_combo") == 0 and value.length() > 0) {
+				rightJoyconMotionKeyCombo = value;
+				removeSpaces(leftJoyconMotionKeyCombo);
+				convertToUpper(leftJoyconMotionKeyCombo);
 			}
-			if (parsedData["status-monitor-deux"].find("save_and_load_movable_overlay_position") != parsedData["status-monitor-deux"].end()) {
-				auto key = parsedData["status-monitor-deux"]["save_and_load_movable_overlay_position"];
-				convertToUpper(key);
-				saveAndLoadMovableOverlayPosition = key.compare("FALSE");
+			else if (key.compare("pro_controller_motion_key_combo") == 0 and value.length() > 0) {
+				proControllerMotionKeyCombo = value;
+				removeSpaces(leftJoyconMotionKeyCombo);
+				convertToUpper(leftJoyconMotionKeyCombo);
 			}
-			if (parsedData["status-monitor-deux"].find("override_language") != parsedData["status-monitor-deux"].end()) {
-				auto key = parsedData["status-monitor-deux"]["override_language"];
-				convertToUpper(key);
-				bool override_check = !key.compare("TRUE");
-				if (override_check) {
-					if (parsedData["status-monitor-deux"].find("override_language_ietf_code") != parsedData["status-monitor-deux"].end()) {
-						overrideLanguage = parsedData["status-monitor-deux"]["override_language_ietf_code"];
-						convertToUpper(overrideLanguage);
-						if (overrideLanguage.compare("ZH-TW") == 0) isChineseTraditionalOverride = true;
-					}
-				}
-				
+			else if (key.compare("jump_immediately_to_single_smd") == 0 and value.length() > 0) {
+				std::string temp = value;
+				convertToUpper(temp);
+				jumpImmediatelyToSingleSmd = value.compare("FALSE");
+			}
+			else if (key.compare("save_and_load_movable_overlay_position") == 0 and value.length() > 0) {
+				std::string temp = value;
+				convertToUpper(temp);
+				saveAndLoadMovableOverlayPosition = value.compare("FALSE");
+			}
+			else if (key.compare("override_language") == 0 and value.length() > 0) {
+				std::string temp = value;
+				convertToUpper(temp);
+				override_check = !value.compare("TRUE");
+			}		
+			else if (override_check == true && key.compare("override_language_ietf_code") == 0 && value.length() > 0) {
+				std::string temp = value;
+				convertToUpper(temp);
+				overrideLanguage = temp;
 			}
 		}
-		else createDefaultFile(configIniPath);
-		
-	} else {
-		createDefaultFile(configIniPath);
-		readExternalCombo = true;
 	}
+	else createDefaultFile(configIniPath);
 
 	if (readExternalCombo) {
 		FILE* ultrahandConfigFileIn = fopen(ultrahandConfigIniPath.c_str(), "r");
@@ -1396,6 +1388,17 @@ void ParseIniFile() {
 				convertToUpper(keyCombo);
 			}
 		}
+	}
+
+	FILE* localeFileIn = fopen(localeIniPath.c_str(), "r");
+	if (localeFileIn) {
+		std::string section = "EN-US";
+		if (overrideLanguage.length() != 0) section = overrideLanguage;
+
+		std::string temp = parseValueFromIniSectionF(localeFileIn, section, "Footer");
+		if (temp.length() != 0) defaultButtonView = resolveHexEscapes(temp);
+		
+		fclose(localeFileIn);
 	}
 }
 
@@ -1451,67 +1454,25 @@ void find_smd_files(const std::string& base_path, std::vector<Designs>& filesChe
     closedir(dir);
 }
 
-static std::string resolveHexEscapes(const std::string& s) {
-    std::string result;
-    for (size_t i = 0; i < s.size(); ++i) {
-        if (s[i] == '\\' && i + 3 <= s.size() && s[i + 1] == 'x' &&
-            std::isxdigit(static_cast<unsigned char>(s[i + 2])) &&
-            std::isxdigit(static_cast<unsigned char>(s[i + 3]))) {
-            result += static_cast<char>(std::stoul(s.substr(i + 2, 2), nullptr, 16));
-            i += 3;
-        } else {
-            result += s[i];
-        }
-    }
-    return result;
-}
-
-static std::string readLine(FILE* f) {
-    std::string line;
-    int c;
-    while ((c = fgetc(f)) != EOF && c != '\n')
-        line += static_cast<char>(c);
-    return resolveHexEscapes(line);
-}
-
-std::string lookupLocale(const std::string& path) {
-	std::string searchKey = "EN-US";
-	if (overrideLanguage.length() != 0) searchKey = overrideLanguage;
-	FILE* f = fopen(path.c_str(), "r");
-    if (!f)
-        return "";
-
-    std::string firstLine = trim(readLine(f));
-
-    std::string line;
-    while (true) {
-        line = readLine(f);
-        if (feof(f) && line.empty())
-            break;
-
-        size_t commaPos = line.find(',');
-        if (commaPos != std::string::npos) {
-            if (trim(line.substr(0, commaPos)) == searchKey) {
-                fclose(f);
-                return trim(line.substr(commaPos + 1));
-            }
-        }
-
-        if (feof(f))
-            break;
-    }
-
-    fclose(f);
-    return firstLine;
-}
-
 std::string lookupSMF(const std::string& folderPath) {
     std::string path = folderPath;
     if (!path.empty() && path.back() != '/') {
         path += '/';
 	}
 
-	return lookupLocale(path + "_folder.smf");
+	path += "_folder.ini";
+
+	FILE* file = fopen(path.c_str(), "r");
+	if (file) {
+		std::string searchKey = "EN-US";
+		if (overrideLanguage.length() != 0) searchKey = overrideLanguage;
+
+		std::string temp = parseValueFromIniSectionF(file, "_folder", searchKey);
+		fclose(file);
+		return temp;
+	}
+
+	return "";
 }
 
 // Strip a line-comment starting with ';', but ignore ';' inside "..." strings.
