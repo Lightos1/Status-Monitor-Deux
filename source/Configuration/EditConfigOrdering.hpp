@@ -7,6 +7,7 @@ private:
 	std::vector<std::string> defaultList;
 	std::string m_key;
 	tsl::elm::ListItem* m_item;
+
 public:
 	EditConfigOrdering(std::string key, std::string value, std::string defaultValue, tsl::elm::ListItem* item) {
 		tsl::hlp::requestForeground(true);
@@ -56,7 +57,7 @@ public:
 	}
 
 	virtual tsl::elm::Element* createUI() override {
-		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, m_key);
+		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, m_key + "");
 		auto list = new tsl::elm::List();
 		size_t listSize = toRender.size();
 		for (size_t i = 0; i < listSize; i++) {
