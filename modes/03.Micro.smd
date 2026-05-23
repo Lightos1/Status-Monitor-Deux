@@ -54,7 +54,7 @@ User_OldFpsAverage = false
 ;;User_ShowReadSpeed_DefaultValue = false
 User_Ordering = LIST{str, {"CPU", "GPU", "RAM", "BRD", "FAN", "FPS"}}
 ;;User_Ordering_Description_en = "In which order should data be rendered"
-;;User_ShowREAD_DefaultValue = LIST{str, {"CPU", "GPU", "RAM", "BRD", "FAN", "FPS"}}
+;;User_Ordering_DefaultValue = LIST{str, {"CPU", "GPU", "RAM", "BRD", "FAN", "FPS"}}
 
 CpuTextCat   = IETF{"CPU"}
 GpuTextCat   = IETF{"GPU"}
