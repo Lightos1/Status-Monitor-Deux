@@ -54,7 +54,7 @@ ARCH		:=	-march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE -flto=auto
 CFLAGS	:=	-g -Wall -Werror -Os -ffunction-sections -fdata-sections -ffast-math \
 			$(ARCH) $(DEFINES)
 
-CFLAGS		+=	$(INCLUDE) -DTDATA="africa asia australiasia europe northamerica southamerica" -DZFLAGS="-r @946684800"-DBACKWARD= -D__SWITCH__ -DAPP_VERSION="\"$(APP_VERSION)\"" -DAPP_TITLE="\"$(APP_TITLE)\""
+CFLAGS		+=	$(INCLUDE) -D__SWITCH__ -DAPP_VERSION="\"$(APP_VERSION)\"" -DAPP_TITLE="\"$(APP_TITLE)\""
 
 CXXFLAGS	:=	$(CFLAGS) -fno-exceptions -std=c++23
 
