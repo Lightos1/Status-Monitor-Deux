@@ -17,6 +17,9 @@ public:
 		else if (m_type.compare("color") == 0) {
 			showType = "\uE135";
 		}
+		else if (m_type.compare("ordering") == 0) {
+			showType = "\uE047\uE048";
+		}
 		m_name = name + "\n" + showType;
 	}
 
@@ -43,6 +46,21 @@ public:
 						auto Item = new tsl::elm::ListItem(key, data.type.c_str(), true);
 						list->addItem(Item);
 					}
+				}
+				else if (m_type.compare("list") == 0) {
+					auto Item = new tsl::elm::ListItem(key);
+					Item->setClickListener([this, key, data, Item](uint64_t keys) {
+						if (keys & KEY_A) {
+							std::string value = configs[key].value;
+							std::string defaultValue = data.defaultValue;
+							if (value.starts_with("LIST")) value = listToFlatList(value);
+							if (defaultValue.starts_with("LIST")) defaultValue = listToFlatList(defaultValue);
+							tsl::changeTo<EditConfigOrdering>(key, value, defaultValue, Item);
+							return true;
+						}
+						return false;
+					});
+					list->addItem(Item);
 				}
 				else if (data.type.compare("bool") == 0) {
 					bool isTrue = data.value.compare("true") == 0;

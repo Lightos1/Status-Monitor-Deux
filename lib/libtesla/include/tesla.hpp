@@ -1809,10 +1809,10 @@ namespace tsl {
 
 				renderer->drawRect(this->getX(), this->getY(), this->getWidth(), 1, a({ 0x4, 0x4, 0x4, 0xF  }));
 				renderer->drawRect(this->getX(), this->getY() + this->getHeight(), this->getWidth(), 1, a({ 0x0, 0x0, 0x0, 0xD }));
+				
+				renderer->drawString(this->m_text.c_str(), false, this->getX() + 20, this->getY() + 23 + ((this->getHeight() - 23) / 2), 23, a(defaultTextColor));
 
-				renderer->drawString(this->m_text.c_str(), false, this->getX() + 20, this->getY() + 45, 23, a(defaultTextColor));
-
-				renderer->drawString(this->m_value.c_str(), false, this->getX() + this->getWidth() - this->m_valueWidth - 20, this->getY() + 45, 20, this->m_faint ? a({ 0x6, 0x6, 0x6, 0xF }) : a({ 0x5, 0xC, 0xA, 0xF }));
+				renderer->drawString(this->m_value.c_str(), false, this->getX() + this->getWidth() - this->m_valueWidth - 20, this->getY() + 23 + ((this->getHeight() - 23) / 2), 20, this->m_faint ? a({ 0x6, 0x6, 0x6, 0xF }) : a({ 0x5, 0xC, 0xA, 0xF }));
 			}
 
 			virtual void layout(u16 parentX, u16 parentY, u16 parentWidth, u16 parentHeight) override {
@@ -2117,7 +2117,29 @@ namespace tsl {
 
 				if (this->m_items.size() == 1)
 					this->requestFocus(nullptr, FocusDirection::None);
-			}   
+			}
+
+			virtual void moveUp() final {
+				size_t curIdx = this->m_focusedIndex;
+				if (curIdx > 0) {
+					std::swap(this->m_items[curIdx-1], this->m_items[curIdx]);
+					this->m_focusedIndex--;
+					this->layout(0, 0, 0, 0);
+				}
+			}
+
+			virtual void moveDown() final {
+				size_t curIdx = this->m_focusedIndex;
+				if (curIdx+1 < this->m_items.size()) {
+					std::swap(this->m_items[curIdx], this->m_items[curIdx+1]);
+					this->m_focusedIndex++;
+					this->layout(0, 0, 0, 0);
+				}
+			}
+
+			virtual u16 getCurrentFocus() final {
+				return this->m_focusedIndex;
+			}
 
 			/**
 			 * @brief Removes all children from the list

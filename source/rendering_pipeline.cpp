@@ -285,17 +285,14 @@ RenderingPipeline::RenderingPipeline(std::string filepath, bool double_back) {
 	COMMON_MARGIN = doc.GetConfigInt("COMMON_MARGIN", 20);
 	std::string section_name = rel_filepath;
 	auto section = config.find(section_name);
-    #ifdef DEBUG
+
 	FILE* file = fopen("sdmc:/datarender.txt", "w");
-	#endif
 	if (section != config.end()) {
 		for (const auto& [m_key, value] : section->second) {
 			auto key = m_key.c_str();
 			const smd::ConfigValue* entry = doc.GetConfig(key);
 			if (entry != nullptr) {
-				#ifdef DEBUG
 				fprintf(file, "[%s] [type=%d] %s\n", m_key.c_str(), (u32)entry->kind, value.c_str());
-				#endif
 				switch(entry->kind) {
 					case smd::ConfigKind::Integer: {
 						int64_t int_value;
@@ -321,9 +318,7 @@ RenderingPipeline::RenderingPipeline(std::string filepath, bool double_back) {
 			}
 		}
 	}
-	#ifdef DEBUG
 	fclose(file);
-	#endif
 	auto test = doc.GetConfigInt("User_BackgroundColor", 0xFFFFFF);
 	if (test == 0xFFFFFF) backgroundColor = (uint16_t)doc.GetConfigInt("BackgroundColor", 0xD000);
 	else backgroundColor = (uint16_t)test;
@@ -361,8 +356,6 @@ RenderingPipeline::RenderingPipeline(std::string filepath, bool double_back) {
 // ─── Destructor ──────────────────────────────────────────────────────────────
 
 RenderingPipeline::~RenderingPipeline() {
-	svcSignalToAddress(&threadexit2, SignalType_SignalAndIncrementIfEqual, 0, 4);
-	leventSignal(&threadexit);
 	if (Movable && saveAndLoadMovableOverlayPosition) {
 		char buffer[10] = {0};
 		char buffer2[10] = {0};
@@ -380,6 +373,8 @@ RenderingPipeline::~RenderingPipeline() {
 	m_obj_offset_x_screen = 0;
 	m_obj_offset_y_screen = 0;
 	tsl::gfx::Renderer::getRenderer().setLayerPos(0, 0);
+	svcSignalToAddress(&threadexit2, SignalType_SignalAndIncrementIfEqual, 0, 4);
+	leventSignal(&threadexit);
 	if (Movable & motionControl) {
 		hidStopSixAxisSensor(sixaxisHandles[Controller_ProController]);
 		hidStopSixAxisSensor(sixaxisHandles[Controller_JoyConL]);

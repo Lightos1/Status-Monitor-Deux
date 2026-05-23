@@ -8,6 +8,7 @@ private:
 	bool isInt = false;
 	bool isColor = false;
 	bool isError = false;
+	bool isOrdering = false;
 	void FindConfigs(const char* data, size_t size) {
 		size_t lineStart = 0;
 		for (size_t i = 0; i < size; ++i) {
@@ -259,6 +260,9 @@ public:
 			else if (data.type.compare("color") == 0) {
 				isColor = true;
 			}
+			else if (data.type.compare("list") == 0) {
+				isOrdering = true;
+			}
 			else isError = true;
 		}
 		m_name = name;
@@ -270,16 +274,12 @@ public:
 			return; //nie znaleziono sekcji w pliku ini
 		}
 		auto settings = it->second; //to co znaleziono w pliku ini
-		#ifdef DEBUG
 		file = fopen("sdmc:/data.txt", "w");
-		#endif
 		for (const auto& [key, data] : configs) { //To co znaleziono w pliku SMD
 			auto it2 = settings.find("User_" + key);
 			if (it2 == settings.end()) continue;
 			std::string temp = it2->second;
-			#ifdef DEBUG
 			fprintf(file, "[%s] \"%s\" ][ \"%s\"\n", key.c_str(), data.value.c_str(), temp.c_str());
-			#endif
 			int64_t value;
 			if (data.value.compare("true") == 0 || data.value.compare("false") == 0) {
 				if (temp.compare("true") != 0 && temp.compare("false") != 0) continue;
@@ -295,9 +295,7 @@ public:
 				if (temp.starts_with("LIST{str, {\"") == false) {
 					temp2 = flatListToList(temp);
 				}
-				#ifdef DEBUG
 				fprintf(file, "After [%s] \"%s\" ][ \"%s\"\n", key.c_str(), temp.c_str(), temp2.c_str());
-				#endif
 				temp = temp2;
 				keys_to_convert.emplace_back(key);
 
@@ -305,15 +303,11 @@ public:
 			else continue;
 			configs[key].value = temp;
 		}
-		#ifdef DEBUG
 		fclose(file);
-		#endif
 	}
 
 	~Configuration() {
-		#ifdef DEBUG
 		FILE* file = fopen("sdmc:/on_save.txt", "w");
-		#endif
 		if (keys_to_convert.empty()) for (const auto& [key, data] : configs) {
 			if (configs[key].value.starts_with("LIST")) {
 				keys_to_convert.emplace_back(key);
@@ -331,6 +325,7 @@ public:
 			}
 		}
 		setDataToIniFile("sdmc:/config/status-monitor-deux/config.ini", section_name);
+		fprintf(file, "Step1\n");
 
 		auto settings = config.find(section_name);
 		if (settings == config.end()) {
@@ -338,6 +333,7 @@ public:
 			configs.clear();
 			return;
 		}
+		fprintf(file, "Step2\n");
 		
 		for (size_t i = 0; i < keys_to_convert.size(); i++) {
 			auto it = configs.find(keys_to_convert[i]);
@@ -345,16 +341,15 @@ public:
 				std::string list = flatListToList(it->second.value);
 				it->second.value = list;
 			}
-		} 
+		}
+		fprintf(file, "Step3\n");
 		for (const auto& [key, data] : configs) {
 			std::string m_key = "User_" + key;
-			//fprintf(file, "After [%s] %s\n", m_key.c_str(), configs[key].value.c_str());
+			fprintf(file, "After [%s] %s\n", m_key.c_str(), configs[key].value.c_str());
 			settings->second[m_key] = configs[key].value;
 		}
 		configs.clear();
-		#ifdef DEBUG
 		fclose(file);
-		#endif
 	}
 
 	virtual tsl::elm::Element* createUI() override {
@@ -388,6 +383,17 @@ public:
 			Item->setClickListener([this](uint64_t keys) {
 				if (keys & KEY_A) {
 					tsl::changeTo<ConfigurationSubMenu>("color", m_show);
+					return true;
+				}
+				return false;
+			});
+			list->addItem(Item);
+		}
+		if (isOrdering == true) {
+			auto Item = new tsl::elm::ListItem("Ordering", "\uE047\uE048");
+			Item->setClickListener([this](uint64_t keys) {
+				if (keys & KEY_A) {
+					tsl::changeTo<ConfigurationSubMenu>("list", m_show);
 					return true;
 				}
 				return false;
