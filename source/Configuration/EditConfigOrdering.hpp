@@ -96,6 +96,7 @@ public:
 			}
 			if (out.empty() == false) out.pop_back();
 			configs[m_key].value = flatListToList(out);
+			tsl::hlp::requestForeground(true);
 			tsl::goBack();
 			return true;
 		}

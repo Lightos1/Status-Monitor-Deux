@@ -73,6 +73,7 @@ public:
 			return true;
 		}
 		if (keysDown & KEY_B) {
+			tsl::hlp::requestForeground(true);
 			tsl::goBack();
 			return true;
 		}
@@ -80,6 +81,7 @@ public:
 			std::string temp = std::to_string(current_value);
 			configs.at(m_key).value = temp;
 			m_item->setValue(temp, false);
+			tsl::hlp::requestForeground(true);
 			tsl::goBack();
 			return true;
 		}

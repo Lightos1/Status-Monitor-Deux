@@ -347,6 +347,7 @@ public:
 			auto Item = new tsl::elm::ListItem("Bools", "\uE142\uE14B\uE14C");
 			Item->setClickListener([this](uint64_t keys) {
 				if (keys & KEY_A) {
+					tsl::hlp::requestForeground(true);
 					tsl::changeTo<ConfigurationSubMenu>("bool", m_show);
 					return true;
 				}
@@ -355,9 +356,10 @@ public:
 			list->addItem(Item);
 		}
 		if (isInt == true) {
-			auto Item = new tsl::elm::ListItem("Ints", "\uE047\uE048");
+			auto Item = new tsl::elm::ListItem("Ints", "1\uE08C60");
 			Item->setClickListener([this](uint64_t keys) {
 				if (keys & KEY_A) {
+					tsl::hlp::requestForeground(true);
 					tsl::changeTo<ConfigurationSubMenu>("int", m_show);
 					return true;
 				}
@@ -366,9 +368,10 @@ public:
 			list->addItem(Item);
 		}
 		if (isColor == true) {
-			auto Item = new tsl::elm::ListItem("Colors", "\uE135");
+			auto Item = new tsl::elm::ColorListItem("Colors", 0xF808, true);
 			Item->setClickListener([this](uint64_t keys) {
 				if (keys & KEY_A) {
+					tsl::hlp::requestForeground(true);
 					tsl::changeTo<ConfigurationSubMenu>("color", m_show);
 					return true;
 				}
@@ -380,6 +383,7 @@ public:
 			auto Item = new tsl::elm::ListItem("List", "\uE047\uE048");
 			Item->setClickListener([this](uint64_t keys) {
 				if (keys & KEY_A) {
+					tsl::hlp::requestForeground(true);
 					tsl::changeTo<ConfigurationSubMenu>("list", m_show);
 					return true;
 				}
@@ -394,6 +398,7 @@ public:
 
 	virtual bool handleInput(u64 keysDown, u64 keysHeld, const HidTouchState &touchPos, HidAnalogStickState joyStickPosLeft, HidAnalogStickState joyStickPosRight) override {
 		if (keysDown & KEY_B) {
+			tsl::hlp::requestForeground(true);
 			tsl::goBack();
 			return true;
 		}

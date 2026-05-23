@@ -127,11 +127,13 @@ public:
                     auto folderItem = new tsl::elm::ListItem(name, "\uE133", true);
                     folderItem->setClickListener([this, localPath, name](uint64_t keys) {
                         if (keys & KEY_A) {
+							tsl::hlp::requestForeground(true);
                             tsl::changeTo<MainMenu>(localPath, name);
                             return true;
                         }
 						#ifdef DEBUG
 						else if (keys & KEY_Y) {
+							tsl::hlp::requestForeground(true);
 							tsl::changeTo<MemoryCheck>();
 							return true;							
 						}
@@ -170,11 +172,13 @@ public:
 								if (info.layerWidth != 0 && info.layerHeight != 0 && info.layerWidth != 448 && info.layerHeight != 720) {
 									smd::Document doc;
 									if (doc.LoadFromFile(full_path.c_str()) == false) {
+										tsl::hlp::requestForeground(true);
 										tsl::changeTo<RenderingPipeline>(full_path);
 										return true;
 									}
 									BindAllPredefined(doc);
 									if (doc.Compile() == false) {
+										tsl::hlp::requestForeground(true);
 										tsl::changeTo<RenderingPipeline>(full_path);
 										return true;
 									}
@@ -188,6 +192,7 @@ public:
 							}
 							else if (doesHaveConfig == true) {
 								if (keys & KEY_Y) {
+									tsl::hlp::requestForeground(true);
 									tsl::changeTo<Configuration>(full_path, info.name);
 									return true;
 								}
@@ -210,12 +215,11 @@ public:
         return rootFrame;
     }
 
-	virtual void update() override {
-
-	}
+	virtual void update() override {}
 
 	virtual bool handleInput(uint64_t keysDown, uint64_t keysHeld, touchPosition touchInput, JoystickPosition leftJoyStick, JoystickPosition rightJoyStick) override {
 		if (keysDown & KEY_B) {
+			tsl::hlp::requestForeground(true);
 			tsl::goBack();
 			return true;
 		}

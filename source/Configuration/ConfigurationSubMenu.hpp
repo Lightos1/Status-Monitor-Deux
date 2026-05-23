@@ -12,12 +12,12 @@ public:
 			showType = "\uE142\uE14B\uE14C";
 		}
 		else if (m_type.compare("int") == 0) {
-			showType = "\uE047\uE048";
+			showType = "1\uE08C60";
 		}
 		else if (m_type.compare("color") == 0) {
 			showType = "\uE135";
 		}
-		else if (m_type.compare("ordering") == 0) {
+		else if (m_type.compare("list") == 0) {
 			showType = "\uE047\uE048";
 		}
 		m_name = name + "\n" + showType;
@@ -35,6 +35,7 @@ public:
 						auto Item = new tsl::elm::ListItem(key, data.value);
 						Item->setClickListener([this, key, data, Item](uint64_t keys) {
 							if (keys & KEY_A) {
+								tsl::hlp::requestForeground(true);
 								tsl::changeTo<EditConfigInt>(key, configs.at(key).value, data.rangeMin, data.rangeMax, data.defaultValue, Item);
 								return true;
 							}
@@ -55,6 +56,7 @@ public:
 							std::string defaultValue = data.defaultValue;
 							if (value.starts_with("LIST")) value = listToFlatList(value);
 							if (defaultValue.starts_with("LIST")) defaultValue = listToFlatList(defaultValue);
+							tsl::hlp::requestForeground(true);
 							tsl::changeTo<EditConfigOrdering>(key, value, defaultValue, Item);
 							return true;
 						}
@@ -95,6 +97,7 @@ public:
 						auto Item = new tsl::elm::ColorListItem(key, color);
 						Item->setClickListener([this, key, Item, color](uint64_t keys) {
 							if (keys & KEY_A) {
+								tsl::hlp::requestForeground(true);
 								tsl::changeTo<EditConfigColor>(key, Item);
 								return true;
 							}
@@ -119,6 +122,7 @@ public:
 
 	virtual bool handleInput(u64 keysDown, u64 keysHeld, const HidTouchState &touchPos, HidAnalogStickState joyStickPosLeft, HidAnalogStickState joyStickPosRight) override {
 		if (keysDown & KEY_B) {
+			tsl::hlp::requestForeground(true);
 			tsl::goBack();
 			return true;
 		}

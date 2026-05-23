@@ -107,6 +107,7 @@ public:
 
 	virtual bool handleInput(u64 keysDown, u64 keysHeld, const HidTouchState &touchPos, HidAnalogStickState joyStickPosLeft, HidAnalogStickState joyStickPosRight) override {
 		if (keysDown & KEY_B) {
+			tsl::hlp::requestForeground(true);
 			tsl::goBack();
 			return true;
 		}
@@ -192,6 +193,7 @@ public:
 			snprintf(buffer, sizeof(buffer), "COLOR{0x%04X}", in_color);
 			configs.at(m_key).value = buffer;
 			m_item->setColor((m_color & 0xFFF) + (selected_a << 12));
+			tsl::hlp::requestForeground(true);
 			tsl::goBack();
 			return true;
 		}
