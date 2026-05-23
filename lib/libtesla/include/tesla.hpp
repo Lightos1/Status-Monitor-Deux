@@ -1939,8 +1939,10 @@ namespace tsl {
 			 * @param onValue Value drawn if the toggle is on
 			 * @param offValue Value drawn if the toggle is off
 			 */
-			ColorListItem(std::string text, u16 in_color) : ListItem(text), m_color(in_color) {
+			ColorListItem(std::string text, u16 in_color, bool changeRandomlyColors = false) : ListItem(text), m_color(in_color), rng(in_color), m_changeRandomlyColors(changeRandomlyColors) {
+				rand();
 				this->setColor(this->m_color);
+				last_tick = svcGetSystemTick();
 			}
 
 			virtual ~ColorListItem() {}
@@ -1951,8 +1953,19 @@ namespace tsl {
 
 				renderer->drawString(this->m_text.c_str(), false, this->getX() + 20, this->getY() + 45, 23, a(defaultTextColor));
 
-				renderer->drawCircle(this->getX() + this->getWidth() - 32, this->getY() + 37, 17, true, 0xFFFF - (m_color.rgba & 0xFFF));
-				renderer->drawRect(this->getX() + this->getWidth() - 43, this->getY() + 26, 24, 24, 0xF000 + (m_color.rgba & 0xFFF));
+				if (m_changeRandomlyColors == false) {
+					renderer->drawCircle(this->getX() + this->getWidth() - 32, this->getY() + 37, 17, true, 0xFFFF - (m_color.rgba & 0xFFF));
+					renderer->drawRect(this->getX() + this->getWidth() - 43, this->getY() + 26, 24, 24, 0xF000 + (m_color.rgba & 0xFFF));
+				}
+				else {
+					uint64_t new_tick = svcGetSystemTick();
+					if (new_tick - last_tick > armGetSystemTickFreq()) {
+						rng = rand() % 0x1000;
+						last_tick = new_tick;
+					}
+					renderer->drawCircle(this->getX() + this->getWidth() - 32, this->getY() + 37, 17, true, 0xFFFF - rng);
+					renderer->drawRect(this->getX() + this->getWidth() - 43, this->getY() + 26, 24, 24, 0xF000 + rng);					
+				}
 			}
 
 			virtual bool onClick(u64 keys) {
@@ -1988,6 +2001,9 @@ namespace tsl {
 
 		protected:
 			tsl::gfx::Color m_color;
+			u16 rng = 0;
+			uint64_t last_tick = 0;
+			bool m_changeRandomlyColors;
 
 			std::function<void(bool)> m_stateChangedListener = [](bool){};
 		};
