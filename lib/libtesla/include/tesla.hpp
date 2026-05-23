@@ -147,6 +147,8 @@ inline bool deactivateOriginalFooter = false;
 inline bool fontCache = true;
 inline bool isChineseTraditionalOverride = false;
 inline std::string defaultButtonView = "\uE0E1  Back     \uE0E0  OK";
+inline u32 horizontalUnderscanPixels = 0;
+inline bool isDocked = false;
 
 using namespace std::literals::chrono_literals;
 
@@ -1166,6 +1168,7 @@ namespace tsl {
 			 * @return Offset
 			 */
 			const u32 getPixelOffset(u32 x, u32 y) {
+				x += horizontalUnderscanPixels;
 				if (this->m_scissoring) {
 					if (x < this->m_scissorBounds[0] ||
 						y < this->m_scissorBounds[1] ||
@@ -1319,6 +1322,16 @@ namespace tsl {
 			 */
 			inline void endFrame() {
 				std::memcpy(this->getNextFramebuffer(), this->getCurrentFramebuffer(), this->getFramebufferSize());
+				ApmPerformanceMode mode = ApmPerformanceMode_Invalid;
+				Result rc = apmGetPerformanceMode(&mode);
+				if (R_SUCCEEDED(rc)) {
+					if (mode == ApmPerformanceMode_Boost) {
+						isDocked = true;
+					}
+					else {
+						isDocked = false;
+					}
+				}
 				this->waitForVSync();
 				framebufferEnd(&this->m_framebuffer);
 

@@ -467,11 +467,7 @@ void RenderingPipeline::update() {
 	if (error.length() != 0) return;
 	s_rects.clear();
 	doc.Reset(changingPos);
-	ApmPerformanceMode performanceMode;
-	if (R_SUCCEEDED(apmGetPerformanceMode(&performanceMode))) {
-		if (performanceMode == ApmPerformanceMode_Boost) SystemData.IsDocked = true;
-		else SystemData.IsDocked = false;
-	}
+	SystemData.IsDocked = isDocked;
 	if (displayRefreshRate) {
 		SystemData.DisplayRefreshRate_int = *displayRefreshRate;
 	}
