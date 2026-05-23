@@ -361,6 +361,8 @@ RenderingPipeline::RenderingPipeline(std::string filepath, bool double_back) {
 // ─── Destructor ──────────────────────────────────────────────────────────────
 
 RenderingPipeline::~RenderingPipeline() {
+	svcSignalToAddress(&threadexit2, SignalType_SignalAndIncrementIfEqual, 0, 4);
+	leventSignal(&threadexit);
 	if (Movable && saveAndLoadMovableOverlayPosition) {
 		char buffer[10] = {0};
 		char buffer2[10] = {0};
@@ -378,8 +380,6 @@ RenderingPipeline::~RenderingPipeline() {
 	m_obj_offset_x_screen = 0;
 	m_obj_offset_y_screen = 0;
 	tsl::gfx::Renderer::getRenderer().setLayerPos(0, 0);
-	svcSignalToAddress(&threadexit2, SignalType_SignalAndIncrementIfEqual, 0, 4);
-	leventSignal(&threadexit);
 	if (Movable & motionControl) {
 		hidStopSixAxisSensor(sixaxisHandles[Controller_ProController]);
 		hidStopSixAxisSensor(sixaxisHandles[Controller_JoyConL]);
