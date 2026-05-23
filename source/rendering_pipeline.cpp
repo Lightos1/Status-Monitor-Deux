@@ -285,14 +285,17 @@ RenderingPipeline::RenderingPipeline(std::string filepath, bool double_back) {
 	COMMON_MARGIN = doc.GetConfigInt("COMMON_MARGIN", 20);
 	std::string section_name = rel_filepath;
 	auto section = config.find(section_name);
-
+    #ifdef DEBUG
 	FILE* file = fopen("sdmc:/datarender.txt", "w");
+	#endif
 	if (section != config.end()) {
 		for (const auto& [m_key, value] : section->second) {
 			auto key = m_key.c_str();
 			const smd::ConfigValue* entry = doc.GetConfig(key);
 			if (entry != nullptr) {
+				#ifdef DEBUG
 				fprintf(file, "[%s] [type=%d] %s\n", m_key.c_str(), (u32)entry->kind, value.c_str());
+				#endif
 				switch(entry->kind) {
 					case smd::ConfigKind::Integer: {
 						int64_t int_value;
@@ -318,7 +321,9 @@ RenderingPipeline::RenderingPipeline(std::string filepath, bool double_back) {
 			}
 		}
 	}
+	#ifdef DEBUG
 	fclose(file);
+	#endif
 	auto test = doc.GetConfigInt("User_BackgroundColor", 0xFFFFFF);
 	if (test == 0xFFFFFF) backgroundColor = (uint16_t)doc.GetConfigInt("BackgroundColor", 0xD000);
 	else backgroundColor = (uint16_t)test;
