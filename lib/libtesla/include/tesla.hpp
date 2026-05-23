@@ -147,7 +147,6 @@ inline bool deactivateOriginalFooter = false;
 inline bool fontCache = true;
 inline bool isChineseTraditionalOverride = false;
 inline std::string defaultButtonView = "\uE0E1  Back     \uE0E0  OK";
-inline u32 horizontalUnderscanPixels = 0;
 inline bool isDocked = false;
 
 using namespace std::literals::chrono_literals;
@@ -1168,7 +1167,6 @@ namespace tsl {
 			 * @return Offset
 			 */
 			const u32 getPixelOffset(u32 x, u32 y) {
-				x += horizontalUnderscanPixels;
 				if (this->m_scissoring) {
 					if (x < this->m_scissorBounds[0] ||
 						y < this->m_scissorBounds[1] ||
