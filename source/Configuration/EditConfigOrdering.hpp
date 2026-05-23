@@ -57,7 +57,7 @@ public:
 	}
 
 	virtual tsl::elm::Element* createUI() override {
-		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, m_key + "");
+		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, m_key + "\n\n\uE0E6 \uE147   \uE0E7 \uE148");
 		auto list = new tsl::elm::List();
 		size_t listSize = toRender.size();
 		for (size_t i = 0; i < listSize; i++) {
@@ -90,6 +90,12 @@ public:
 
 	virtual bool handleInput(u64 keysDown, u64 keysHeld, const HidTouchState &touchPos, HidAnalogStickState joyStickPosLeft, HidAnalogStickState joyStickPosRight) override {
 		if (keysDown & KEY_B) {
+			std::string out = "";
+			for (const auto& [key, value] : toRender) {
+				if (value == true) out += key + "+";
+			}
+			if (out.empty() == false) out.pop_back();
+			configs[m_key].value = flatListToList(out);
 			tsl::goBack();
 			return true;
 		}

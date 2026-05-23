@@ -377,7 +377,7 @@ public:
 			list->addItem(Item);
 		}
 		if (isOrdering == true) {
-			auto Item = new tsl::elm::ListItem("Ordering", "\uE047\uE048");
+			auto Item = new tsl::elm::ListItem("List", "\uE047\uE048");
 			Item->setClickListener([this](uint64_t keys) {
 				if (keys & KEY_A) {
 					tsl::changeTo<ConfigurationSubMenu>("list", m_show);
