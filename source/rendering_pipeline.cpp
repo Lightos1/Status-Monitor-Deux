@@ -485,6 +485,15 @@ void RenderingPipeline::update() {
 // ─── handleInput ─────────────────────────────────────────────────────────────
 
 bool RenderingPipeline::handleInput(uint64_t keysDown, uint64_t keysHeld, touchPosition touchInput, JoystickPosition leftJoyStick, JoystickPosition rightJoyStick) {
+	static u32 last_layer_w = tsl::cfg::LayerWidth;
+	static u32 last_layer_h = tsl::cfg::LayerHeight;
+	if (tsl::cfg::LayerWidth != last_layer_w || tsl::cfg::LayerHeight != last_layer_h) {
+		m_layer_pos_x_window = tsl::cfg::LayerPosX;
+		m_layer_pos_y_window = tsl::cfg::LayerPosY;
+		last_layer_w = tsl::cfg::LayerWidth;
+		last_layer_h = tsl::cfg::LayerHeight;
+	}
+
 	if (error.length() != 0) {
 		if (isKeyComboPressed(keysHeld, keysDown, mappedButtons, 20'000'000)) [[unlikely]] {
 			tsl::goBack();
