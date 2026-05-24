@@ -1338,6 +1338,8 @@ namespace tsl {
 				if (R_SUCCEEDED(rc)) {
 
 					static u32 last_underscan_value = 0;
+					//Credits to ppkantorski for working implementation in libultrahand
+					//I made my own based on his work
 					auto updateUnderscan = [&](u32 underscanValue) {
 						float horizontalUnderscanPixels = 12.8 * underscanValue;
 						float verticalUnderscanPixels = 7.2 * underscanValue;
@@ -1352,6 +1354,8 @@ namespace tsl {
 						}
 						else {
 							if (cfg::LayerHeight < 1080) {
+								//Magic number that gets scaling done properly in this overlay.
+								//For libultrahand that magic value is 1.5 which matches 1080/720 ratio, but it's rendering too high here.
 								cfg::LayerHeight = cfg::OrigLayerHeight + (u32)(1.45 * verticalUnderscanPixels);
 								if (cfg::LayerHeight > 1080) cfg::LayerHeight = 1080;
 							}
@@ -1359,6 +1363,7 @@ namespace tsl {
 								cfg::LayerWidth = cfg::OrigLayerWidth + (u32)horizontalUnderscanPixels;
 								if (cfg::LayerWidth > 1920) cfg::LayerWidth = 1920;
 							}
+							//Above that visibility is unrealiable with underscan. It may or not work in games.
 							viSetLayerZ(&this->m_layer, 34);
 						}
 						viSetLayerPosition(&this->m_layer, 0, 0);
@@ -1373,8 +1378,10 @@ namespace tsl {
 							float scaleY = (float)LayerPosY / (float)(cfg::ScreenHeight - oldLayerHeight);
 							LayerPosY = (float)(cfg::ScreenHeight - cfg::LayerHeight) * scaleY;
 						}
-						if (LayerPosX > (cfg::ScreenWidth - cfg::LayerWidth)) LayerPosX = (cfg::ScreenWidth - cfg::LayerWidth);
-						if (LayerPosY > (cfg::ScreenHeight - cfg::LayerHeight)) LayerPosY = (cfg::ScreenHeight - cfg::LayerHeight);
+						u32 maxPosX = (cfg::ScreenWidth - cfg::LayerWidth);
+						u32 maxPosY = (cfg::ScreenHeight - cfg::LayerHeight);
+						if (LayerPosX > maxPosX) LayerPosX = maxPosX;
+						if (LayerPosY > maxPosY) LayerPosY = maxPosY;
 						cfg::LayerPosX = LayerPosX;
 						cfg::LayerPosY = LayerPosY;
 						setLayerPos(cfg::LayerPosX, cfg::LayerPosY);
