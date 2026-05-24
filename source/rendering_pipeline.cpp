@@ -424,8 +424,8 @@ tsl::elm::Element* RenderingPipeline::createUI() {
 						int64_t T_screen_y = touch_pos_y - mny;
 						int64_t T_win_x = T_screen_x * 3 / 2;
 						int64_t T_win_y = T_screen_y * 3 / 2;
-						int64_t max_x = tsl::cfg::ScreenWidth  - (int)(1.5 * tsl::cfg::FramebufferWidth);
-						int64_t max_y = tsl::cfg::ScreenHeight - (int)(1.5 * tsl::cfg::FramebufferHeight);
+						int64_t max_x = tsl::cfg::ScreenWidth  - (int64_t)tsl::cfg::LayerWidth;
+						int64_t max_y = tsl::cfg::ScreenHeight - (int64_t)tsl::cfg::LayerHeight;
 						if (max_x < 0) max_x = 0;
 						if (max_y < 0) max_y = 0;
 						m_layer_pos_x_window = std::clamp<int64_t>(T_win_x, 0, max_x);
@@ -509,7 +509,7 @@ bool RenderingPipeline::handleInput(uint64_t keysDown, uint64_t keysHeld, touchP
 			mny + (m_layer_pos_y_window * 2 / 3) + m_obj_offset_y_screen);
 	}
 
-	auto applyDragFromTouchPos = [&]() {
+	auto applyDrag = [&]() {
 		if (!haveBounds) return;
 
 		if (touch_pos_y >= 704) touch_pos_y = 720;
@@ -530,8 +530,8 @@ bool RenderingPipeline::handleInput(uint64_t keysDown, uint64_t keysHeld, touchP
 
 		int64_t T_win_x = T_screen_x * 3 / 2;
 		int64_t T_win_y = T_screen_y * 3 / 2;
-		int64_t max_x = tsl::cfg::ScreenWidth  - (int)(1.5 * tsl::cfg::FramebufferWidth);
-		int64_t max_y = tsl::cfg::ScreenHeight - (int)(1.5 * tsl::cfg::FramebufferHeight);
+		int64_t max_x = tsl::cfg::ScreenWidth  - (int64_t)tsl::cfg::LayerWidth;
+		int64_t max_y = tsl::cfg::ScreenHeight - (int64_t)tsl::cfg::LayerHeight;
 		if (max_x < 0) max_x = 0;
 		if (max_y < 0) max_y = 0;
 		m_layer_pos_x_window = std::clamp<int64_t>(T_win_x, 0, max_x);
@@ -597,7 +597,7 @@ bool RenderingPipeline::handleInput(uint64_t keysDown, uint64_t keysHeld, touchP
 			if (changingPos) {
 				touch_pos_x = *touchInput.x;
 				touch_pos_y = *touchInput.y;
-				applyDragFromTouchPos();
+				applyDrag();
 			}
 		}
 		if (m_motionControl == true && (changingPos == false || sixaxisChangingPos == true)) [[unlikely]] {
@@ -641,7 +641,7 @@ bool RenderingPipeline::handleInput(uint64_t keysDown, uint64_t keysHeld, touchP
 					changingPos = true;
 					sixaxisChangingPos = true;
 					gyroCursor_update(cursor, sixaxis, &touch_pos_x, &touch_pos_y);
-					applyDragFromTouchPos();
+					applyDrag();
 				}
 				else {
 					start = false;

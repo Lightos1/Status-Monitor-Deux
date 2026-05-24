@@ -148,6 +148,8 @@ inline bool fontCache = true;
 inline bool isChineseTraditionalOverride = false;
 inline std::string defaultButtonView = "\uE0E1  Back     \uE0E0  OK";
 inline bool isDocked = false;
+inline int horizontalUnderscanPixels = 0;
+inline int verticalUnderscanPixels = 0;
 
 using namespace std::literals::chrono_literals;
 
@@ -1212,8 +1214,13 @@ namespace tsl {
 					ASSERT_FATAL(viCreateLayer(&this->m_display, &this->m_layer));
 					ASSERT_FATAL(viSetLayerScalingMode(&this->m_layer, ViScalingMode_FitToLayer));
 					
-					if (s32 layerZ = 0; R_SUCCEEDED(viGetZOrderCountMax(&this->m_display, &layerZ)) && layerZ > 0)
+					s32 layerZ = 0;
+					if (R_SUCCEEDED(viGetZOrderCountMax(&this->m_display, &layerZ)) && layerZ > 0) {
 						ASSERT_FATAL(viSetLayerZ(&this->m_layer, layerZ));
+					}
+					else {
+						ASSERT_FATAL(viSetLayerZ(&this->m_layer, 255)); // max value 255 as fallback
+					}
 
 					ASSERT_FATAL(tsl::hlp::viAddToLayerStack(&this->m_layer, ViLayerStack_Default));
 					ASSERT_FATAL(tsl::hlp::viAddToLayerStack(&this->m_layer, ViLayerStack_Screenshot));
@@ -1318,15 +1325,111 @@ namespace tsl {
 			 * @brief End the current frame
 			 * @warning Don't call this before calling \ref startFrame once
 			 */
+
+			/*
+			1080 - 42 = 1038 -> maxY
+			42 + (1.45 * 144) = 249
+			1080 - 249 = 831
+
+			
+			*/
 			inline void endFrame() {
 				std::memcpy(this->getNextFramebuffer(), this->getCurrentFramebuffer(), this->getFramebufferSize());
 				ApmPerformanceMode mode = ApmPerformanceMode_Invalid;
 				Result rc = apmGetPerformanceMode(&mode);
 				if (R_SUCCEEDED(rc)) {
+
+					static u32 last_underscan_value = 0;
+					u32 underscanValue = 0;
+					auto resetUnderscan = [&]() {
+						u32 oldLayerWidth = cfg::LayerWidth;
+						u32 oldLayerHeight = cfg::LayerHeight;
+						cfg::LayerHeight = cfg::OrigLayerHeight;
+						cfg::LayerWidth = cfg::OrigLayerWidth;
+						s32 layerZ = 255;
+						viGetZOrderCountMax(&this->m_display, &layerZ);
+						viSetLayerZ(&this->m_layer, layerZ);
+						viSetLayerPosition(&this->m_layer, 0, 0);
+						viSetLayerSize(&this->m_layer, cfg::LayerWidth, cfg::LayerHeight);
+						u32 LayerPosX = cfg::LayerPosX;
+						u32 LayerPosY = cfg::LayerPosY;
+						if (oldLayerWidth < cfg::ScreenWidth) {
+							float scaleX = (float)LayerPosX / (float)(cfg::ScreenWidth - oldLayerWidth);
+							LayerPosX = (float)(cfg::ScreenWidth - cfg::LayerWidth) * scaleX;
+						}
+						if (oldLayerHeight < cfg::ScreenHeight) {
+							float scaleY = (float)LayerPosY / (float)(cfg::ScreenHeight - oldLayerHeight);
+							LayerPosY = (float)(cfg::ScreenHeight - cfg::LayerHeight) * scaleY;
+						}
+						cfg::LayerPosX = LayerPosX;
+						cfg::LayerPosY = LayerPosY;
+						setLayerPos(cfg::LayerPosX, cfg::LayerPosY);
+						last_underscan_value = 0;
+						horizontalUnderscanPixels = 0;
+						verticalUnderscanPixels = 0;
+					};
+
 					if (mode == ApmPerformanceMode_Boost) {
+						SetSysTvSettings tv_settings;
+						rc = setsysGetTvSettings(&tv_settings);
+						if (R_SUCCEEDED(rc)) {
+							underscanValue = tv_settings.underscan;
+							if (underscanValue != last_underscan_value) {
+								if (underscanValue > 0) {
+									horizontalUnderscanPixels = 12.8 * underscanValue;
+									verticalUnderscanPixels = 7.2 * underscanValue;
+									u32 oldLayerWidth = cfg::LayerWidth;
+									u32 oldLayerHeight = cfg::LayerHeight;
+									if (cfg::LayerHeight < 1080) {
+										cfg::LayerHeight = cfg::OrigLayerHeight + (1.45 * verticalUnderscanPixels);
+										if (cfg::LayerHeight > 1080) cfg::LayerHeight = 1080;
+									}
+									if (cfg::LayerWidth < 1920) {
+										cfg::LayerWidth = cfg::OrigLayerWidth + horizontalUnderscanPixels;
+										if (cfg::LayerWidth > 1920) cfg::LayerWidth = 1920;
+									}
+									viSetLayerZ(&this->m_layer, 34);
+									viSetLayerPosition(&this->m_layer, 0, 0);
+									viSetLayerSize(&this->m_layer, cfg::LayerWidth, cfg::LayerHeight);
+									u32 LayerPosX = cfg::LayerPosX;
+									u32 LayerPosY = cfg::LayerPosY;
+									if (cfg::LayerPosX > (cfg::ScreenWidth - cfg::LayerWidth)) {
+										if (cfg::LayerPosX == cfg::ScreenWidth - oldLayerWidth) 
+											LayerPosX = cfg::ScreenWidth - cfg::LayerWidth;
+										else {
+											u32 maxX = cfg::ScreenWidth - cfg::LayerWidth;
+											u32 oldMaxX = cfg::ScreenWidth - oldLayerWidth;
+											LayerPosX = maxX - (oldMaxX - LayerPosX);
+										}
+									}
+									if (cfg::LayerPosY > (cfg::ScreenHeight - cfg::LayerHeight)) {
+										if (cfg::LayerPosX == cfg::ScreenWidth - oldLayerWidth)
+											LayerPosY = cfg::ScreenHeight - cfg::LayerHeight;
+										else {
+											u32 maxY = cfg::ScreenHeight - cfg::LayerHeight;
+											u32 oldMaxY = cfg::ScreenHeight - oldLayerHeight;
+											LayerPosY = maxY - (oldMaxY - LayerPosY);
+										}
+									}
+									cfg::LayerPosX = LayerPosX;
+									cfg::LayerPosY = LayerPosY;
+									setLayerPos(cfg::LayerPosX, cfg::LayerPosY);
+									last_underscan_value = underscanValue;
+								}
+								else {
+									resetUnderscan();
+								}
+							}
+						}
+						else {
+							resetUnderscan();
+						}
 						isDocked = true;
 					}
 					else {
+						if (last_underscan_value != 0) {
+							resetUnderscan();
+						}
 						isDocked = false;
 					}
 				}
