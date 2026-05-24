@@ -50,7 +50,7 @@ User_ShowFPS = true
 ;;User_ShowFPS_DefaultValue = true
 User_OldFpsAverage = false
 ;;User_OldFpsAverage_Description_en = "Don't clamp FPS if they are in close range of PFPS value."
-;;User_ShowReadSpeed_DefaultValue = false
+;;User_OldFpsAverage_DefaultValue = false
 User_ShowRES = true
 ;;User_ShowRES_Description_en = "Show two most likely candidated for currently running game's rendering resolution. Shows only when game is running and SaltyNX is running."
 ;;User_ShowRES_DefaultValue = true
@@ -59,7 +59,7 @@ User_ShowREAD = true
 ;;User_ShowREAD_DefaultValue = true
 User_Ordering = LIST{str, {"CPU", "GPU", "RAM", "TEMP", "DRAW", "FAN", "FPS", "RES", "READ"}}
 ;;User_Ordering_Description_en = "In which order should data be rendered"
-;;User_ShowREAD_DefaultValue = LIST{str, {"CPU", "GPU", "RAM", "TEMP", "DRAW", "FAN", "FPS", "RES", "READ"}}
+;;User_Ordering_DefaultValue = LIST{str, {"CPU", "GPU", "RAM", "TEMP", "DRAW", "FAN", "FPS", "RES", "READ"}}
 
 CpuTextCat  = IETF{"CPU"}
 GpuTextCat  = IETF{"GPU"}
