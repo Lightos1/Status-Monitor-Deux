@@ -3964,6 +3964,41 @@ bool Document::Compile() {
 // Per-frame value refresh
 // ===========================================================================
 
+// Recompute the historyAvgScratches entry for a single history immediately
+// after its ring buffer has been modified (HISTORY_UPDATE or HISTORY_CLEAN).
+// This ensures that any te_eval call later in the same frame sees the correct
+// average rather than the stale value computed by RefreshScratches at frame
+// start (which ran before this frame's HISTORY_UPDATE nodes executed).
+static void RefreshOneHistoryAvg(Document::Impl& im, const std::string& histName) {
+	auto avgIt = im.historyAvgScratches.find(histName);
+	if (avgIt == im.historyAvgScratches.end() || !avgIt->second) return;
+	auto hit = im.histories.find(histName);
+	if (hit == im.histories.end()) { *avgIt->second = 0.0; return; }
+	const HistoryDecl& h = hit->second;
+	double avg = 0.0;
+	switch (h.type) {
+		case HistoryType::Int:
+			if (!h.samplesI.empty())
+				avg = (double)std::accumulate(
+							h.samplesI.begin(), h.samplesI.end(), int64_t(0))
+					/ (double)h.samplesI.size();
+			break;
+		case HistoryType::Float:
+			if (!h.samplesF.empty())
+				avg = (double)std::accumulate(
+							h.samplesF.begin(), h.samplesF.end(), 0.0f)
+					/ (double)h.samplesF.size();
+			break;
+		case HistoryType::Double:
+			if (!h.samplesD.empty())
+				avg = std::accumulate(
+							h.samplesD.begin(), h.samplesD.end(), 0.0)
+					/ (double)h.samplesD.size();
+			break;
+	}
+	*avgIt->second = avg;
+}
+
 static void RefreshScratches(Document::Impl& im) {
 	// Pull each host-bound source into its scratch double.
 	for (auto& kv : im.hostBinds) {
@@ -4922,6 +4957,10 @@ bool Document::Evaluate(Callback cb, void* user) {
 								h.samplesD.push_back(dv);
 								break;
 						}
+						// Refresh the average scratch immediately so any
+						// subsequent te_eval in this frame sees the updated
+						// average rather than the stale pre-frame value.
+						RefreshOneHistoryAvg(*m_impl, n.historyTarget);
 #ifdef DEBUG
 						// Surface as a render command so the host knows --
 						// useful for instrumentation/debug; release builds
@@ -4946,6 +4985,8 @@ bool Document::Evaluate(Callback cb, void* user) {
 						it->second.samplesI.clear();
 						it->second.samplesF.clear();
 						it->second.samplesD.clear();
+						// Reset the average scratch to 0.0 immediately.
+						RefreshOneHistoryAvg(*m_impl, n.historyTarget);
 #ifdef DEBUG
 						RenderCommand cmd{};
 						cmd.type        = RenderCmdType::HistoryClean;
