@@ -919,21 +919,29 @@ namespace tsl {
 				s32 maxX = x;
 				s32 currX = x;
 				s32 currY = y;
-				s32 lineHeight = fontSize;
 				s32 prevCharacter = 0;
+
+				u32 currCharacter;
+				ssize_t codepointWidth = decode_utf8(&currCharacter, reinterpret_cast<const u8*>("ĝ"));
+				stbtt_fontinfo *currFont = &this->m_stdFont;
+				float currFontSize = stbtt_ScaleForPixelHeight(currFont, fontSize);
+				int bounds[4] = { 0 };
+				stbtt_GetCodepointBitmapBoxSubpixel(currFont, currCharacter, currFontSize, currFontSize,
+													0, 0, &bounds[0], &bounds[1], &bounds[2], &bounds[3]);
+				s32 lineHeight = bounds[3] - bounds[1] + 1;
+				if (lineHeight < fontSize) lineHeight = fontSize;
 
 				u32 i = 0;
 
 				do {
-					u32 currCharacter;
-					ssize_t codepointWidth = decode_utf8(&currCharacter, reinterpret_cast<const u8*>(string + i));
+					codepointWidth = decode_utf8(&currCharacter, reinterpret_cast<const u8*>(string + i));
 
 					if (codepointWidth <= 0)
 						break;
 
 					i += codepointWidth;
 
-					stbtt_fontinfo *currFont = nullptr;
+					currFont = nullptr;
 
 					if (stbtt_FindGlyphIndex(&this->m_extFont, currCharacter))
 						currFont = &this->m_extFont;
@@ -967,8 +975,6 @@ namespace tsl {
 					stbtt_GetCodepointBitmapBoxSubpixel(currFont, currCharacter, currFontSize, currFontSize,
 														0, 0, &bounds[0], &bounds[1], &bounds[2], &bounds[3]);
 
-					int glyphInkHeight = bounds[3] - bounds[1] + 1;
-					if (glyphInkHeight > lineHeight) lineHeight = glyphInkHeight;
 
 					int xAdvance = 0, yAdvance = 0;
 					stbtt_GetCodepointHMetrics(currFont, monospace ? 'W' : currCharacter, &xAdvance, &yAdvance);
@@ -990,6 +996,7 @@ namespace tsl {
 				} while (i < stringLength);
 
 				maxX = std::max(currX, maxX);
+				currY += lineHeight;
 
 				return { maxX - x, currY - y };
 			}
