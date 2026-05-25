@@ -181,6 +181,7 @@ Start:
 	#if $User_ShowFrequenceDeltas and $GPU_RealHz_int
 		#if $User_ShowRealFrequencies and $User_ShowTargetFrequencies
 			VAR{delta_offset, height_offset - (TargetDims.y / 2)}
+			VAR{height_offset, height_offset + RealDims.y}
 		#elif $User_ShowRealFrequencies or $User_ShowTargetFrequencies
 			VAR{delta_offset, height_offset}
 			#if $User_ShowRealFrequencies
@@ -216,19 +217,17 @@ Start:
 
 	TEXT{0, height_offset, 20, 0xFFFF, IETF_GET{RamUsageText}}
 
-	VAR{height_offset, 410}
+	VAR{height_offset, 400}
 	#if $User_ShowTargetFrequencies
 		TEXT{0, height_offset, 15, 0xFFFF, RAMTargetFreqText}
 		GET_DIMENSIONS{TargetDims, 15, RAMTargetFreqText}
+		VAR{height_offset, height_offset + TargetDims.y}
 	#endif
 
 	#if $CPU_RealHz_int and $User_ShowRealFrequencies
-		VAR{height_offset, height_offset + TargetDims.y}
 		TEXT{0, height_offset, 15, 0xFFFF, RAMRealFreqText}
 		GET_DIMENSIONS{RealDims, 15, RAMRealFreqText}
 	#endif
-
-	VAR{DeltaOffset, TargetDims.x > RealDims.x ? TargetDims.x : RealDims.x}
 
 	#if $User_ShowFrequenceDeltas and $GPU_RealHz_int
 		#if $User_ShowRealFrequencies and $User_ShowTargetFrequencies
@@ -239,8 +238,15 @@ Start:
 		TEXT{DeltaOffset + 20, delta_offset, 15, 0xFFFF, RAMdeltaText}
 	#endif
 
-	#if height_offset < 450
-		VAR{height_offset, 450}
+	#if $RAM_LoadAll_int
+		VAR{height_offset, height_offset + RealDims.y}
+		TEXT{0, height_offset, 15, 0xFFFF, RAMloadText}
+		GET_DIMENSIONS{dimensions, 15, RAMloadText}
+		VAR{height_offset, height_offset + dimensions.y}
+	#endif
+
+	#if height_offset < 460
+		VAR{height_offset, 460}
 	#endif
 	
 	GET_DIMENSIONS{dimensions, 15, RAMusageBaseText}
