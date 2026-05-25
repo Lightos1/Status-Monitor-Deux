@@ -202,6 +202,8 @@ bool RenderingPipeline::IsInsideTouchRange(int64_t screen_x, int64_t screen_y) c
 // ─── Constructor ─────────────────────────────────────────────────────────────
 
 RenderingPipeline::RenderingPipeline(std::string filepath, bool double_back) {
+	footerBackup = defaultButtonView;
+	defaultButtonView = locale["Footer"];
 	m_double_back = double_back;
 	leftJoyconMotionMappedButtons   = MapButtons(leftJoyconMotionKeyCombo);
 	rightJoyconMotionMappedButtons  = MapButtons(rightJoyconMotionKeyCombo);
@@ -353,6 +355,7 @@ RenderingPipeline::RenderingPipeline(std::string filepath, bool double_back) {
 // ─── Destructor ──────────────────────────────────────────────────────────────
 
 RenderingPipeline::~RenderingPipeline() {
+	defaultButtonView = footerBackup;
 	svcSignalToAddress(&threadexit2, SignalType_SignalAndIncrementIfEqual, 0, 4);
 	leventSignal(&threadexit);
 	if (Movable && saveAndLoadMovableOverlayPosition) {

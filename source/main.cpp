@@ -29,6 +29,7 @@ public:
 	std::vector<Designs> filesChecked;
 	std::string formattedKeyCombo;
 	std::string m_folderName;
+	std::string footerBackup;
 
 	bool FindConfigs(const char* data, size_t size) {
 		size_t lineStart = 0;
@@ -78,14 +79,23 @@ public:
 	}
 
     MainMenu(std::string rel_path, std::string folderName = "") {
+		footerBackup = defaultButtonView;
 		formattedKeyCombo = keyCombo;
 		formatButtonCombination(formattedKeyCombo);
         if (!rel_path.empty()) {
             standard_path = rel_path;
         }
         find_smd_files(standard_path, filesChecked);
-		if (folderName.length() != 0) m_folderName = folderName;
+		if (folderName.length() != 0) {
+			m_folderName = folderName;
+			defaultButtonView = locale["Footer"];
+		}
+		else defaultButtonView = locale["MainMenuFooter"];
     }
+
+	~MainMenu() {
+		defaultButtonView = footerBackup;
+	}
 
     virtual tsl::elm::Element* createUI() override {
 

@@ -270,7 +270,10 @@ public:
 	std::string m_show;
 	std::string section_name;
 	std::vector<std::string> keys_to_convert;
+	std::string footerBackup;
 	Configuration(std::string path, std::string name) {
+		footerBackup = defaultButtonView;
+		defaultButtonView = locale["FooterWithReset"];
 		tsl::hlp::requestForeground(true);
 		filepath = path;
 		FILE* file = fopen(filepath.c_str(), "rb");
@@ -288,7 +291,7 @@ public:
 			if (data.type.compare("bool") == 0) {
 				isBool = true;
 			}
-			else if (data.type.compare("int") == 0) {
+			else if (data.type.compare("int") == 0 || data.type.compare("font") == 0) {
 				isInt = true;
 			}
 			else if (data.type.compare("color") == 0) {
@@ -337,6 +340,7 @@ public:
 	}
 
 	~Configuration() {
+		defaultButtonView = footerBackup;
 		if (keys_to_convert.empty()) for (const auto& [key, data] : configs) {
 			if (configs[key].value.starts_with("LIST")) {
 				keys_to_convert.emplace_back(key);
@@ -378,7 +382,7 @@ public:
 		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, m_show);
 		auto list = new tsl::elm::List();
 		if (isBool == true) {
-			auto Item = new tsl::elm::ListItem("Bools", "\uE142\uE14B\uE14C");
+			auto Item = new tsl::elm::ListItem(locale["Bools"], "\uE142\uE14B\uE14C");
 			Item->setClickListener([this](uint64_t keys) {
 				if (keys & KEY_A) {
 					tsl::hlp::requestForeground(true);
@@ -390,7 +394,7 @@ public:
 			list->addItem(Item);
 		}
 		if (isInt == true) {
-			auto Item = new tsl::elm::ListItem("Ints", "1\uE08C60");
+			auto Item = new tsl::elm::ListItem(locale["Ints"], "1\uE08C60");
 			Item->setClickListener([this](uint64_t keys) {
 				if (keys & KEY_A) {
 					tsl::hlp::requestForeground(true);
@@ -402,7 +406,7 @@ public:
 			list->addItem(Item);
 		}
 		if (isColor == true) {
-			auto Item = new tsl::elm::ColorListItem("Colors", 0xF808, true);
+			auto Item = new tsl::elm::ColorListItem(locale["Colors"], 0xF808, true);
 			Item->setClickListener([this](uint64_t keys) {
 				if (keys & KEY_A) {
 					tsl::hlp::requestForeground(true);
@@ -414,7 +418,7 @@ public:
 			list->addItem(Item);
 		}
 		if (isOrdering == true) {
-			auto Item = new tsl::elm::ListItem("List", "\uE047\uE048");
+			auto Item = new tsl::elm::ListItem(locale["List"], "\uE047\uE048");
 			Item->setClickListener([this](uint64_t keys) {
 				if (keys & KEY_A) {
 					tsl::hlp::requestForeground(true);

@@ -7,6 +7,7 @@ private:
 	std::string m_name;
 public:
 	ConfigurationSubMenu(std::string type, std::string name) {
+		defaultButtonView = locale["FooterWithReset"];
 		m_type = type;
 		if (m_type.compare("bool") == 0) {
 			showType = "\uE142\uE14B\uE14C";
@@ -28,7 +29,7 @@ public:
 		auto list = new tsl::elm::List();
 
 		for (const auto& [key, data] : configs) {
-			if (data.type.compare(m_type) == 0) {
+			if ((data.type.compare(m_type) == 0) || (data.type.compare("font") == 0 && m_type.compare("int") == 0)) {
 				if (m_type.compare("int") == 0) {
 					int64_t temp;
 					if (isNumeric(data.rangeMin, &temp) == true && isNumeric(data.rangeMax, &temp) == true) {
@@ -36,7 +37,7 @@ public:
 						Item->setClickListener([this, key, data, Item](uint64_t keys) {
 							if (keys & KEY_A) {
 								tsl::hlp::requestForeground(true);
-								tsl::changeTo<EditConfigInt>(key, configs.at(key).value, data.rangeMin, data.rangeMax, data.defaultValue, Item, data.localName);
+								tsl::changeTo<EditConfigInt>(key, configs.at(key).value, data.rangeMin, data.rangeMax, data.defaultValue, Item, data.localName, data.type);
 								return true;
 							}
 							return false;

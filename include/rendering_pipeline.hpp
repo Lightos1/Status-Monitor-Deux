@@ -19,6 +19,7 @@ private:
 	std::string name;
 	std::string rel_filepath;
 	std::string error;
+	std::string footerBackup;
 	smd::Document doc;
 	bool HeaderText = true;
 	bool FooterText = true;

@@ -8,8 +8,11 @@ private:
 	std::string m_key;
 	tsl::elm::ListItem* m_item;
 	std::string m_localName;
+	std::string footerBackup;
 public:
 	EditConfigOrdering(std::string key, std::string value, std::string defaultValue, tsl::elm::ListItem* item, std::string localName) {
+		footerBackup = defaultButtonView;
+		defaultButtonView = locale["FooterMoveUpDown"];
 		if (localName.length() > 0) m_localName = localName;
 		else m_localName = key;
 		tsl::hlp::requestForeground(true);
@@ -58,8 +61,12 @@ public:
 		}
 	}
 
+	~EditConfigOrdering() {
+		defaultButtonView = footerBackup;
+	}
+
 	virtual tsl::elm::Element* createUI() override {
-		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, m_localName + "\n\n\uE0E6 \uE147   \uE0E7 \uE148");
+		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, m_localName);
 		auto list = new tsl::elm::List();
 		size_t listSize = toRender.size();
 		for (size_t i = 0; i < listSize; i++) {

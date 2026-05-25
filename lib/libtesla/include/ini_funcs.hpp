@@ -64,19 +64,32 @@ static std::vector<std::string> split(const std::string& str, char delim = ' ') 
  */
 [[maybe_unused]] static std::map<std::string, std::map<std::string, std::string>> parseIni(const std::string &str) {
     std::map<std::string, std::map<std::string, std::string>> iniData;
-
     auto lines = split(str, '\n');
-
     std::string lastHeader = "";
-    for (auto& line : lines) {
-        line.erase(std::remove_if(line.begin(), line.end(), ::isspace), line.end());
 
-        if (line[0] == '[' && line[line.size() - 1] == ']') {
-            lastHeader = line.substr(1, line.size() - 2);
-            iniData.emplace(lastHeader, std::map<std::string, std::string>{});
+    for (auto& line : lines) {
+        // 1. Trim the whole line to ignore empty lines or indentation
+        std::string trimmedLine = trim(line);
+        if (trimmedLine.empty()) continue;
+
+        // 2. Handle [Headers]
+        if (trimmedLine.front() == '[' && trimmedLine.back() == ']') {
+            lastHeader = trimmedLine.substr(1, trimmedLine.size() - 2);
+            // Ensure the header exists in the map
+            iniData[lastHeader]; 
         }
-        else if (auto keyValuePair = split(line, '='); keyValuePair.size() == 2) {
-            iniData[lastHeader].emplace(keyValuePair[0], keyValuePair[1]);
+        // 3. Handle Key=Value pairs
+        else {
+            size_t equalPos = trimmedLine.find('=');
+            if (equalPos != std::string::npos) {
+                // Extract key and value, then trim any spaces surrounding the '='
+                std::string key = trim(trimmedLine.substr(0, equalPos));
+                std::string value = trim(trimmedLine.substr(equalPos + 1));
+
+                if (!lastHeader.empty() && !key.empty()) {
+                    iniData[lastHeader].emplace(key, value);
+                }
+            }
         }
     }
 

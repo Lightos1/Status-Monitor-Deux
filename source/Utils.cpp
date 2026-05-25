@@ -12,7 +12,6 @@
 namespace tsl::hlp::ini {
     using IniData = std::map<std::string, std::map<std::string, std::string>>;
 }
-extern std::string defaultButtonView;
 
 //--------------------------------------------------------------------
 // systemtickfrequency definition (only for non-SWITCH / non-OUNCE)
@@ -50,6 +49,7 @@ bool saveAndLoadMovableOverlayPosition = true;
 std::string overrideLanguage;
 std::map<std::string, std::map<std::string, std::string>> config;
 LocalTimeType LocalTime;
+std::map<std::string, std::string> locale;
 
 //Checks
 Result clkrstCheck = 1;
@@ -1097,12 +1097,40 @@ void ParseIniFile() {
 
 	if (override_check == true && temp_overrideLanguage.length() > 0) {
 		overrideLanguage = temp_overrideLanguage;
-		FILE* localeFileIn = fopen(localeIniPath.c_str(), "r");
-		if (localeFileIn) {
-			std::string temp = parseValueFromIniSectionF(localeFileIn, overrideLanguage, "Footer");
-			if (temp.length() != 0) defaultButtonView = resolveHexEscapes(temp);
-			
-			fclose(localeFileIn);
+		std::map<std::string, std::map<std::string, std::string>> temp = getParsedDataFromIniFile(localeIniPath.c_str());
+		std::string toParse = 	"[EN-US]\n"
+								"Footer=\xEE\x83\xA1  Back     \xEE\x83\xA0  OK\n"
+								"MainMenuFooter=\xEE\x83\xA1  Back     \xEE\x83\xA0  OK       \xEE\x83\xAD  Settings\n"
+								"FooterWithReset=\xEE\x83\xA1  Back     \xEE\x83\xA0  OK       \xEE\x83\xA2  Default\n"
+								"FooterMoveUpDown=\xEE\x83\xA1  Back     \xEE\x83\xA0  OK       \xEE\x85\x87  \xEE\x88\xA4    \xEE\x85\x88  \xEE\x88\xA5\n"
+								"Bools=Turn on/off settings\n"
+								"Ints=Adjust values\n"
+								"Colors=Change colors\n"
+								"List=Adjust lists\n"
+								"key_combo=Exit key Combo\n"
+								"battery_avg_iir_filter=Battery amperage with IIR filter\n"
+								"battery_time_left_refreshrate=Battery time left refresh rate\n"
+								"touch_screen=Enable touch screen\n"
+								"motion_control=Enable motion controls\n"
+								"left_joycon_motion_key_combo=Left Joycon motion control key combo\n"
+								"Right_joycon_motion_key_combo=Right Joycon motion control key combo\n"
+								"pro_controller_motion_key_combo=Pro Controller motion control key combo\n"
+								"jump_immediately_to_single_smd=Jump to detected SMD file if only one was detected\n"
+								"override_language=Force other language";
+		std::map<std::string, std::map<std::string, std::string>> defaultIni = parseIni(toParse);
+		std::map<std::string, std::string> defaultLocale = defaultIni["EN-US"];
+		auto it = temp.find(overrideLanguage);
+		if (it != temp.end()) {
+			locale = it->second;
+			for (const auto& [key, data] : defaultLocale) {
+				if (locale.find(key) != locale.end()) locale[key] = resolveHexEscapes(locale[key]);
+				else locale[key] = resolveHexEscapes(data);
+			}
+		}
+		else {
+			for (const auto& [key, data] : defaultLocale) {
+				locale[key] = resolveHexEscapes(data);
+			}
 		}
 	}
 }

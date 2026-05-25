@@ -17,6 +17,7 @@ public:
 	std::array<u16, 16> predefinedColors = {0xFF7A, 0xFFF0, 0xFF80, 0xFF8E, 0xF053, 0xF0FF, 0xFFDC, 0xF808, 0xFEEE, 0xF80F, 0xF6CC, 0xF0F8, 0xF744, 0xFAAF, 0xF080, 0xF82E};
 
 	EditConfigColor(std::string key, tsl::elm::ColorListItem* item, std::string localName) {
+		defaultButtonView = locale["FooterWithReset"];
 		if (localName.length() > 0) m_localName = localName;
 		else m_localName = key;
 		tsl::hlp::requestForeground(true);

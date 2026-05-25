@@ -13,8 +13,10 @@ private:
 	std::string buttons = "\uE0B1/\uE0C1      \uE0C1/\uE0B2";
 	tsl::elm::ListItem* m_item;
 	std::string m_localName;
+	bool isFont = false;
 public:
-	EditConfigInt(std::string key, std::string value, std::string rangeMin, std::string rangeMax, std::string defaultValue, tsl::elm::ListItem* item, std::string localName) {
+	EditConfigInt(std::string key, std::string value, std::string rangeMin, std::string rangeMax, std::string defaultValue, tsl::elm::ListItem* item, std::string localName, std::string type) {
+		defaultButtonView = locale["FooterWithReset"];
 		if (localName.length() > 0) m_localName = localName;
 		else m_localName = key;
 		tsl::hlp::requestForeground(true);
@@ -29,6 +31,7 @@ public:
 		}
 		min_str = std::to_string(min);
 		max_str = std::to_string(max);
+		if (type.compare("font") == 0) isFont = true;
 	}
 
 	virtual tsl::elm::Element* createUI() override {
@@ -55,6 +58,10 @@ public:
 			reset_str += defaultvalue_str;
 			auto [width7, height7] = renderer->drawString(reset_str.c_str(), false, 0, fontsize, fontsize, renderer->a(0x0000));
 			renderer->drawString(reset_str.c_str(), false, (tsl::cfg::FramebufferWidth - width7) / 2, m_height+120, fontsize, renderer->a(0xFFFF));
+			if (isFont) {
+				auto [width8, height8] = renderer->drawString("67", false, 0, current_value, current_value, renderer->a(0x0000));
+				renderer->drawString("67", false, (tsl::cfg::FramebufferWidth - width8) / 2, y + current_value, current_value, renderer->a(0xFFFF));
+			}
         });
 		rootFrame->setContent(Status);
 		return rootFrame;
