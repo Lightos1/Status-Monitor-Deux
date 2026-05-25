@@ -331,8 +331,7 @@ VAR{Lines, 0}
 #endfor
 
 GET_DIMENSIONS{LeftDimensions, fontsize, LeftText}
-VAR{Offset, 4}
 VAR{BoxWidth, BoxWidth + LeftDimensions.x + Offset}
-BOX{0, 0, BoxWidth, fontsize * Lines + 4, User_BoxColor}
+BOX{0, 0, BoxWidth, LeftDimensions.y + 4, User_BoxColor}
 TEXT{0, fontsize, fontsize, User_CategoryColor, LeftText}
 TEXT{LeftDimensions.x + Offset, fontsize, fontsize, User_TextColor, RightText}
