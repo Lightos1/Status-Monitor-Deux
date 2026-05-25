@@ -64,7 +64,7 @@ RightText8: {"8. %dx%d, %d", Game_ResolutionViewportCalls_int[7].width, Game_Res
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 Start:
 #if $Game_IsGameRunning and $Game_ResolutionRenderCalls_int[0].calls != 0xFFFF
-	BOX{0, 0, 360, 200, User_BoxColor}
+	BOX{0, 0, 360, 215, User_BoxColor}
 	VAR{DepthText, LeftText1 + LeftText2 + LeftText3 + LeftText4 + LeftText5 + LeftText6 + LeftText7 + LeftText8}
 	VAR{ViewportText, RightText1 + RightText2 + RightText3 + RightText4 + RightText5 + RightText6 + RightText7 + RightText8}
 	TEXT{20, 20, 20, User_CategoryColor, "Depth:"}
