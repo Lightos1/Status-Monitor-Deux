@@ -913,13 +913,13 @@ namespace tsl {
 			 * @param color Text color. Use transparent color to skip drawing and only get the string's dimensions
 			 * @return Dimensions of drawn string
 			 */
-			std::pair<u32, u32> drawString(const char* string, bool monospace, u32 x, u32 y, float fontSize, Color color) {
+			std::pair<u32, u32> drawString(const char* string, bool monospace, s32 x, s32 y, float fontSize, Color color) {
 				const size_t stringLength = strlen(string);
 
-				u32 maxX = x;
-				u32 currX = x;
-				u32 currY = y;
-				u32 prevCharacter = 0;
+				s32 maxX = x;
+				s32 currX = x;
+				s32 currY = y;
+				s32 prevCharacter = 0;
 
 				u32 i = 0;
 
@@ -1735,6 +1735,7 @@ namespace tsl {
 
 		protected:
 			constexpr static inline auto a = &gfx::Renderer::a;
+			bool m_focused = false;
 
 		private:
 			friend class Gui;
@@ -1744,7 +1745,6 @@ namespace tsl {
 			// safe widening and all existing call sites continue to compile.
 			s32 m_x = 0, m_y = 0, m_width = 0, m_height = 0;
 			Element *m_parent = nullptr;
-			bool m_focused = false;
 
 			// Highlight shake animation
 			bool m_highlightShaking = false;
@@ -1892,22 +1892,69 @@ namespace tsl {
 			virtual ~ListItem() {}
 
 			virtual void draw(gfx::Renderer *renderer) override {
-				if (this->m_valueWidth == 0) {
-					auto [width, height] = renderer->drawString(this->m_value.c_str(), false, 0, 0, 20, tsl::style::color::ColorTransparent);
-					this->m_valueWidth = width;
-				}
 
-				renderer->drawRect(this->getX(), this->getY(), this->getWidth(), 1, a({ 0x4, 0x4, 0x4, 0xF  }));
-				renderer->drawRect(this->getX(), this->getY() + this->getHeight(), this->getWidth(), 1, a({ 0x0, 0x0, 0x0, 0xD }));
-				
-				renderer->drawString(this->m_text.c_str(), false, this->getX() + 20, this->getY() + 23 + ((this->getHeight() - 23) / 2), 23, a(defaultTextColor));
+                if (this->m_maxWidth == 0) {
+                    if (this->m_value.length() > 0) {
+                        auto [valueWidth, valueHeight] = renderer->drawString(this->m_value.c_str(), false, 0, 0, 20, tsl::style::color::ColorTransparent);
+                        this->m_maxWidth = this->getWidth() - valueWidth - 70;
+                    } else {
+                        this->m_maxWidth = this->getWidth() - 40;
+                    }
 
-				renderer->drawString(this->m_value.c_str(), false, this->getX() + this->getWidth() - this->m_valueWidth - 20, this->getY() + 23 + ((this->getHeight() - 23) / 2), 20, this->m_faint ? a({ 0x6, 0x6, 0x6, 0xF }) : a({ 0x5, 0xC, 0xA, 0xF }));
+                    auto [width, height] = renderer->drawString(this->m_text.c_str(), false, 0, 0, 23, tsl::style::color::ColorTransparent);
+                    this->m_trunctuated = width > this->m_maxWidth;
+					this->m_fullTextWidth = width;
+
+                    if (this->m_trunctuated) {
+                        auto [width, height] = renderer->drawString(this->m_scrollText.c_str(), false, 0, 0, 23, tsl::style::color::ColorTransparent);
+                        this->m_textWidth = width;
+                        this->m_ellipsisText = renderer->limitStringLength(this->m_text, false, 22, this->m_maxWidth);
+						this->designatedOffset = this->getX() + 20;
+                    } else {
+                        this->m_textWidth = width;
+                    }
+                }
+
+                renderer->drawRect(this->getX(), this->getY(), this->getWidth(), 1, a({7, 7, 7, 0xF}));
+                renderer->drawRect(this->getX(), this->getTopBound(), this->getWidth(), 1, a({7, 7, 7, 0xF}));
+
+                if (this->m_trunctuated) {
+                    if (this->m_focused) {
+                        renderer->enableScissoring(this->getX(), this->getY(), this->m_maxWidth + 40, this->getHeight());
+                        renderer->drawString(this->m_text.c_str(), false, this->getX() + 20 - this->m_scrollOffset, this->getY() + 23 + ((this->getHeight() - 23) / 2), 23, a(defaultTextColor));
+						s32 behindOffset = this->getX() + 20 + this->m_fullTextWidth + 100 - this->m_scrollOffset;
+						renderer->drawString(this->m_text.c_str(), false, behindOffset, this->getY() + 23 + ((this->getHeight() - 23) / 2), 23, a(defaultTextColor));
+                        renderer->disableScissoring();
+                        if (this->m_scrollAnimationCounter >= 90) {
+							if (behindOffset <= designatedOffset) {
+                                this->m_scrollOffset = 0;
+                                this->m_scrollAnimationCounter = 0;
+							}
+							else this->m_scrollOffset++;
+						}
+						else {
+							this->m_scrollAnimationCounter++;
+						}
+                    } else {
+                        renderer->drawString(this->m_ellipsisText.c_str(), false, this->getX() + 20, this->getY() + 23 + ((this->getHeight() - 23) / 2), 23, a(defaultTextColor));
+                    }
+                } else {
+                    renderer->drawString(this->m_text.c_str(), false, this->getX() + 20, this->getY() + 23 + ((this->getHeight() - 23) / 2), 23, a(defaultTextColor));
+                }
+
+                renderer->drawString(this->m_value.c_str(), false, this->getX() + this->m_maxWidth + 45, this->getY() + 23 + ((this->getHeight() - 23) / 2), 20, this->m_faint ? a({ 0x6, 0x6, 0x6, 0xF }) : a({ 0x5, 0xC, 0xA, 0xF }));
 			}
 
 			virtual void layout(u16 parentX, u16 parentY, u16 parentWidth, u16 parentHeight) override {
 				
 			}
+
+            virtual void setFocused(bool state) override {
+                this->m_scroll = false;
+                this->m_scrollOffset = 0;
+                this->m_scrollAnimationCounter = 0;
+                Element::setFocused(state);
+            }
 
 			virtual Element* requestFocus(Element *oldFocus, FocusDirection direction) override {
 				return this;
@@ -1919,7 +1966,10 @@ namespace tsl {
 			 * @param text Text
 			 */
 			virtual inline void setText(std::string text) final { 
-				this->m_text = text;
+                this->m_text = text;
+                this->m_scrollText = "";
+                this->m_ellipsisText = "";
+                this->m_maxWidth = 0;
 			}
 
 			/**
@@ -1931,15 +1981,23 @@ namespace tsl {
 			virtual inline void setValue(std::string value, bool faint = false) { 
 				this->m_value = value;
 				this->m_faint = faint;
-				this->m_valueWidth = 0;
+				this->m_maxWidth = 0;
 			}
 
 		protected:
 			std::string m_text;
 			std::string m_value = "";
+			std::string m_scrollText = "";
+			std::string m_ellipsisText = "";
 			bool m_faint = false;
-
-			u16 m_valueWidth = 0;
+            bool m_scroll = false;
+            bool m_trunctuated = false;
+			u32 m_maxWidth = 0;
+            u32 m_textWidth = 0;
+			u32 m_fullTextWidth = 0;
+            u16 m_scrollAnimationCounter = 0;
+			u16 m_scrollOffset = 0;
+			s64 designatedOffset = 0;
 		};
 
 		/**
@@ -2037,11 +2095,52 @@ namespace tsl {
 
 			virtual ~ColorListItem() {}
 
-			virtual void draw(gfx::Renderer *renderer) override {
-				renderer->drawRect(this->getX(), this->getY(), this->getWidth(), 1, a({ 0x4, 0x4, 0x4, 0xF  }));
-				renderer->drawRect(this->getX(), this->getY() + this->getHeight(), this->getWidth(), 1, a({ 0x0, 0x0, 0x0, 0xD }));
 
-				renderer->drawString(this->m_text.c_str(), false, this->getX() + 20, this->getY() + 45, 23, a(defaultTextColor));
+			virtual void draw(gfx::Renderer *renderer) override {
+
+                if (this->m_maxWidth == 0) {
+					this->m_maxWidth = this->getWidth() - 105;
+
+                    auto [width, height] = renderer->drawString(this->m_text.c_str(), false, 0, 0, 23, tsl::style::color::ColorTransparent);
+                    this->m_trunctuated = width > this->m_maxWidth;
+					this->m_fullTextWidth = width;
+
+                    if (this->m_trunctuated) {
+                        auto [width, height] = renderer->drawString(this->m_scrollText.c_str(), false, 0, 0, 23, tsl::style::color::ColorTransparent);
+                        this->m_textWidth = width;
+                        this->m_ellipsisText = renderer->limitStringLength(this->m_text, false, 22, this->m_maxWidth);
+						this->designatedOffset = this->getX() + 20;
+                    } else {
+                        this->m_textWidth = width;
+                    }
+                }
+
+                renderer->drawRect(this->getX(), this->getY(), this->getWidth(), 1, a({7, 7, 7, 0xF}));
+                renderer->drawRect(this->getX(), this->getTopBound(), this->getWidth(), 1, a({7, 7, 7, 0xF}));
+
+                if (this->m_trunctuated) {
+                    if (this->m_focused) {
+                        renderer->enableScissoring(this->getX(), this->getY(), this->m_maxWidth + 40, this->getHeight());
+                        renderer->drawString(this->m_text.c_str(), false, this->getX() + 20 - this->m_scrollOffset, this->getY() + 23 + ((this->getHeight() - 23) / 2), 23, a(defaultTextColor));
+						s32 behindOffset = this->getX() + 20 + this->m_fullTextWidth + 100 - this->m_scrollOffset;
+						renderer->drawString(this->m_text.c_str(), false, behindOffset, this->getY() + 23 + ((this->getHeight() - 23) / 2), 23, a(defaultTextColor));
+                        renderer->disableScissoring();
+                        if (this->m_scrollAnimationCounter >= 90) {
+							if (behindOffset <= designatedOffset) {
+                                this->m_scrollOffset = 0;
+                                this->m_scrollAnimationCounter = 0;
+							}
+							else this->m_scrollOffset++;
+						}
+						else {
+							this->m_scrollAnimationCounter++;
+						}
+                    } else {
+                        renderer->drawString(this->m_ellipsisText.c_str(), false, this->getX() + 20, this->getY() + 23 + ((this->getHeight() - 23) / 2), 23, a(defaultTextColor));
+                    }
+                } else {
+                    renderer->drawString(this->m_text.c_str(), false, this->getX() + 20, this->getY() + 23 + ((this->getHeight() - 23) / 2), 23, a(defaultTextColor));
+                }
 
 				if (m_changeRandomlyColors == false) {
 					renderer->drawCircle(this->getX() + this->getWidth() - 32, this->getY() + 37, 17, true, 0xFFFF - (m_color.rgba & 0xFFF));

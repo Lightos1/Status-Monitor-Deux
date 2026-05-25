@@ -59,12 +59,12 @@ public:
 	}
 
 	virtual tsl::elm::Element* createUI() override {
-		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, m_key + "\n\n\uE0E6 \uE147   \uE0E7 \uE148");
+		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, m_localName + "\n\n\uE0E6 \uE147   \uE0E7 \uE148");
 		auto list = new tsl::elm::List();
 		size_t listSize = toRender.size();
 		for (size_t i = 0; i < listSize; i++) {
 			const auto& [key, value] = toRender[i];
-			auto Item = new tsl::elm::ToggleListItem(m_localName, value);
+			auto Item = new tsl::elm::ToggleListItem(key, value);
 			Item->setClickListener([this, key, i, Item, listSize, list](uint64_t keys) {
 				if (keys & KEY_A) {
 					toRender[i] = std::make_pair(key, Item->getState());
