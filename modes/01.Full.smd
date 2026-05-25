@@ -136,138 +136,148 @@ Start:
 	TEXT{0, 120, 20, 0xFFFF, IETF_GET{CpuUsageText}}
 	VAR{height_offset, 155}
 	
-	#if $CPU_RealHz_int and $User_ShowRealFrequencies
-		VAR{height_offset, 162}
-		GET_DIMENSIONS{RealDims, 15, CPURealFreqText}
-	#endif
-	
 	#if $User_ShowTargetFrequencies
 		TEXT{0, height_offset, 15, 0xFFFF, CPUTargetFreqText}
 		GET_DIMENSIONS{TargetDims, 15, CPUTargetFreqText}
 	#endif
 
+	#if $CPU_RealHz_int and $User_ShowRealFrequencies
+		VAR{height_offset, height_offset + TargetDims.y}
+		TEXT{0, height_offset, 15, 0xFFFF, CPURealFreqText}
+		GET_DIMENSIONS{RealDims, 15, CPURealFreqText}
+	#endif
+
 	VAR{DeltaOffset, TargetDims.x > RealDims.x ? TargetDims.x : RealDims.x}
 
-	#if $CPU_RealHz_int
-		#if $User_ShowRealFrequencies
-			TEXT{0, height_offset - 15, 15, 0xFFFF, CPURealFreqText}
-			#if $User_ShowFrequenceDeltas
-				#if $User_ShowRealFrequencies
-					TEXT{DeltaOffset + 20, height_offset - 7, 15, 0xFFFF, CPUdeltaText}
-				#else
-					TEXT{DeltaOffset + 20, height_offset - 15, 15, 0xFFFF, CPUdeltaText}
-				#endif
-			#endif
-		#elif $User_ShowFrequenceDeltas
-			#if $User_ShowRealFrequencies or $User_ShowTargetFrequencies
-				TEXT{DeltaOffset + 20, height_offset, 15, 0xFFFF, CPUdeltaText}
-			#endif
+	#if $User_ShowFrequenceDeltas and $CPU_RealHz_int
+		#if $User_ShowRealFrequencies and $User_ShowTargetFrequencies
+			VAR{delta_offset, height_offset - (TargetDims.y / 2)}
+		#else
+			VAR{delta_offset, height_offset}
 		#endif
+		TEXT{DeltaOffset + 20, delta_offset, 15, 0xFFFF, CPUdeltaText}
 	#endif
-	TEXT{0, height_offset + 30, 15, 0xFFFF, CPUloadText}
+
+	TEXT{0, 200, 15, 0xFFFF, CPUloadText}
 #endif
 
 ;GPU
 #if $EnableGPU
-	VAR{height_offset, 320}
-	#if $GPU_RealHz_int and $User_ShowRealFrequencies
-		VAR{height_offset, 327}
-		GET_DIMENSIONS{RealDims, 15, GPURealFreqText}
-	#endif
-
+	VAR{height_offset, 310}
 	TEXT{0, 285, 20, 0xFFFF, IETF_GET{GpuUsageText}}
 	#if $User_ShowTargetFrequencies
 		TEXT{0, height_offset, 15, 0xFFFF, GPUTargetFreqText}
 		GET_DIMENSIONS{TargetDims, 15, GPUTargetFreqText}
 	#endif
 
+	#if $CPU_RealHz_int and $User_ShowRealFrequencies
+		VAR{height_offset, height_offset + TargetDims.y}
+		TEXT{0, height_offset, 15, 0xFFFF, GPURealFreqText}
+		GET_DIMENSIONS{RealDims, 15, GPURealFreqText}
+	#endif
+
 	VAR{DeltaOffset, TargetDims.x > RealDims.x ? TargetDims.x : RealDims.x}
 
-	#if $GPU_RealHz_int
+	#if $User_ShowFrequenceDeltas and $GPU_RealHz_int
+		#if $User_ShowRealFrequencies and $User_ShowTargetFrequencies
+			VAR{delta_offset, height_offset - (TargetDims.y / 2)}
+		#elif $User_ShowRealFrequencies or $User_ShowTargetFrequencies
+			VAR{delta_offset, height_offset}
+			#if $User_ShowRealFrequencies
+				VAR{height_offset, height_offset + RealDims.y}
+			#else
+				VAR{height_offset, height_offset + TargetDims.y}
+			#endif
+		#else
+			VAR{delta_offset, height_offset}
+			GET_DIMENSIONS{dimensions, 15, "Ą"}
+			VAR{height_offset, height_offset + dimensions.y}
+		#endif
+		TEXT{DeltaOffset + 20, delta_offset, 15, 0xFFFF, GPUdeltaText}
+	#else
 		#if $User_ShowRealFrequencies
-			TEXT{0, height_offset - 15, 15, 0xFFFF, GPURealFreqText}
-			#if $User_ShowFrequenceDeltas
-				#if $User_ShowRealFrequencies
-					TEXT{DeltaOffset + 20, height_offset - 7, 15, 0xFFFF, GPUdeltaText}
-				#else
-					TEXT{DeltaOffset + 20, height_offset - 15, 15, 0xFFFF, GPUdeltaText}
-				#endif
-			#endif
-		#elif $User_ShowFrequenceDeltas
-			#if $User_ShowRealFrequencies or $User_ShowRealFrequencies
-				TEXT{DeltaOffset + 20, height_offset, 15, 0xFFFF, GPUdeltaText}
-			#endif
+			VAR{height_offset, height_offset + RealDims.y}
+		#else
+			VAR{height_offset, height_offset + TargetDims.y}
 		#endif
 	#endif
-	TEXT{0, height_offset + 15, 15, 0xFFFF, GPUloadText}
+
+	TEXT{0, height_offset, 15, 0xFFFF, GPUloadText}
+	GET_DIMENSIONS{Dims, 15, GPUloadText}
+	VAR{height_offset, height_offset + Dims.y}
 #endif
 
 ;RAM
 #if $EnableRAM
 
-	VAR{height_offset, 410}
-	#if $RAM_RealHz_int and $User_ShowRealFrequencies
-		VAR{height_offset, height_offset + 7}
-		GET_DIMENSIONS{RealDims, 15, RAMRealFreqText}
+	#if $height_offset < 375
+		VAR{height_offset, 375}
 	#endif
 
-	TEXT{0, 375, 20, 0xFFFF, IETF_GET{RamUsageText}}
+	TEXT{0, height_offset, 20, 0xFFFF, IETF_GET{RamUsageText}}
 
+	VAR{height_offset, 410}
 	#if $User_ShowTargetFrequencies
 		TEXT{0, height_offset, 15, 0xFFFF, RAMTargetFreqText}
 		GET_DIMENSIONS{TargetDims, 15, RAMTargetFreqText}
 	#endif
 
+	#if $CPU_RealHz_int and $User_ShowRealFrequencies
+		VAR{height_offset, height_offset + TargetDims.y}
+		TEXT{0, height_offset, 15, 0xFFFF, RAMRealFreqText}
+		GET_DIMENSIONS{RealDims, 15, RAMRealFreqText}
+	#endif
+
 	VAR{DeltaOffset, TargetDims.x > RealDims.x ? TargetDims.x : RealDims.x}
 
-	#if $RAM_RealHz_int
-		#if $User_ShowRealFrequencies
-			TEXT{0, height_offset - 15, 15, 0xFFFF, RAMRealFreqText}
-			#if $User_ShowFrequenceDeltas
-				#if $User_ShowRealFrequencies
-					TEXT{DeltaOffset + 20, height_offset - 7, 15, 0xFFFF, RAMdeltaText}
-				#else
-					TEXT{DeltaOffset + 20, height_offset - 15, 15, 0xFFFF, RAMdeltaText}
-				#endif
-			#endif
-		#elif $User_ShowFrequenceDeltas
-			#if $User_ShowRealFrequencies or $User_ShowRealFrequencies
-				TEXT{DeltaOffset + 20, height_offset, 15, 0xFFFF, RAMdeltaText}
-			#endif
+	#if $User_ShowFrequenceDeltas and $GPU_RealHz_int
+		#if $User_ShowRealFrequencies and $User_ShowTargetFrequencies
+			VAR{delta_offset, height_offset - (TargetDims.y / 2)}
+		#else
+			VAR{delta_offset, height_offset}
 		#endif
-		#if $RAM_LoadAll_int
-			TEXT{0, height_offset+15, 15, 0xFFFF, RAMloadText}
-		#endif
+		TEXT{DeltaOffset + 20, delta_offset, 15, 0xFFFF, RAMdeltaText}
 	#endif
+
+	#if height_offset < 450
+		VAR{height_offset, 450}
+	#endif
+	
 	GET_DIMENSIONS{dimensions, 15, RAMusageBaseText}
-	TEXT{0, height_offset + 40, 15, 0xFFFF, RAMusageBaseText}
-	TEXT{dimensions.x, height_offset + 40, 15, 0xFFFF, RAMusageText}
+	TEXT{0, height_offset, 15, 0xFFFF, RAMusageBaseText}
+	TEXT{dimensions.x, height_offset, 15, 0xFFFF, RAMusageText}
 #endif
 
 ;Board
 #if $EnableBoard
 	TEXT{0, 550, 20, 0xFFFF, IETF_GET{BoardUsageText}}
-	TEXT{0, 575, 15, 0xFFFF, BatteryChargingText}
+	VAR{height_offset, 570}
+	TEXT{0, height_offset, 15, 0xFFFF, BatteryChargingText}
+	GET_DIMENSIONS{dimensions, 15, BatteryChargingText}
+	VAR{height_offset, height_offset + dimensions.y}
 	VAR{TemperText, IETF_GET{TemperatureText}}
 	VAR{SensorsText, IETF_GET{ThermalSensorsText}}
 	GET_DIMENSIONS{dimensions1, 15, TemperText}
 	GET_DIMENSIONS{dimensions2, 15, SensorsText}
-	TEXT{0, 590, 15, 0xFFFF, TemperText}
-	TEXT{dimensions1.x, 590, 15, 0xFFFF, SensorsText}
-	TEXT{dimensions1.x + dimensions2.x, 590, 15, 0xFFFF, TemperatureText}
-	TEXT{0, 635, 15, 0xFFFF, RotationText}
+	TEXT{0, height_offset, 15, 0xFFFF, TemperText}
+	TEXT{dimensions1.x, height_offset, 15, 0xFFFF, SensorsText}
+	TEXT{dimensions1.x + dimensions2.x, height_offset, 15, 0xFFFF, TemperatureText}
+	GET_DIMENSIONS{dimensions, 15, SensorsText}
+	VAR{height_offset, height_offset + dimensions.y}
+	TEXT{0, height_offset, 15, 0xFFFF, RotationText}
 #endif
 
 #if $EnableGame
 	#if $Game_IsGameRunning
 		VAR{width_offset, 150}
 		#if $User_ShowFPS or $User_ShowResolution or $User_ShowReadSpeed
-			TEXT{width_offset, 185, 20, 0xFFFF, IETF_GET{GameText}}
+			TEXT{width_offset, 200, 20, 0xFFFF, IETF_GET{GameText}}
 		#endif
-		VAR{height_offset, 210}
+		VAR{height_offset, 225}
 		#if $User_ShowFPS 
 			TEXT{width_offset, height_offset, 15, 0xFFFF, FpsText}
-			VAR{height_offset, height_offset + 15}
+			GET_DIMENSIONS{dimensions, 15, FpsText}
+			VAR{height_offset, height_offset + dimensions.y}
 		#endif
 		#if $User_ShowResolution and $Game_ResolutionRenderCalls_int[0].calls != 0xFFFF
 			#if $Game_ResolutionRenderCalls_int[0].calls > $Game_ResolutionViewportCalls_int[0].calls
@@ -298,7 +308,8 @@ Start:
 			#if $resolutionOutput0.width > 0 and $resolutionOutput1.width > 0
 				TEXT{width_offset, height_offset, 15, 0xFFFF, ResolutionsTwoText}
 			#endif
-			VAR{height_offset, height_offset + 15}
+			GET_DIMENSIONS{Dimensions, 15, "Ą"}
+			VAR{height_offset, height_offset + Dimensions.y}
 		#endif
 		#if $User_ShowReadSpeed
 			#if $Game_ReadSpeedPerSecond_float
