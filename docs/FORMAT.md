@@ -241,19 +241,23 @@ Assign string to `Name` variable if provided ietf code string matches what progr
 
 Below `Start:`, the file is a sequence of render commands. They execute top-to-bottom, every frame.
 
-### `TEXT{x, y, fontSize, color, contentExpr}`
+### `TEXT{x, y, fontSize, color, matchLineHeight, contentExpr}`
 
-Draws text at pixel position `(x, y)`, with `fontSize` in points and a 16-bit RGBA color. `contentExpr` is one of:
+Draws text at pixel position `(x, y)`, with `fontSize` in points and a 16-bit RGBA color.
 
-- A bare string literal: `TEXT{0, 0, 18, 0xFFFF, "Hello"}`
-- A name of a config String or Format: `TEXT{0, 0, 18, 0xFFFF, FpsLine}`
-- A name of a string `VAR`: `TEXT{0, 0, 18, 0xFFFF, Output}`
+`matchLineHeight` is a **required boolean literal** (`true` or `false`). When `true`, the renderer constrains each line's height to exactly `fontSize` pixels, eliminating any natural font leading. When `false`, the font's own leading is used. Use `true` for tightly stacked text lines where you need pixel-exact vertical control, and `false` for normal reading text.
+
+`contentExpr` is one of:
+
+- A bare string literal: `TEXT{0, 0, 18, 0xFFFF, false, "Hello"}`
+- A name of a config String or Format: `TEXT{0, 0, 18, 0xFFFF, false, FpsLine}`
+- A name of a string `VAR`: `TEXT{0, 0, 18, 0xFFFF, false, Output}`
 
 Inline `{"fmt", args...}` is also accepted — handy for one-off values that don't deserve a config key of their own:
 
 ```
-TEXT{0, 13, 10, 0xFFFF, {"%d", RefreshRate}}
-GET_DIMENSIONS{labelDims, 18, {"FPS: %d", Game_FPS_int}}
+TEXT{0, 13, 10, 0xFFFF, false, {"%d", RefreshRate}}
+TEXT{0, 0,  20, 0xFFFF, true,  IETF_GET{Title}}
 ```
 
 The inline form re-evaluates every frame, same as a named config Format. For values used in many places, declaring a named Format up top and referencing it keeps the script tidier.
@@ -282,16 +286,18 @@ Stroked (outline-only) rectangle.
 
 Dashed line from `(x, y)` to `(x2, y2)`. `dashOn` is the length of each drawn segment, `dashOff` is the gap. Both in pixels.
 
-### `GET_DIMENSIONS{name, fontSize, contentExpr}`
+### `GET_DIMENSIONS{name, fontSize, matchLineHeight, contentExpr}`
 
 Asks the host to measure how big `contentExpr` will render at `fontSize`. The result lands in two dotted variables, `name.x` (width) and `name.y` (height), which any *following* commands can reference.
 
+`matchLineHeight` is a **required boolean literal** (`true` or `false`), and must match the value you intend to pass to the corresponding `TEXT` command. When `true`, the measurement reflects line heights clamped to `fontSize`; when `false`, it reflects the font's natural leading. Passing mismatched values between `GET_DIMENSIONS` and `TEXT` will produce mis-aligned layouts.
+
 ```
-GET_DIMENSIONS{labelDims, 18, "Battery: 100%"}
-TEXT{(LayerWidth - labelDims.x) / 2, 0, 18, 0xFFFF, "Battery: 100%"}
+GET_DIMENSIONS{labelDims, 18, false, "Battery: 100%"}
+TEXT{(LayerWidth - labelDims.x) / 2, 0, 18, 0xFFFF, false, "Battery: 100%"}
 ```
 
-The measurement is cached per `(text, fontSize)` pair, so repeated calls with the same arguments are free. Dynamic text gets re-measured.
+The measurement is cached per `(text, fontSize, matchLineHeight)` triple, so repeated calls with the same arguments are free. Dynamic text gets re-measured.
 
 ### `VAR{name, expression}`
 
@@ -659,7 +665,7 @@ Available only with SaltyNX
 `Game_LastFrameNumber_int`, `Game_IsGameRunning`, `Game_FPS_int`, `Game_FpsAvgOld_float`, `Game_FpsAvg_float`, `Game_ReadSpeedPerSecond_float`, `Game_ResolutionRenderCalls_int` (struct array of 8: `[N].width`/`.height`/`.calls`), `Game_ResolutionViewportCalls_int` (same shape).
 
 ### System
-`System_IsDocked`, `System_KeysDown_int`, `System_KeysHeld_int`, `formattedKeyCombo` (string), `System_ClockHour_int`, `System_ClockMinute_int`, `System_ClockSecond_int`, `System_CalendarYear_int`, `System_CalendarMonth_int`, `System_CalendarDay_int`
+`System_IsDocked`, `System_KeysDown_int`, `System_KeysHeld_int`, `formattedKeyCombo` (string), `System_ClockHour_int`, `System_ClockMinute_int`, `System_ClockSecond_int`
 
 Available only with SaltyNX: `System_DisplayRefreshRate_int`
 
@@ -686,9 +692,9 @@ These are read by the host but can also be overridden in your `.smd` config sect
 
 | Key                  | Default                         | Notes                                                 |
 |----------------------|---------------------------------|-------------------------------------------------------|
-| `COMMON_MARGIN`      | `20`                            | Pixel left margin used by renderer.                   |
+| `COMMON_MARGIN`      | `20`                            | Pixel margin used by the host's frame chrome.         |
 | `BackgroundColor`    | `COLOR{0x000D}`                 | Background fill color (use 0x0000 for no background). |
-| `ComboButtonFooter`  | `"\uE0E1  Back     \uE0E0  OK"` | Footer text.                                          |
+| `ComboButtonFooter`  | `"\uE0E1  Back     \uE0E0  OK"` | Footer hint text.                                     |
 | `Movable`            | `false`                         | Can the user drag the overlay?                        |
 | `User_RefreshRate`   | `60`                            | Target FPS for the overlay.                           |
 | `EnableCPU`          | `false`                         | Enable refreshing CPU_* variables.                    |
@@ -699,10 +705,10 @@ These are read by the host but can also be overridden in your `.smd` config sect
 | `EnableGame`         | `false`                         | Enable refreshing Game_* variables.                   |
 | `LayerWidth`         | `448`                           | Overlay layer width.                                  |
 | `LayerHeight`        | `720`                           | Overlay layer height.                                 |
-| `HeaderText`         | `true`                          | Draw title bar?                                       |
-| `FooterText`         | `true`                          | Draw footer?                                          |
+| `HeaderText`         | `true`                          | Draw the host's title bar?                            |
+| `FooterText`         | `true`                          | Draw the host's footer hint?                          |
 | `UseCustomExitCombo` | `false`                         | Honour a custom exit combo from `formattedKeyCombo`?  |
-| `EnableControls`     | `true`                          | Can only overlay take control input?                  |
+| `EnableControls`     | `true`                          | Accept input events?                                  |
 
 ---
 
