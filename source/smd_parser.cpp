@@ -521,8 +521,8 @@ struct Document::Impl {
 	std::unordered_map<std::string, std::vector<double>> floatSampleScratch;
 
 	// Per-frame average scratch doubles for HISTORY_AVERAGE{name}.
-	// Keyed by history name (not the mangled __havg_ form).
-	// Populated lazily during EnsureVariable when a __havg_<name> identifier
+	// Keyed by history name (not the mangled havg__<name> form).
+	// Populated lazily during EnsureVariable when a havg__<name> identifier
 	// is encountered; refreshed each frame by RefreshScratches via
 	// std::accumulate over the ring buffer. The te_variable table points at
 	// these doubles directly so tinyexpr reads the freshly computed average.
@@ -852,7 +852,7 @@ static std::string PreprocessExpr(const std::string& s) {
 				// Strip optional leading $ (authors may write $name inside {}).
 				if (!histName.empty() && histName.front() == '$')
 					histName.erase(0, 1);
-				out.append("__havg_");
+				out.append("havg__");
 				out.append(histName);
 				i = j + 1;  // skip past the closing '}'
 				continue;
@@ -3151,13 +3151,13 @@ static double* EnsureVariable(Document::Impl& im, const std::string& name) {
 		return it->second.get();
 
 	// Is this a HISTORY_AVERAGE scratch? After PreprocessExpr, such identifiers
-	// have the form __havg_<histname>. Look up the history; if found, allocate
+	// have the form havg__<histname>. Look up the history; if found, allocate
 	// (or reuse) the per-history scratch double and return it so tinyexpr can
 	// bind to its address. The scratch is written each frame by RefreshScratches.
 	{
-		static constexpr size_t kHavgLen = 7; // len("__havg_")
+		static constexpr size_t kHavgLen = 6; // len("havg__")
 		if (name.size() > kHavgLen
-			&& std::memcmp(name.data(), "__havg_", kHavgLen) == 0) {
+			&& std::memcmp(name.data(), "havg__", kHavgLen) == 0) {
 			std::string histName = name.substr(kHavgLen);
 			if (im.histories.count(histName)) {
 				auto& slot = im.historyAvgScratches[histName];
@@ -3610,7 +3610,7 @@ bool Document::Compile() {
 		// The mangled name __havg_<histname> is parked in implicitZero for a
 		// stable c_str() lifetime so the te_variable's name pointer stays valid.
 		for (auto& kv : im.historyAvgScratches) {
-			std::string mangledName = std::string("__havg_") + kv.first;
+			std::string mangledName = std::string("havg__") + kv.first;
 			// Park the name string so its c_str() address is stable across
 			// later Compile calls (implicitZero is unordered_map -- pointer
 			// stability for values is guaranteed until erasure).
