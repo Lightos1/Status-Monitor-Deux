@@ -78,6 +78,53 @@ public:
 		return false;
 	}
 
+	bool itHasCustomExitCombo(const char* data, size_t size) {
+		size_t lineStart = 0;
+		for (size_t i = 0; i < size; ++i) {
+			if (data[i] != '\n') continue;
+
+			// Slice the current line [lineStart, i), peeling off a trailing \r.
+			size_t end = i;
+			while (end > lineStart && data[end - 1] == '\r') --end;
+			std::string rawLine(data + lineStart, end - lineStart);
+			lineStart = i + 1;
+
+			std::string trimmedRaw = trim(rawLine);
+
+			// 2. Standard configuration line processing
+			std::string line = StripLineComment(rawLine);
+			line = trim(line);
+			if (line.empty()) continue;
+
+			if (line == "Start:" || line == "Start: ") break;
+
+			size_t sep = std::string::npos;
+			{
+				int depth = 0; bool inStr = false;
+				for (size_t j = 0; j < line.size(); ++j) {
+					char c = line[j];
+					if (inStr) {
+						if (c == '\\' && j + 1 < line.size()) { ++j; continue; }
+						if (c == '"') inStr = false;
+						continue;
+					}
+					if (c == '"') { inStr = true; continue; }
+					if (c == '{') ++depth;
+					else if (c == '}') --depth;
+					else if (depth == 0 && c == '=') { sep = j; break; }
+				}
+			}
+			if (sep == std::string::npos) continue;
+
+			std::string key  = trim(line.substr(0, sep));
+			std::string rest = trim(line.substr(sep + 1));
+
+			if (key.compare("UseCustomExitCombo") == 0 && rest.compare("true") == 0) return true;
+		}
+
+		return false;
+	}
+
     MainMenu(std::string rel_path, std::string folderName = "") {
 		footerBackup = defaultButtonView;
 		formattedKeyCombo = keyCombo;
@@ -117,7 +164,7 @@ public:
 		}
 
 		std::string version = APP_VERSION;
-		version += "\n" + formattedKeyCombo;
+		version += "\n\uE136: " + formattedKeyCombo;
 		if (m_folderName.length() > 0) version += "\n\n" + m_folderName;
 
 		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, version.c_str());
@@ -159,6 +206,7 @@ public:
                     smd::Document::Peek(full_path.c_str(), info, overrideLanguage.c_str());
 					FILE* file = fopen(full_path.c_str(), "rb");
 					bool doesHaveConfig = false;
+					bool customExitCombo = false;
 					if (file) {
 						fseek(file, 0, 2);
 						size_t size = ftell(file);
@@ -169,12 +217,16 @@ public:
 							fread(buffer, 1, size, file);
 							fclose(file);
 							doesHaveConfig = FindConfigs(buffer, size);
+							customExitCombo = itHasCustomExitCombo(buffer, size);
 							free(buffer);
 						}
 					}
 					std::string second = "";
 					if (info.name.empty()) second = "\uE098";
-					else if (doesHaveConfig) second = "\uE04F";
+					else {
+						if (customExitCombo) second = "\uE136";
+						if (doesHaveConfig) second += "\uE04F";
+					} 
                     auto fileItem = new tsl::elm::ListItem(info.name.empty() ? item.name : info.name, second.c_str(), info.name.empty() ? true : false);
                     fileItem->setClickListener([this, item, info, full_path, rel_dir, doesHaveConfig](uint64_t keys) {
 						if (info.name.empty() == false) {
