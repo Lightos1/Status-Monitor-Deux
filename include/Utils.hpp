@@ -237,7 +237,7 @@ extern bool saveAndLoadMovableOverlayPosition;
 extern std::string overrideLanguage;
 extern std::map<std::string, std::map<std::string, std::string>> config;
 extern LocalTimeType LocalTime;
-extern std::map<std::string, std::string> locale;
+extern std::unordered_map<std::string, std::string> locale;
 
 //Checks
 extern Result clkrstCheck;

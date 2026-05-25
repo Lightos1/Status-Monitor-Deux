@@ -49,7 +49,7 @@ bool saveAndLoadMovableOverlayPosition = true;
 std::string overrideLanguage;
 std::map<std::string, std::map<std::string, std::string>> config;
 LocalTimeType LocalTime;
-std::map<std::string, std::string> locale;
+std::unordered_map<std::string, std::string> locale;
 
 //Checks
 Result clkrstCheck = 1;
@@ -909,7 +909,7 @@ bool ProcessSmdSettings(std::string filename, uint32_t crc32, uint16_t* x, uint1
 		fread(&fileDataString[0], sizeof(char), fileSize, configFileIn);
 		fclose(configFileIn);
 		
-		tsl::hlp::ini::IniData parsedData = parseIni(fileDataString);
+		std::unordered_map<std::string, std::unordered_map<std::string, std::string>> parsedData = parseIni(fileDataString);
 		if (parsedData.find(filename.c_str()) != parsedData.end()) {
 			if (parsedData[filename.c_str()].find("hash") != parsedData[filename.c_str()].end()) {
 				auto key = parsedData[filename.c_str()]["hash"];
@@ -962,7 +962,7 @@ void ParseIniFile() {
 	std::string ultrahandConfigIniPath = ultrahandDirectoryPath + "config.ini";
 	std::string teslaConfigIniPath = teslaDirectoryPath + "config.ini";
 	std::string localeIniPath = directoryPath + "locale.ini";
-	tsl::hlp::ini::IniData parsedData;
+	std::unordered_map<std::string, std::unordered_map<std::string, std::string>> parsedData;
 	
 	struct stat st;
 	if (stat(directoryPath.c_str(), &st) != 0) {
@@ -1117,11 +1117,11 @@ void ParseIniFile() {
 								"pro_controller_motion_key_combo=Pro Controller motion control key combo\n"
 								"jump_immediately_to_single_smd=Jump to detected SMD file if only one was detected\n"
 								"override_language=Force other language";
-		std::map<std::string, std::map<std::string, std::string>> defaultIni = parseIni(toParse);
-		std::map<std::string, std::string> defaultLocale = defaultIni["EN-US"];
+		std::unordered_map<std::string, std::unordered_map<std::string, std::string>> defaultIni = parseIni(toParse);
+		std::unordered_map<std::string, std::string> defaultLocale = defaultIni["EN-US"];
 		auto it = temp.find(overrideLanguage);
 		if (it != temp.end()) {
-			locale = it->second;
+			locale = std::unordered_map<std::string, std::string>(it->second.begin(), it->second.end());
 			for (const auto& [key, data] : defaultLocale) {
 				if (locale.find(key) != locale.end()) locale[key] = resolveHexEscapes(locale[key]);
 				else locale[key] = resolveHexEscapes(data);
