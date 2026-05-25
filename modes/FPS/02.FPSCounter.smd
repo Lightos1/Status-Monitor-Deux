@@ -47,7 +47,8 @@ ClampToLayerRight = true
 
 EnableGame = true
 FPStext: {"%2.1f", User_OldFpsAverage ? Game_FpsAvgOld_float : Game_FpsAvg_float}
-FPSnoDataText = "n/d"
+FPSnoDataText = IETF{"n/d"}
+IETF_LOCALE{FPSnoDataText, "PL-PL", "b/d"}
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 Start:
