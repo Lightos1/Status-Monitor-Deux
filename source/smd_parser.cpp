@@ -17,6 +17,7 @@ extern "C" {
 #include <cstring>
 #include <functional>
 #include <memory>
+#include <numeric>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -519,6 +520,14 @@ struct Document::Impl {
 	// amortised across the history's lifetime, sized to capacity.
 	std::unordered_map<std::string, std::vector<double>> floatSampleScratch;
 
+	// Per-frame average scratch doubles for HISTORY_AVERAGE{name}.
+	// Keyed by history name (not the mangled __havg_ form).
+	// Populated lazily during EnsureVariable when a __havg_<name> identifier
+	// is encountered; refreshed each frame by RefreshScratches via
+	// std::accumulate over the ring buffer. The te_variable table points at
+	// these doubles directly so tinyexpr reads the freshly computed average.
+	std::unordered_map<std::string, std::unique_ptr<double>> historyAvgScratches;
+
 	// GRAPH_CONDITIONS lists, keyed by the config name.
 	std::unordered_map<std::string, GraphCondDecl> graphConds;
 
@@ -821,6 +830,34 @@ static std::string PreprocessExpr(const std::string& s) {
 				out.push_back(cc);
 			}
 			continue;
+		}
+		// HISTORY_AVERAGE{name} -> __havg_name.
+		// Runs before the generic array-index rewriter so `{` is consumed
+		// as part of the keyword rather than being treated as a bracket.
+		// The result is a plain identifier that tinyexpr resolves via the
+		// te_variable table entry EnsureVariable installs at Compile time.
+		// The scratch double behind that entry is refreshed each frame in
+		// RefreshScratches via std::accumulate over the matching ring buffer.
+		if (c == 'H' && i + 16 <= s.size()
+			&& s.compare(i, 15, "HISTORY_AVERAGE") == 0
+			&& s[i + 15] == '{'
+			&& (i == 0 || (!std::isalnum((unsigned char)s[i-1])
+							&& s[i-1] != '_'))) {
+			size_t j = i + 16;
+			while (j < s.size() && std::isspace((unsigned char)s[j])) ++j;
+			size_t nameStart = j;
+			while (j < s.size() && s[j] != '}') ++j;
+			if (j < s.size()) {
+				std::string histName = Trim(s.substr(nameStart, j - nameStart));
+				// Strip optional leading $ (authors may write $name inside {}).
+				if (!histName.empty() && histName.front() == '$')
+					histName.erase(0, 1);
+				out.append("__havg_");
+				out.append(histName);
+				i = j + 1;  // skip past the closing '}'
+				continue;
+			}
+			// Malformed (no closing '}') -- fall through and emit 'H' literally.
 		}
 		// Array index: <ident>[<digits>] -> <ident>_<digits>.
 		// Triggered only when '[' follows an identifier char and the body
@@ -2033,6 +2070,7 @@ void Document::Free() {
 	m_impl->ownedNestedFormats.clear();
 	m_impl->histories.clear();
 	m_impl->floatSampleScratch.clear();
+	m_impl->historyAvgScratches.clear();
 	m_impl->graphConds.clear();
 	m_impl->lastError.clear();
 	m_impl->lastErrorWrapped.clear();
@@ -3112,6 +3150,25 @@ static double* EnsureVariable(Document::Impl& im, const std::string& name) {
 	if (auto it = im.implicitZero.find(name); it != im.implicitZero.end())
 		return it->second.get();
 
+	// Is this a HISTORY_AVERAGE scratch? After PreprocessExpr, such identifiers
+	// have the form __havg_<histname>. Look up the history; if found, allocate
+	// (or reuse) the per-history scratch double and return it so tinyexpr can
+	// bind to its address. The scratch is written each frame by RefreshScratches.
+	{
+		static constexpr size_t kHavgLen = 7; // len("__havg_")
+		if (name.size() > kHavgLen
+			&& std::memcmp(name.data(), "__havg_", kHavgLen) == 0) {
+			std::string histName = name.substr(kHavgLen);
+			if (im.histories.count(histName)) {
+				auto& slot = im.historyAvgScratches[histName];
+				if (!slot) slot.reset(new double(0.0));
+				return slot.get();
+			}
+			// Unknown history name: fall through to implicit zero so the
+			// expression compiles to 0.0 rather than failing outright.
+		}
+	}
+
 	// Is this a dims.x / dims.y reference? After preprocess it's `<name>_x`
 	// or `<name>_y`. We only treat it as a dims alias if the base dims var
 	// has already been registered (otherwise a user-defined identifier like
@@ -3430,6 +3487,7 @@ bool Document::Compile() {
 				  + im.configMirror.size() + im.implicitZero.size()
 				  + im.dimsVars.size() * 2
 				  + im.hostResArrays.size() * 24
+				  + im.historyAvgScratches.size()
 				  + kSystemKeysCount
 				  + 8 + 1;  // +4 dim alias slop, +4 base fns, +1 color()
 	im.teVarTable.clear();
@@ -3543,6 +3601,24 @@ bool Document::Compile() {
 			auto it = im.implicitZero.find(nm);
 			if (claimed.insert(nm).second) {
 				im.teVarTable.push_back({ it->first.c_str(), slot.get(), 0, nullptr });
+			}
+		}
+
+		// HISTORY_AVERAGE scratch doubles. Each HISTORY that is referenced by a
+		// HISTORY_AVERAGE{name} expression has a backing double in
+		// historyAvgScratches, populated by EnsureVariable during the prescan.
+		// The mangled name __havg_<histname> is parked in implicitZero for a
+		// stable c_str() lifetime so the te_variable's name pointer stays valid.
+		for (auto& kv : im.historyAvgScratches) {
+			std::string mangledName = std::string("__havg_") + kv.first;
+			// Park the name string so its c_str() address is stable across
+			// later Compile calls (implicitZero is unordered_map -- pointer
+			// stability for values is guaranteed until erasure).
+			auto& nameSlot = im.implicitZero[mangledName];
+			if (!nameSlot) nameSlot.reset(new double(0));
+			auto it = im.implicitZero.find(mangledName);
+			if (claimed.insert(mangledName).second) {
+				im.teVarTable.push_back({ it->first.c_str(), kv.second.get(), 0, nullptr });
 			}
 		}
 	}
@@ -3918,6 +3994,39 @@ static void RefreshScratches(Document::Impl& im) {
 	for (auto& kv : im.dimsVars) {
 		*kv.second.xMirror = (double)kv.second.dims->x;
 		*kv.second.yMirror = (double)kv.second.dims->y;
+	}
+
+	// Compute HISTORY_AVERAGE{name} scratch values.
+	// Each referenced history contributes one double in historyAvgScratches.
+	// We compute the arithmetic mean of all current samples via std::accumulate;
+	// the result is 0.0 when the ring buffer is empty (no samples yet pushed).
+	for (auto& kv : im.historyAvgScratches) {
+		if (!kv.second) continue;
+		auto hit = im.histories.find(kv.first);
+		if (hit == im.histories.end()) { *kv.second = 0.0; continue; }
+		const HistoryDecl& h = hit->second;
+		double avg = 0.0;
+		switch (h.type) {
+			case HistoryType::Int:
+				if (!h.samplesI.empty())
+					avg = (double)std::accumulate(
+								h.samplesI.begin(), h.samplesI.end(), int64_t(0))
+						/ (double)h.samplesI.size();
+				break;
+			case HistoryType::Float:
+				if (!h.samplesF.empty())
+					avg = (double)std::accumulate(
+								h.samplesF.begin(), h.samplesF.end(), 0.0f)
+						/ (double)h.samplesF.size();
+				break;
+			case HistoryType::Double:
+				if (!h.samplesD.empty())
+					avg = std::accumulate(
+								h.samplesD.begin(), h.samplesD.end(), 0.0)
+						/ (double)h.samplesD.size();
+				break;
+		}
+		*kv.second = avg;
 	}
 }
 
