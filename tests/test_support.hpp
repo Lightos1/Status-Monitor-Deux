@@ -14,6 +14,7 @@
 #include <filesystem>
 #include <string>
 #include <vector>
+#include <algorithm>
 
 namespace test_support {
 
