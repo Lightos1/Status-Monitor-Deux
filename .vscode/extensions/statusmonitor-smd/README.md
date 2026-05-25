@@ -1,6 +1,6 @@
 # SMD Syntax Highlighting for VS Code
 
-Syntax highlighting for Status Monitor Design (`.smd`) files — the overlay format used by SaltyNX/Tesla Switch overlays.
+Syntax highlighting for Status Monitor Design (`.smd`) files — the overlay format used by Status Monitor Deux.
 
 Highlights:
 
