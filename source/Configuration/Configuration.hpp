@@ -52,6 +52,8 @@ private:
 			auto sub_key = key.substr(5);
 
 			if (configs[sub_key].value.empty()) {
+				configs[sub_key].localNameWasFound = false;
+				configs[sub_key].localDescriptionWasFound = false;
 				configs[sub_key].value = rest;
 				
 				// Deduce type from value prefix if explicit _Range was not provided
@@ -76,10 +78,11 @@ private:
 			size_t end = i;
 			while (end > lineStart && data[end - 1] == '\r') --end;
 			std::string rawLine(data + lineStart, end - lineStart);
+			if (rawLine.starts_with("Start:")) break;
 			lineStart = i + 1;
 			std::string trimmedRaw = trim(rawLine);
 
-			// 1. Intercept metadata lines BEFORE stripping comments
+			// 1. Intercept metadata lines
 			if (trimmedRaw.starts_with(";;User_")) {
 				size_t sep = std::string::npos;
 				int depth = 0; bool inStr = false;
@@ -101,8 +104,11 @@ private:
 					std::string metaKey = trim(trimmedRaw.substr(2, sep - 2)); 
 					std::string rest = trim(trimmedRaw.substr(sep + 1));
 
+					std::string localNameSearch = "_Name_" + overrideLanguage;
+					std::string localDescriptionSearch = "_Description_" + overrideLanguage;
+
 					if (metaKey.ends_with("_Range")) {
-						std::string sub_key = metaKey.substr(5, metaKey.size() - 5 - 6);
+						std::string sub_key = metaKey.substr(5, metaKey.size() - strlen("User_") - strlen("_Range"));
 						
 						if (!rest.empty() && rest.front() == '{') rest = rest.substr(1);
 						if (!rest.empty() && rest.back() == '}') rest.pop_back();
@@ -120,9 +126,37 @@ private:
 						}
 					} 
 					else if (metaKey.ends_with("_DefaultValue")) {
-						std::string sub_key = metaKey.substr(5, metaKey.size() - 5 - 13);
+						std::string sub_key = metaKey.substr(5, metaKey.size() - strlen("User_") - strlen("_DefaultValue"));
 						if (configs.find(sub_key) != configs.end())
 							configs[sub_key].defaultValue = rest;
+					}
+					else if (metaKey.ends_with("_Name")) {
+						std::string sub_key = metaKey.substr(5, metaKey.size() - strlen("User_") - strlen("_Name"));
+						if (configs.find(sub_key) != configs.end()) {
+							if (configs[sub_key].localNameWasFound == false) configs[sub_key].localName = rest;
+						}
+					}
+					else if (metaKey.ends_with(localNameSearch)) {
+						std::string sub_key = metaKey.substr(5, metaKey.size() - strlen("User_") - localNameSearch.length());
+						if (configs.find(sub_key) != configs.end()) {
+							configs[sub_key].localName = rest;
+							configs[sub_key].localNameWasFound = true;
+						}
+					}
+					else if (metaKey.ends_with("_Description")) {
+						std::string sub_key = metaKey.substr(5, metaKey.size() - strlen("User_") - strlen("_Description"));
+						if (configs.find(sub_key) != configs.end()) {
+							if (configs[sub_key].localDescriptionWasFound == false) {
+								configs[sub_key].localDescription = rest;
+							}
+						}
+					}
+					else if (metaKey.ends_with(localDescriptionSearch)) {
+						std::string sub_key = metaKey.substr(5, metaKey.size() - strlen("User_") - localDescriptionSearch.length());
+						if (configs.find(sub_key) != configs.end()) {
+							configs[sub_key].localDescription = rest;
+							configs[sub_key].localDescriptionWasFound = true;
+						}
 					}
 				}
 				continue; 

@@ -7,9 +7,11 @@ private:
 	std::vector<std::string> defaultList;
 	std::string m_key;
 	tsl::elm::ListItem* m_item;
-
+	std::string m_localName;
 public:
-	EditConfigOrdering(std::string key, std::string value, std::string defaultValue, tsl::elm::ListItem* item) {
+	EditConfigOrdering(std::string key, std::string value, std::string defaultValue, tsl::elm::ListItem* item, std::string localName) {
+		if (localName.length() > 0) m_localName = localName;
+		else m_localName = key;
 		tsl::hlp::requestForeground(true);
 		m_item = item;
 		m_key = key;
@@ -62,7 +64,7 @@ public:
 		size_t listSize = toRender.size();
 		for (size_t i = 0; i < listSize; i++) {
 			const auto& [key, value] = toRender[i];
-			auto Item = new tsl::elm::ToggleListItem(key, value);
+			auto Item = new tsl::elm::ToggleListItem(m_localName, value);
 			Item->setClickListener([this, key, i, Item, listSize, list](uint64_t keys) {
 				if (keys & KEY_A) {
 					toRender[i] = std::make_pair(key, Item->getState());

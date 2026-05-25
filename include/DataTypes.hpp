@@ -6,5 +6,9 @@ struct Data {
 	std::string rangeMin;
 	std::string rangeMax;
 	std::string defaultValue;
+	std::string localName;
+	std::string localDescription;
+	bool localNameWasFound;
+	bool localDescriptionWasFound;
 };
 std::map<std::string, Data> configs;

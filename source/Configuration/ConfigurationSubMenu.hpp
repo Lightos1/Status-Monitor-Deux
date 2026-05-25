@@ -32,11 +32,11 @@ public:
 				if (m_type.compare("int") == 0) {
 					int64_t temp;
 					if (isNumeric(data.rangeMin, &temp) == true && isNumeric(data.rangeMax, &temp) == true) {
-						auto Item = new tsl::elm::ListItem(key, data.value);
+						auto Item = new tsl::elm::ListItem(data.localName.length() > 0 ? data.localName : key, data.value);
 						Item->setClickListener([this, key, data, Item](uint64_t keys) {
 							if (keys & KEY_A) {
 								tsl::hlp::requestForeground(true);
-								tsl::changeTo<EditConfigInt>(key, configs.at(key).value, data.rangeMin, data.rangeMax, data.defaultValue, Item);
+								tsl::changeTo<EditConfigInt>(key, configs.at(key).value, data.rangeMin, data.rangeMax, data.defaultValue, Item, data.localName);
 								return true;
 							}
 							return false;
@@ -49,7 +49,7 @@ public:
 					}
 				}
 				else if (m_type.compare("list") == 0) {
-					auto Item = new tsl::elm::ListItem(key);
+					auto Item = new tsl::elm::ListItem(data.localName.length() > 0 ? data.localName : key);
 					Item->setClickListener([this, key, data, Item](uint64_t keys) {
 						if (keys & KEY_A) {
 							std::string value = configs[key].value;
@@ -57,7 +57,7 @@ public:
 							if (value.starts_with("LIST")) value = listToFlatList(value);
 							if (defaultValue.starts_with("LIST")) defaultValue = listToFlatList(defaultValue);
 							tsl::hlp::requestForeground(true);
-							tsl::changeTo<EditConfigOrdering>(key, value, defaultValue, Item);
+							tsl::changeTo<EditConfigOrdering>(key, value, defaultValue, Item, data.localName);
 							return true;
 						}
 						return false;
@@ -66,7 +66,7 @@ public:
 				}
 				else if (data.type.compare("bool") == 0) {
 					bool isTrue = data.value.compare("true") == 0;
-					auto Item = new tsl::elm::ToggleListItem(key, isTrue);
+					auto Item = new tsl::elm::ToggleListItem(data.localName.length() > 0 ? data.localName : key, isTrue);
 					Item->setClickListener([this, key, Item](uint64_t keys) {
 						if (keys & KEY_A) {
 							configs.at(key).value = Item->getState() ? "true" : "false";
@@ -94,11 +94,11 @@ public:
 						else error = "invalid color";
 					}
 					if (isValid) {
-						auto Item = new tsl::elm::ColorListItem(key, color);
-						Item->setClickListener([this, key, Item, color](uint64_t keys) {
+						auto Item = new tsl::elm::ColorListItem(data.localName.length() > 0 ? data.localName : key, color);
+						Item->setClickListener([this, key, Item, data](uint64_t keys) {
 							if (keys & KEY_A) {
 								tsl::hlp::requestForeground(true);
-								tsl::changeTo<EditConfigColor>(key, Item);
+								tsl::changeTo<EditConfigColor>(key, Item, data.localName);
 								return true;
 							}
 							return false;

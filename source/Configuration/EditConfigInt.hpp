@@ -12,8 +12,11 @@ private:
 	int64_t default_value;
 	std::string buttons = "\uE0B1/\uE0C1      \uE0C1/\uE0B2";
 	tsl::elm::ListItem* m_item;
+	std::string m_localName;
 public:
-	EditConfigInt(std::string key, std::string value, std::string rangeMin, std::string rangeMax, std::string defaultValue, tsl::elm::ListItem* item) {
+	EditConfigInt(std::string key, std::string value, std::string rangeMin, std::string rangeMax, std::string defaultValue, tsl::elm::ListItem* item, std::string localName) {
+		if (localName.length() > 0) m_localName = localName;
+		else m_localName = key;
 		tsl::hlp::requestForeground(true);
 		m_item = item;
 		m_key = key;
@@ -29,7 +32,7 @@ public:
 	}
 
 	virtual tsl::elm::Element* createUI() override {
-		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, m_key);
+		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, m_localName);
 		auto Status = new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, u16 x, u16 y, u16 w, u16 h) {
 			const size_t fontsize2 = 60;
 			const size_t m_height = (360+fontsize2) - (fontsize2 / 2);

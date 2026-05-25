@@ -5,6 +5,7 @@ private:
 	std::string m_key;
 	tsl::elm::ColorListItem* m_item;
 	u16 m_color;
+	std::string m_localName;
 public:
 	uint64_t start_tick;
 	int32_t row = 0;
@@ -15,7 +16,9 @@ public:
 	int32_t selected_predefined;
 	std::array<u16, 16> predefinedColors = {0xFF7A, 0xFFF0, 0xFF80, 0xFF8E, 0xF053, 0xF0FF, 0xFFDC, 0xF808, 0xFEEE, 0xF80F, 0xF6CC, 0xF0F8, 0xF744, 0xFAAF, 0xF080, 0xF82E};
 
-	EditConfigColor(std::string key, tsl::elm::ColorListItem* item) {
+	EditConfigColor(std::string key, tsl::elm::ColorListItem* item, std::string localName) {
+		if (localName.length() > 0) m_localName = localName;
+		else m_localName = key;
 		tsl::hlp::requestForeground(true);
 		m_item = item;
 		m_key = key;
@@ -34,7 +37,7 @@ public:
 	}
 
 	virtual tsl::elm::Element* createUI() override {
-		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, m_key);
+		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, m_localName);
 		auto Status = new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, u16 x, u16 y, u16 w, u16 h) {
 			const size_t position_y = 120;
 			const size_t position_x = 60;
