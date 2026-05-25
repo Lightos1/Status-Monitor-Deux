@@ -73,7 +73,7 @@ int main() {
     std::printf("\n[literal in inline render-command args]\n");
     {
         const char* smd =
-            "Name = T\n"
+            "Name: T\n"
             "Start:\n"
             "TEXT{0, 0, 18, COLOR{0xF00F}, \"x\"}\n"   // 0xF00F (palindrome)
             "BOX{0, 0, 10, 10, COLOR{0x12AB}}\n";       // -> 0xBA21
@@ -92,7 +92,7 @@ int main() {
     std::printf("\n[expression form]\n");
     {
         const char* smd =
-            "Name = T\n"
+            "Name: T\n"
             "base: 0x1230\n"
             "Start:\n"
             "TEXT{0, 0, 18, COLOR{base + 4}, \"x\"}\n";   // base+4 = 0x1234 -> 0x4321
