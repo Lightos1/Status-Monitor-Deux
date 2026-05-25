@@ -477,9 +477,12 @@ void RenderingPipeline::update() {
 	time_t new_timestamp = LocalTime.timestamp + seconds_passed;
 	struct tm local_time;
 	gmtime_r(&new_timestamp, &local_time);
-	SystemData.ClockHour   = local_time.tm_hour;
-	SystemData.ClockMinute = local_time.tm_min;
-	SystemData.ClockSecond = local_time.tm_sec;
+	SystemData.ClockHour     = local_time.tm_hour;
+	SystemData.ClockMinute   = local_time.tm_min;
+	SystemData.ClockSecond   = local_time.tm_sec;
+	SystemData.CalendarDay   = local_time.tm_mday;
+	SystemData.CalendarMonth = local_time.tm_mon + 1;
+	SystemData.CalendarYear  = local_time.tm_year + 1900;
 }
 
 // ─── handleInput ─────────────────────────────────────────────────────────────
