@@ -919,6 +919,7 @@ namespace tsl {
 				s32 maxX = x;
 				s32 currX = x;
 				s32 currY = y;
+				s32 lineHeight = fontSize;
 				s32 prevCharacter = 0;
 
 				u32 i = 0;
@@ -966,6 +967,9 @@ namespace tsl {
 					stbtt_GetCodepointBitmapBoxSubpixel(currFont, currCharacter, currFontSize, currFontSize,
 														0, 0, &bounds[0], &bounds[1], &bounds[2], &bounds[3]);
 
+					int glyphInkHeight = bounds[3] - bounds[1] + 1;
+					if (glyphInkHeight > lineHeight) lineHeight = glyphInkHeight;
+
 					int xAdvance = 0, yAdvance = 0;
 					stbtt_GetCodepointHMetrics(currFont, monospace ? 'W' : currCharacter, &xAdvance, &yAdvance);
 
@@ -973,7 +977,7 @@ namespace tsl {
 						maxX = std::max(currX, maxX);
 
 						currX = x;
-						currY += fontSize;
+						currY += lineHeight;
 
 						continue;
 					}
