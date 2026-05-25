@@ -200,6 +200,9 @@ struct SystemDataType {
 	int64_t ClockHour;
 	int64_t ClockMinute;
 	int64_t ClockSecond;
+	int64_t CalendarYear;
+	int64_t CalendarMonth;
+	int64_t CalendarDay;
 };
 
 struct MiscDataType {
@@ -337,6 +340,9 @@ inline void BindAllPredefined(smd::Document& doc) {
 	doc.BindInt64 ("System_ClockSecond_int",                 	&SystemData.ClockSecond);
 	doc.BindInt64 ("System_ClockMinute_int",                 	&SystemData.ClockMinute);
 	doc.BindInt64 ("System_ClockHour_int",                  	&SystemData.ClockHour);
+	doc.BindInt64 ("System_CalendarYear_int",                   &SystemData.CalendarYear);
+	doc.BindInt64 ("System_CalendarMonth_int",                 	&SystemData.CalendarMonth);
+	doc.BindInt64 ("System_CalendarDay_int",                  	&SystemData.CalendarDay);
     doc.BindString("formattedKeyCombo",                  		&SystemData.formattedKeyCombo);
     doc.BindBool  ("Misc_IsWiFiPassphrase",               		&MiscData.IsWiFiPassphrase);
     doc.BindInt64 ("Misc_NvDecHz_int",                    		&MiscData.NvDecHz_int);
