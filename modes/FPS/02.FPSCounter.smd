@@ -70,6 +70,6 @@ VAR{margin, fontsize / 8}
 		VAR{Text, FPSnoDataText}
 	#endif
 #endif
-GET_DIMENSIONS{Dimensions, fontsize, Text}
+GET_DIMENSIONS{Dimensions, fontsize, true, Text}
 BOX{0, 0, Dimensions.x + margin, fontsize + (margin / 2), User_BoxColor}
-TEXT{0, fontsize - margin, fontsize, User_TextColor, Text}
+TEXT{0, fontsize - margin, fontsize, User_TextColor, true, Text}

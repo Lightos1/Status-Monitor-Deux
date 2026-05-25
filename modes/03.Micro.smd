@@ -173,7 +173,7 @@ BOX{0, 0, LayerWidth, fontsize+2, User_BoxColor}
 			VAR{DimensionsWholeText, DimensionsWholeText + FPSplaceholder}
 		#endif
 	#endif
-	GET_DIMENSIONS{TextSize, fontsize, DimensionsWholeText}
+	GET_DIMENSIONS{TextSize, fontsize, true, DimensionsWholeText}
 	#if $User_TextPosition == 1
 		VAR{X_OFFSET, (LayerWidth - TextSize.x) / 2}
 	#elif $User_TextPosition == 2
@@ -200,10 +200,10 @@ BOX{0, 0, LayerWidth, fontsize+2, User_BoxColor}
 			VAR{Text, Text + CPUpart2Text}
 		#endif
 		VAR{FrontText, IETF_GET{CpuTextCat} + " "}
-		GET_DIMENSIONS{Dimensions, fontsize, FrontText}
-		GET_DIMENSIONS{Dimensions2, fontsize, DimensionsText};
-		TEXT{X_OFFSET, fontsize, fontsize, User_CategoryColor, FrontText}
-		TEXT{X_OFFSET + Dimensions.x, fontsize, fontsize, User_TextColor, Text}
+		GET_DIMENSIONS{Dimensions, fontsize, true, FrontText}
+		GET_DIMENSIONS{Dimensions2, fontsize, true, DimensionsText};
+		TEXT{X_OFFSET, fontsize, fontsize, User_CategoryColor, true, FrontText}
+		TEXT{X_OFFSET + Dimensions.x, fontsize, fontsize, User_TextColor, true, Text}
 		VAR{X_OFFSET, X_OFFSET + Dimensions2.x}
 	#endif
 	#if $EnableGPU and $User_ShowGPU and $category == "GPU"
@@ -223,10 +223,10 @@ BOX{0, 0, LayerWidth, fontsize+2, User_BoxColor}
 			VAR{Text, Text + GPUpart2Text}
 		#endif
 		VAR{FrontText, IETF_GET{GpuTextCat} + " "}
-		GET_DIMENSIONS{Dimensions, fontsize, FrontText}
-		GET_DIMENSIONS{Dimensions2, fontsize, DimensionsText};
-		TEXT{X_OFFSET, fontsize, fontsize, User_CategoryColor, FrontText}
-		TEXT{X_OFFSET + Dimensions.x, fontsize, fontsize, User_TextColor, Text}
+		GET_DIMENSIONS{Dimensions, fontsize, true, FrontText}
+		GET_DIMENSIONS{Dimensions2, fontsize, true, DimensionsText};
+		TEXT{X_OFFSET, fontsize, fontsize, User_CategoryColor, true, FrontText}
+		TEXT{X_OFFSET + Dimensions.x, fontsize, fontsize, User_TextColor, true, Text}
 		VAR{X_OFFSET, X_OFFSET + Dimensions2.x}
 	#endif
 	#if $EnableRAM and $User_ShowRAM and $category == "RAM"
@@ -261,27 +261,27 @@ BOX{0, 0, LayerWidth, fontsize+2, User_BoxColor}
 			#endif
 		#endif
 		VAR{FrontText, IETF_GET{RamTextCat} + " "}
-		GET_DIMENSIONS{Dimensions, fontsize, FrontText}
-		GET_DIMENSIONS{Dimensions2, fontsize, DimensionsText};
-		TEXT{X_OFFSET, fontsize, fontsize, User_CategoryColor, FrontText}
-		TEXT{X_OFFSET + Dimensions.x, fontsize, fontsize, User_TextColor, Text}
+		GET_DIMENSIONS{Dimensions, fontsize, true, FrontText}
+		GET_DIMENSIONS{Dimensions2, fontsize, true, DimensionsText};
+		TEXT{X_OFFSET, fontsize, fontsize, User_CategoryColor, true, FrontText}
+		TEXT{X_OFFSET + Dimensions.x, fontsize, fontsize, User_TextColor, true, Text}
 		VAR{X_OFFSET, X_OFFSET + Dimensions2.x}
 	#endif
 	#if $EnableBoard and $User_ShowBRD and $category == "BRD"
 		VAR{DimensionsText, Boardplaceholder}
 		VAR{FrontText, IETF_GET{BoardTextCat} + " "}
-		GET_DIMENSIONS{Dimensions, fontsize, FrontText}
-		GET_DIMENSIONS{Dimensions2, fontsize, DimensionsText};
-		TEXT{X_OFFSET, fontsize, fontsize, User_CategoryColor, FrontText}
-		TEXT{X_OFFSET + Dimensions.x, fontsize, fontsize, User_TextColor, BoardText}
+		GET_DIMENSIONS{Dimensions, fontsize, true, FrontText}
+		GET_DIMENSIONS{Dimensions2, fontsize, true, DimensionsText};
+		TEXT{X_OFFSET, fontsize, fontsize, User_CategoryColor, true, FrontText}
+		TEXT{X_OFFSET + Dimensions.x, fontsize, fontsize, User_TextColor, true, BoardText}
 		VAR{X_OFFSET, X_OFFSET + Dimensions2.x}
 		#if $User_ShowFAN
 			VAR{DimensionsText, Fanplaceholder}
 			VAR{FrontText, IETF_GET{FanTextCat} + " "}
-			GET_DIMENSIONS{Dimensions, fontsize, FrontText}
-			GET_DIMENSIONS{Dimensions2, fontsize, DimensionsText};
-			TEXT{X_OFFSET, fontsize, fontsize, User_CategoryColor, FrontText}
-			TEXT{X_OFFSET + Dimensions.x, fontsize, fontsize, User_TextColor, FanText}
+			GET_DIMENSIONS{Dimensions, fontsize, true, FrontText}
+			GET_DIMENSIONS{Dimensions2, fontsize, true, DimensionsText};
+			TEXT{X_OFFSET, fontsize, fontsize, User_CategoryColor, true, FrontText}
+			TEXT{X_OFFSET + Dimensions.x, fontsize, fontsize, User_TextColor, true, FanText}
 			VAR{X_OFFSET, X_OFFSET + Dimensions2.x}
 		#endif
 	#endif
@@ -295,10 +295,10 @@ BOX{0, 0, LayerWidth, fontsize+2, User_BoxColor}
 			#else
 				VAR{Text, FPStext}
 			#endif
-			GET_DIMENSIONS{Dimensions, fontsize, FrontText}
-			GET_DIMENSIONS{Dimensions2, fontsize, DimensionsText};
-			TEXT{X_OFFSET, fontsize, fontsize, User_CategoryColor, FrontText}
-			TEXT{X_OFFSET + Dimensions.x, fontsize, fontsize, User_TextColor, Text}
+			GET_DIMENSIONS{Dimensions, fontsize, true, FrontText}
+			GET_DIMENSIONS{Dimensions2, fontsize, true, DimensionsText};
+			TEXT{X_OFFSET, fontsize, fontsize, User_CategoryColor, true, FrontText}
+			TEXT{X_OFFSET + Dimensions.x, fontsize, fontsize, User_TextColor, true, Text}
 			VAR{X_OFFSET, X_OFFSET + Dimensions2.x}
 		#endif
 	#endif

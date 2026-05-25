@@ -24,20 +24,20 @@ Text3: {"NVJPG: %u.%u MHz", Misc_NvJpgHz_int / 1000000, (Misc_NvJpgHz_int / 1000
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 Start:
 VAR{Text, Text1 + "\n" + Text2 + "\n" + Text3}
-TEXT{0, 120, 20, 0xFFFF, IETF_GET{MultimediaText}}
+TEXT{0, 120, 20, 0xFFFF, false, IETF_GET{MultimediaText}}
 TEXT{15, 140, 15, 0xFFFF, Text}
-TEXT{0, 215, 20, 0xFFFF, IETF_GET{NetworkText}}
+TEXT{0, 215, 20, 0xFFFF, false, IETF_GET{NetworkText}}
 #if $Misc_NetworkConnectionType_int == 1
-	TEXT{0, 240, 18, 0xFFFF, IETF_GET{WiFiText}}
+	TEXT{0, 240, 18, 0xFFFF, false, IETF_GET{WiFiText}}
 	#if $Misc_IsWiFiPassphrase
 		#if $System_KeysHeld_int == $System_Key_Y
-			TEXT{0, 265, 15, 0xFFFF, Misc_WiFiPassphrase_str}
+			TEXT{0, 265, 15, 0xFFFF, false, Misc_WiFiPassphrase_str}
 		#else
-			TEXT{0, 265, 15, 0xFFFF, IETF_GET{ShowPasswordText}}
+			TEXT{0, 265, 15, 0xFFFF, false, IETF_GET{ShowPasswordText}}
 		#endif
 	#endif
 #elif $Misc_NetworkConnectionType_int == 2
-	TEXT{0, 240, 18, 0xFFFF, IETF_GET{EthernetText}}
+	TEXT{0, 240, 18, 0xFFFF, false, IETF_GET{EthernetText}}
 #else
-	TEXT{0, 240, 18, 0xFFFF, IETF_GET{NotConnectedText}}
+	TEXT{0, 240, 18, 0xFFFF, false, IETF_GET{NotConnectedText}}
 #endif

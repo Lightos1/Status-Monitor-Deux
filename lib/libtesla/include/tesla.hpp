@@ -913,35 +913,39 @@ namespace tsl {
 			 * @param color Text color. Use transparent color to skip drawing and only get the string's dimensions
 			 * @return Dimensions of drawn string
 			 */
-			std::pair<u32, u32> drawString(const char* string, bool monospace, s32 x, s32 y, float fontSize, Color color) {
+			std::pair<u32, u32> drawString(const char* string, bool monospace, s32 x, s32 y, float fontSize, Color color, bool uniform = false) {
 				const size_t stringLength = strlen(string);
 
 				s32 maxX = x;
 				s32 currX = x;
 				s32 currY = y;
 				s32 prevCharacter = 0;
+				s32 lineHeight = fontSize;
 
-				u32 currCharacter;
-				ssize_t codepointWidth = decode_utf8(&currCharacter, reinterpret_cast<const u8*>("ĝ"));
-				stbtt_fontinfo *currFont = &this->m_stdFont;
-				float currFontSize = stbtt_ScaleForPixelHeight(currFont, fontSize);
-				int bounds[4] = { 0 };
-				stbtt_GetCodepointBitmapBoxSubpixel(currFont, currCharacter, currFontSize, currFontSize,
-													0, 0, &bounds[0], &bounds[1], &bounds[2], &bounds[3]);
-				s32 lineHeight = bounds[3] - bounds[1] + 1;
-				if (lineHeight < fontSize) lineHeight = fontSize;
+				if (uniform == false) {
+					u32 currCharacter;
+					decode_utf8(&currCharacter, reinterpret_cast<const u8*>("ĝ"));
+					stbtt_fontinfo *currFont = &this->m_stdFont;
+					float currFontSize = stbtt_ScaleForPixelHeight(currFont, fontSize);
+					int bounds[4] = { 0 };
+					stbtt_GetCodepointBitmapBoxSubpixel(currFont, currCharacter, currFontSize, currFontSize,
+														0, 0, &bounds[0], &bounds[1], &bounds[2], &bounds[3]);
+					s32 m_lineHeight = bounds[3] - bounds[1] + 1;
+					if (m_lineHeight > fontSize) lineHeight = m_lineHeight;
+				}
 
 				u32 i = 0;
 
 				do {
-					codepointWidth = decode_utf8(&currCharacter, reinterpret_cast<const u8*>(string + i));
+					u32 currCharacter;
+					ssize_t codepointWidth = decode_utf8(&currCharacter, reinterpret_cast<const u8*>(string + i));
 
 					if (codepointWidth <= 0)
 						break;
 
 					i += codepointWidth;
 
-					currFont = nullptr;
+					stbtt_fontinfo* currFont = nullptr;
 
 					if (stbtt_FindGlyphIndex(&this->m_extFont, currCharacter))
 						currFont = &this->m_extFont;
@@ -996,7 +1000,6 @@ namespace tsl {
 				} while (i < stringLength);
 
 				maxX = std::max(currX, maxX);
-				currY += lineHeight;
 
 				return { maxX - x, currY - y };
 			}

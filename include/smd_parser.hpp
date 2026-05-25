@@ -162,6 +162,9 @@ struct RenderCommand {
 
     int64_t  x = 0, y = 0, width = 0, height = 0, fontSize = 0;
     uint16_t color = 0;
+    // TEXT command: when true the renderer should constrain each line's
+    // height to exactly fontSize pixels (no natural font leading).
+    bool     matchLineHeight = false;
 
     int64_t  x2 = 0, y2 = 0, dashOn = 0, dashOff = 0;
     float roundnessTl = 0, roundnessTr = 0, roundnessBl = 0, roundnessBr = 0;

@@ -93,7 +93,7 @@ gameWasActive: false
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 Start:
-GET_DIMENSIONS{MaxSize, 10, FPSmax}
+GET_DIMENSIONS{MaxSize, 10, true, FPSmax}
 #if $User_AdjustToRefreshRate
 	VAR{GraphHeight, System_DisplayRefreshRate_int}
 	#if $GraphHeight > 80
@@ -114,8 +114,8 @@ VAR{TextBaseOffset, MaxSize.x + 2}
 #endif
 EMPTY_BOX{TextBaseOffset, 5, User_GraphWidth + 2, GraphHeight  + 2, User_BorderColor}
 DASHED_LINE{TextBaseOffset + 1, 6 + (GraphHeight  / 2), (User_GraphWidth + 1) + TextBaseOffset + 1, 6 + (GraphHeight  / 2), 6, 3, User_DashedLineColor}
-TEXT{0, 13, 10, User_MaxValueColor, FPSmax}
-TEXT{TextBaseOffset - 9, GraphHeight  + 7, 10, User_MinValueColor, "0"}
+TEXT{0, 13, 10, User_MaxValueColor, true, FPSmax}
+TEXT{TextBaseOffset - 9, GraphHeight  + 7, 10, User_MinValueColor, true, "0"}
 #if $Game_IsGameRunning
 	VAR{gameWasActive, true}
 	#if $Game_LastFrameNumber_int > $lastFrame

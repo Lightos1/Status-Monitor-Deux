@@ -158,40 +158,40 @@ VAR{Lines, 0}
 #endif
 #for $category in $User_Ordering
 	#if $EnableCPU and $User_ShowCPU and $category == "CPU"
-		GET_DIMENSIONS{dimensions, fontsize, "[100%,100%,100%,100%]@4444.4"}
+		GET_DIMENSIONS{dimensions, fontsize, true, "[100%,100%,100%,100%]@4444.4"}
 		#if $BoxWidth < $dimensions.x
 			VAR{BoxWidth, dimensions.x}
 		#endif
 		VAR{Lines, Lines + 1}
 	#endif
 	#if $EnableGPU and $User_ShowGPU and $category == "GPU"
-		GET_DIMENSIONS{dimensions, fontsize, "100.0%(100.0 | 100.0)@4444.4"}
+		GET_DIMENSIONS{dimensions, fontsize, true, "100.0%(100.0 | 100.0)@4444.4"}
 		#if $BoxWidth < $dimensions.x
 			VAR{BoxWidth, dimensions.x}
 		#endif
 		VAR{Lines, Lines + 1}
 	#endif
 	#if $EnableRAM and $User_ShowRAM and $category == "RAM"
-		GET_DIMENSIONS{dimensions, fontsize, "4444/4444MB@4444.4"}
+		GET_DIMENSIONS{dimensions, fontsize, true, "4444/4444MB@4444.4"}
 		VAR{Lines, Lines + 1}
 	#endif
 	#if $EnableBoard
 		#if $User_ShowTEMP  and $category == "TEMP"
-			GET_DIMENSIONS{dimensions, fontsize, "88.8°C/88.8°C/88.8°C"}
+			GET_DIMENSIONS{dimensions, fontsize, true, "88.8°C/88.8°C/88.8°C"}
 			#if $BoxWidth < $dimensions.x
 				VAR{BoxWidth, dimensions.x}
 			#endif
 			VAR{Lines, Lines + 1}
 		#endif
 		#if $User_ShowDRAW and $category == "DRAW"
-			GET_DIMENSIONS{dimensions, fontsize, "-44.44W[44:44]"}
+			GET_DIMENSIONS{dimensions, fontsize, true, "-44.44W[44:44]"}
 			#if $BoxWidth < $dimensions.x
 				VAR{BoxWidth, dimensions.x}
 			#endif
 			VAR{Lines, Lines + 1}
 		#endif
 		#if $User_ShowFAN and $category == "FAN"
-			GET_DIMENSIONS{dimensions, fontsize, "100.0%"}
+			GET_DIMENSIONS{dimensions, fontsize, true, "100.0%"}
 			#if $BoxWidth < $dimensions.x
 				VAR{BoxWidth, dimensions.x}
 			#endif
@@ -201,21 +201,21 @@ VAR{Lines, 0}
 	#if $EnableGame
 		#if $Game_IsGameRunning
 			#if $User_ShowFPS and $category == "FPS"
-				GET_DIMENSIONS{dimensions, fontsize, "444.4"}
+				GET_DIMENSIONS{dimensions, fontsize, true, "444.4"}
 				#if $BoxWidth < $dimensions.x
 					VAR{BoxWidth, dimensions.x}
 				#endif
 				VAR{Lines, Lines + 1}
 			#endif
 			#if $User_ShowRES and $category == "RES"
-				GET_DIMENSIONS{dimensions, fontsize, "3840x2160 || 3840x2160"}
+				GET_DIMENSIONS{dimensions, fontsize, true, "3840x2160 || 3840x2160"}
 				#if $BoxWidth < $dimensions.x
 					VAR{BoxWidth, dimensions.x}
 				#endif
 				VAR{Lines, Lines + 1}
 			#endif
 			#if $User_ShowREAD and $category == "READ"
-				GET_DIMENSIONS{dimensions, fontsize, "4444.4 MiB/s"}
+				GET_DIMENSIONS{dimensions, fontsize, true, "4444.4 MiB/s"}
 				#if $BoxWidth < $dimensions.x
 					VAR{BoxWidth, dimensions.x}
 				#endif
@@ -330,8 +330,8 @@ VAR{Lines, 0}
 	#endif
 #endfor
 
-GET_DIMENSIONS{LeftDimensions, fontsize, LeftText}
+GET_DIMENSIONS{LeftDimensions, fontsize, true, LeftText}
 VAR{BoxWidth, BoxWidth + LeftDimensions.x + Offset}
 BOX{0, 0, BoxWidth, LeftDimensions.y + 4, User_BoxColor}
-TEXT{0, fontsize, fontsize, User_CategoryColor, LeftText}
-TEXT{LeftDimensions.x + Offset, fontsize, fontsize, User_TextColor, RightText}
+TEXT{0, fontsize, fontsize, User_CategoryColor, true, LeftText}
+TEXT{LeftDimensions.x + Offset, fontsize, fontsize, User_TextColor, true, RightText}

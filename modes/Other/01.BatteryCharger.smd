@@ -47,77 +47,9 @@ Text12: {IETF_GET{Text12Format}, Board_ChargerCurrentLimit_int}
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 Start:
-GET_DIMENSIONS{dimensions, 18, Text1}
-VAR{MAX_HEIGHT, dimensions.y}
-GET_DIMENSIONS{dimensions, 18, Text2}
-#if dimensions.y > MAX_HEIGHT
-	VAR{MAX_HEIGHT, dimensions.y}
-#endif
-GET_DIMENSIONS{dimensions, 18, Text3}
-#if dimensions.y > MAX_HEIGHT
-	VAR{MAX_HEIGHT, dimensions.y}
-#endif
-GET_DIMENSIONS{dimensions, 18, Text4}
-#if dimensions.y > MAX_HEIGHT
-	VAR{MAX_HEIGHT, dimensions.y}
-#endif
-GET_DIMENSIONS{dimensions, 18, Text5}
-#if dimensions.y > MAX_HEIGHT
-	VAR{MAX_HEIGHT, dimensions.y}
-#endif
-GET_DIMENSIONS{dimensions, 18, Text6}
-#if dimensions.y > MAX_HEIGHT
-	VAR{MAX_HEIGHT, dimensions.y}
-#endif
-GET_DIMENSIONS{dimensions, 18, Text7}
-#if dimensions.y > MAX_HEIGHT
-	VAR{MAX_HEIGHT, dimensions.y}
-#endif
-GET_DIMENSIONS{dimensions, 18, Text8}
-#if dimensions.y > MAX_HEIGHT
-	VAR{MAX_HEIGHT, dimensions.y}
-#endif
-GET_DIMENSIONS{dimensions, 18, Text9}
-#if dimensions.y > MAX_HEIGHT
-	VAR{MAX_HEIGHT, dimensions.y}
-#endif
-GET_DIMENSIONS{dimensions, 18, Text10}
-#if dimensions.y > MAX_HEIGHT
-	VAR{MAX_HEIGHT, dimensions.y}
-#endif
-GET_DIMENSIONS{dimensions, 18, Text11}
-#if dimensions.y > MAX_HEIGHT
-	VAR{MAX_HEIGHT, dimensions.y}
-#endif
-GET_DIMENSIONS{dimensions, 18, Text12}
-#if dimensions.y > MAX_HEIGHT
-	VAR{MAX_HEIGHT, dimensions.y}
-#endif
-VAR{MAX_HEIGHT, MAX_HEIGHT + 3}
-TEXT{0, 120, 20, 0xFFFF, IETF_GET{Title}}
-VAR{Y_OFFSET, 155}
-TEXT{0, Y_OFFSET, 18, 0xFFFF, Text1}
-VAR{Y_OFFSET, Y_OFFSET + MAX_HEIGHT}
-TEXT{0, Y_OFFSET, 18, 0xFFFF, Text2}
-VAR{Y_OFFSET, Y_OFFSET + MAX_HEIGHT}
-TEXT{0, Y_OFFSET, 18, 0xFFFF, Text3}
-VAR{Y_OFFSET, Y_OFFSET + MAX_HEIGHT}
-TEXT{0, Y_OFFSET, 18, 0xFFFF, Text4}
-VAR{Y_OFFSET, Y_OFFSET + MAX_HEIGHT}
-TEXT{0, Y_OFFSET, 18, 0xFFFF, Text5}
-VAR{Y_OFFSET, Y_OFFSET + MAX_HEIGHT}
-TEXT{0, Y_OFFSET, 18, 0xFFFF, Text6}
-VAR{Y_OFFSET, Y_OFFSET + MAX_HEIGHT}
-TEXT{0, Y_OFFSET, 18, 0xFFFF, Text7}
-VAR{Y_OFFSET, Y_OFFSET + MAX_HEIGHT}
-TEXT{0, Y_OFFSET, 18, 0xFFFF, Text8}
-VAR{Y_OFFSET, Y_OFFSET + MAX_HEIGHT}
-TEXT{0, Y_OFFSET, 18, 0xFFFF, Text9}
-VAR{Y_OFFSET, Y_OFFSET + MAX_HEIGHT}
+TEXT{0, 120, 20, 0xFFFF, true, IETF_GET{Title}}
+VAR{Text, Text1 + Text2 + Text3 + Text4 + Text5 + Text6 + Text7 + Text8 + Text9}
 #if $Board_ChargerConnected_int
-	TEXT{0, Y_OFFSET, 18, 0xFFFF, Text10}
-	VAR{Y_OFFSET, Y_OFFSET + MAX_HEIGHT}
-	TEXT{0, Y_OFFSET, 18, 0xFFFF, Text11}
-	VAR{Y_OFFSET, Y_OFFSET + MAX_HEIGHT}
-	TEXT{0, Y_OFFSET, 18, 0xFFFF, Text12}
+	VAR{Text, Text + Text10 + Text11 + Text12}
 #endif
+TEXT{0, 155, 18, 0xFFFF, false, Text}

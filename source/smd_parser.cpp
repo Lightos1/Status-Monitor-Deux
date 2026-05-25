@@ -206,6 +206,9 @@ struct AstNode {
 											  // Ignored when textIsInlineFormat
 											  // is set.
 	std::string textStrOrKey;
+	// TEXT second-last arg: when true the renderer should size the line
+	// height to match the font size exactly (true = match, false = default).
+	bool        textMatchLineHeight = false;
 	// When the TEXT or GET_DIMENSIONS last arg is itself an inline format
 	// (e.g. `TEXT{..., {"%d", x}}`), the parser stores it here as a single-
 	// segment StringExpr whose nestedFmt is filled by the classify pass via
@@ -1672,13 +1675,19 @@ static bool ParseCommandBody(const std::string& name, const std::string& body,
 	std::vector<std::string> args = SplitTopLevelCommas(body);
 
 	if (name == "TEXT") {
-		if (args.size() != 5) { err = "TEXT expects 5 args"; return false; }
+		if (args.size() != 6) { err = "TEXT expects 6 args\n(x, y, fontSize, color, matchLineHeight, text)"; return false; }
 		out.kind = NodeKind::Text;
 		out.eX.source        = PreprocessExpr(args[0]);
 		out.eY.source        = PreprocessExpr(args[1]);
 		out.eFontSize.source = PreprocessExpr(args[2]);
 		out.eColor.source    = PreprocessExpr(args[3]);
-		return ParseTextArg(args[4], out.textIsLiteral, out.textStrOrKey,
+		{
+			std::string mlh = Trim(args[4]);
+			if (mlh == "true")       out.textMatchLineHeight = true;
+			else if (mlh == "false") out.textMatchLineHeight = false;
+			else { err = "TEXT matchLineHeight (arg 5) must be true or false, got: " + mlh; return false; }
+		}
+		return ParseTextArg(args[5], out.textIsLiteral, out.textStrOrKey,
 							out.textIsInlineFormat, out.textInlineExpr, err);
 	}
 	if (name == "BOX") {
@@ -1807,13 +1816,19 @@ static bool ParseCommandBody(const std::string& name, const std::string& body,
 		return true;
 	}
 	if (name == "GET_DIMENSIONS") {
-		if (args.size() != 3) { err = "GET_DIMENSIONS expects 3 args"; return false; }
+		if (args.size() != 4) { err = "GET_DIMENSIONS expects 4 args\n(dimsName, fontSize, matchLineHeight, text)"; return false; }
 		out.kind = NodeKind::GetDimensions;
 		out.dimsName = Trim(args[0]);
 		if (!out.dimsName.empty() && out.dimsName[0] == '$')
 			out.dimsName = out.dimsName.substr(1);
 		out.eFontSize.source = PreprocessExpr(args[1]);
-		return ParseTextArg(args[2], out.textIsLiteral, out.textStrOrKey,
+		{
+			std::string mlh = Trim(args[2]);
+			if (mlh == "true")       out.textMatchLineHeight = true;
+			else if (mlh == "false") out.textMatchLineHeight = false;
+			else { err = "GET_DIMENSIONS matchLineHeight (arg 3) must be true or false, got: " + mlh; return false; }
+		}
+		return ParseTextArg(args[3], out.textIsLiteral, out.textStrOrKey,
 							out.textIsInlineFormat, out.textInlineExpr, err);
 	}
 	err = "unknown command: " + name;
@@ -4859,11 +4874,12 @@ bool Document::Evaluate(Callback cb, void* user) {
 				}
 				case NodeKind::Text: {
 					RenderCommand cmd{};
-					cmd.type     = RenderCmdType::Text;
-					cmd.x        = (int64_t)evalExpr(n.eX);
-					cmd.y        = (int64_t)evalExpr(n.eY);
-					cmd.fontSize = (int64_t)evalExpr(n.eFontSize);
-					cmd.color    = (uint16_t)(int64_t)evalExpr(n.eColor);
+					cmd.type            = RenderCmdType::Text;
+					cmd.x               = (int64_t)evalExpr(n.eX);
+					cmd.y               = (int64_t)evalExpr(n.eY);
+					cmd.fontSize        = (int64_t)evalExpr(n.eFontSize);
+					cmd.color           = (uint16_t)(int64_t)evalExpr(n.eColor);
+					cmd.matchLineHeight = n.textMatchLineHeight;
 					cmd.text     = n.textIsInlineFormat
 						? EvalStringExpr(*m_impl, n.textInlineExpr)
 						: MaterializeText(*m_impl, n.textIsLiteral, n.textStrOrKey);
@@ -5102,6 +5118,8 @@ bool Document::Evaluate(Callback cb, void* user) {
 						char numBuf[32];
 						std::snprintf(numBuf, sizeof(numBuf), "%lld", (long long)fs);
 						key.append(numBuf);
+						key.push_back('\x02');
+						key.push_back(n.textMatchLineHeight ? '1' : '0');
 					}
 
 					auto cacheIt = m_impl->dimsMeasureCache.find(key);
@@ -5111,11 +5129,12 @@ bool Document::Evaluate(Callback cb, void* user) {
 					} else {
 						// Cache miss: invoke host callback to measure.
 						RenderCommand cmd{};
-						cmd.type     = RenderCmdType::GetDimensions;
-						cmd.fontSize = fs;
-						cmd.text     = txt;
-						cmd.outDims  = it->second.dims.get();
-						cmd.dimsName = it->first.c_str();
+						cmd.type            = RenderCmdType::GetDimensions;
+						cmd.fontSize        = fs;
+						cmd.text            = txt;
+						cmd.matchLineHeight = n.textMatchLineHeight;
+						cmd.outDims         = it->second.dims.get();
+						cmd.dimsName        = it->first.c_str();
 						cb(cmd, user);
 						// Store measurement for next time. Bounded: dynamic
 						// text (e.g. live FPS strings) generates a unique

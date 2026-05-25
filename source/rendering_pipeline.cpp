@@ -105,7 +105,7 @@ void RenderingPipeline::RecordCallback(smd::RenderCommand& cmd, void* user) {
 	}
 	switch(cmd.type) {
 		case smd::RenderCmdType::Text: {
-			auto dims = m_renderer->drawString(cmd.text.c_str(), false, COMMON_MARGIN + cmd.x, cmd.y, cmd.fontSize, m_renderer->a(cmd.color));
+			auto dims = m_renderer->drawString(cmd.text.c_str(), false, COMMON_MARGIN + cmd.x, cmd.y, cmd.fontSize, m_renderer->a(cmd.color), cmd.matchLineHeight);
 			TrackRect(COMMON_MARGIN + orig_x, orig_y, dims.first, dims.second);
 			break;
 		}
@@ -133,7 +133,7 @@ void RenderingPipeline::RecordCallback(smd::RenderCommand& cmd, void* user) {
 			break;
 		}
 		case smd::RenderCmdType::GetDimensions: {
-			auto dimensions = m_renderer->drawString(cmd.text.c_str(), false, 0, cmd.fontSize, cmd.fontSize, m_renderer->a(0x0000));
+			auto dimensions = m_renderer->drawString(cmd.text.c_str(), false, 0, cmd.fontSize, cmd.fontSize, m_renderer->a(0x0000), cmd.matchLineHeight);
 			cmd.outDims->x = dimensions.first;
 			cmd.outDims->y = dimensions.second;
 			break;
@@ -153,7 +153,7 @@ void RenderingPipeline::DryRunCallback(smd::RenderCommand& cmd, void* user) {
 	auto* m_renderer = static_cast<tsl::gfx::Renderer*>(user);
 	switch(cmd.type) {
 		case smd::RenderCmdType::Text: {
-			auto dims = m_renderer->drawString(cmd.text.c_str(), false, COMMON_MARGIN + cmd.x, cmd.y, cmd.fontSize, m_renderer->a(0x0000));
+			auto dims = m_renderer->drawString(cmd.text.c_str(), false, COMMON_MARGIN + cmd.x, cmd.y, cmd.fontSize, m_renderer->a(0x0000), cmd.matchLineHeight);
 			TrackRect(COMMON_MARGIN + cmd.x, cmd.y, dims.first, dims.second);
 			break;
 		}
@@ -171,7 +171,7 @@ void RenderingPipeline::DryRunCallback(smd::RenderCommand& cmd, void* user) {
 			break;
 		}
 		case smd::RenderCmdType::GetDimensions: {
-			auto dimensions = m_renderer->drawString(cmd.text.c_str(), false, 0, cmd.fontSize, cmd.fontSize, m_renderer->a(0x0000));
+			auto dimensions = m_renderer->drawString(cmd.text.c_str(), false, 0, cmd.fontSize, cmd.fontSize, m_renderer->a(0x0000), cmd.matchLineHeight);
 			cmd.outDims->x = dimensions.first;
 			cmd.outDims->y = dimensions.second;
 			break;
