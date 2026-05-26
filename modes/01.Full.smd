@@ -133,7 +133,7 @@ ReadSpeedUnkText = IETF_GET{ReadSpeedUnkTextFormat}
 Start:
 ;CPU
 #if $EnableCPU
-	TEXT{0, 120, 20, 0xFFFF, false, IETF_GET{CpuUsageText}}
+	TEXT{0, 120, 20, COLOR{0xCCCF}, false, IETF_GET{CpuUsageText}}
 	VAR{height_offset, 155}
 	
 	#if $User_ShowTargetFrequencies
@@ -164,7 +164,7 @@ Start:
 ;GPU
 #if $EnableGPU
 	VAR{height_offset, 310}
-	TEXT{0, 285, 20, 0xFFFF, false, IETF_GET{GpuUsageText}}
+	TEXT{0, 285, 20, COLOR{0xCCCF}, false, IETF_GET{GpuUsageText}}
 	#if $User_ShowTargetFrequencies
 		TEXT{0, height_offset, 15, 0xFFFF, false, GPUTargetFreqText}
 		GET_DIMENSIONS{TargetDims, 15, false, GPUTargetFreqText}
@@ -215,7 +215,7 @@ Start:
 		VAR{height_offset, 375}
 	#endif
 
-	TEXT{0, height_offset, 20, 0xFFFF, false, IETF_GET{RamUsageText}}
+	TEXT{0, height_offset, 20, COLOR{0xCCCF}, false, IETF_GET{RamUsageText}}
 
 	VAR{height_offset, 400}
 	#if $User_ShowTargetFrequencies
@@ -273,7 +273,7 @@ Start:
 
 ;Board
 #if $EnableBoard
-	TEXT{0, 550, 20, 0xFFFF, false, IETF_GET{BoardUsageText}}
+	TEXT{0, 550, 20, COLOR{0xCCCF}, false, IETF_GET{BoardUsageText}}
 	VAR{height_offset, 570}
 	TEXT{0, height_offset, 15, 0xFFFF, false, BatteryChargingText}
 	GET_DIMENSIONS{dimensions, 15, false, BatteryChargingText}
@@ -294,7 +294,7 @@ Start:
 	#if $Game_IsGameRunning
 		VAR{width_offset, 150}
 		#if $User_ShowFPS or $User_ShowResolution or $User_ShowReadSpeed
-			TEXT{width_offset, 200, 20, 0xFFFF, false, IETF_GET{GameText}}
+			TEXT{width_offset, 200, 20, COLOR{0xCCCF}, false, IETF_GET{GameText}}
 		#endif
 		VAR{height_offset, 225}
 		#if $User_ShowFPS 
