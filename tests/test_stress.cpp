@@ -74,7 +74,7 @@ int main() {
             "Name: T\n"
             "Start:\n"
             "VAR{x, this_is_not_a_valid_expression $$$ }\n"
-            "TEXT{0, 0, 18, 0xFFFF, x}\n";
+            "TEXT{0, 0, 18, 0xFFFF, true, x}\n";
         if (doc.LoadFromMemory(bad, std::strlen(bad))) {
             // Load succeeds (it's lazy); Compile is where the failure shows.
             if (doc.Compile()) {

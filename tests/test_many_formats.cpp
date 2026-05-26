@@ -14,7 +14,7 @@ int main() {
             "VAR{x%d, x%d + {\"v=%%d\", %d}}\n", i, i, i, i*10);
         smd += tmp;
     }
-    smd += "TEXT{0,0,18,0xFFFF,x49}\n";
+    smd += "TEXT{0,0,18,0xFFFF,true,x49}\n";
 
     // Repeat: load/compile/eval/free 30 times
     for (int rep = 0; rep < 30; ++rep) {

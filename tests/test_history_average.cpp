@@ -94,7 +94,7 @@ int main() {
             "HISTORY_UPDATE{hist, 10}\n"
             "HISTORY_UPDATE{hist, 20}\n"
             "HISTORY_UPDATE{hist, 30}\n"
-            "TEXT{0, 0, 18, 0xFFFF, {\"%d\", HISTORY_AVERAGE{hist}}}\n";
+            "TEXT{0, 0, 18, 0xFFFF, true, {\"%d\", HISTORY_AVERAGE{hist}}}\n";
         ExpectEq(EvalFirst(smd), "20", "avg(10,20,30)=20 inline");
     }
 
@@ -109,7 +109,7 @@ int main() {
             "HISTORY_UPDATE{hist, 20}\n"
             "HISTORY_UPDATE{hist, 30}\n"
             "VAR{Avg, HISTORY_AVERAGE{hist}}\n"
-            "TEXT{0, 0, 18, 0xFFFF, {\"%d\", Avg}}\n";
+            "TEXT{0, 0, 18, 0xFFFF, true, {\"%d\", Avg}}\n";
         ExpectEq(EvalFirst(smd), "20", "avg via VAR");
     }
 
@@ -123,7 +123,7 @@ int main() {
             "Start:\n"
             "HISTORY_UPDATE{fhist, 1.5}\n"
             "HISTORY_UPDATE{fhist, 2.5}\n"
-            "TEXT{0, 0, 18, 0xFFFF, {\"%.1f\", HISTORY_AVERAGE{fhist}}}\n";
+            "TEXT{0, 0, 18, 0xFFFF, true, {\"%.1f\", HISTORY_AVERAGE{fhist}}}\n";
         ExpectEq(EvalFirst(smd), "2.0", "float avg(1.5,2.5)=2.0");
     }
 
@@ -138,7 +138,7 @@ int main() {
             "HISTORY_UPDATE{dhist, 100.0}\n"
             "HISTORY_UPDATE{dhist, 200.0}\n"
             "HISTORY_UPDATE{dhist, 300.0}\n"
-            "TEXT{0, 0, 18, 0xFFFF, {\"%.0f\", HISTORY_AVERAGE{dhist}}}\n";
+            "TEXT{0, 0, 18, 0xFFFF, true, {\"%.0f\", HISTORY_AVERAGE{dhist}}}\n";
         ExpectEq(EvalFirst(smd), "200", "double avg(100,200,300)=200");
     }
 
@@ -149,7 +149,7 @@ int main() {
             "Name = T\n"
             "empty = HISTORY{int, 8}\n"
             "Start:\n"
-            "TEXT{0, 0, 18, 0xFFFF, {\"%d\", HISTORY_AVERAGE{empty}}}\n";
+            "TEXT{0, 0, 18, 0xFFFF, true, {\"%d\", HISTORY_AVERAGE{empty}}}\n";
         ExpectEq(EvalFirst(smd), "0", "empty ring -> 0");
     }
 
@@ -166,7 +166,7 @@ int main() {
             "HISTORY_UPDATE{small, 20}\n"
             "HISTORY_UPDATE{small, 30}\n"
             "HISTORY_UPDATE{small, 40}\n"
-            "TEXT{0, 0, 18, 0xFFFF, {\"%d\", HISTORY_AVERAGE{small}}}\n";
+            "TEXT{0, 0, 18, 0xFFFF, true, {\"%d\", HISTORY_AVERAGE{small}}}\n";
         ExpectEq(EvalFirst(smd), "30", "wrap-around avg(20,30,40)=30");
     }
 
@@ -181,7 +181,7 @@ int main() {
             "fhist = HISTORY{int, 3}\n"
             "Start:\n"
             "HISTORY_UPDATE{fhist, 100}\n"
-            "TEXT{0, 0, 18, 0xFFFF, {\"%d\", HISTORY_AVERAGE{fhist}}}\n";
+            "TEXT{0, 0, 18, 0xFFFF, true, {\"%d\", HISTORY_AVERAGE{fhist}}}\n";
         smd::Document doc;
         if (!doc.LoadFromMemory(smd, std::strlen(smd))) {
             std::printf("  FAIL Load: %s\n", doc.LastError()); ++g_failures;
@@ -211,7 +211,7 @@ int main() {
             "HISTORY_UPDATE{h, 20}\n"
             "HISTORY_UPDATE{h, 30}\n"
             "VAR{Doubled, HISTORY_AVERAGE{h} * 2}\n"
-            "TEXT{0, 0, 18, 0xFFFF, {\"%d\", Doubled}}\n";
+            "TEXT{0, 0, 18, 0xFFFF, true, {\"%d\", Doubled}}\n";
         ExpectEq(EvalFirst(smd), "40", "avg*2 = 40");
     }
 
@@ -261,7 +261,7 @@ int main() {
             "HISTORY_UPDATE{h, 20}\n"
             "HISTORY_UPDATE{h, 30}\n"
             "VAR{Flag, HISTORY_AVERAGE{h} > 50 ? 1 : 0}\n"
-            "TEXT{0, 0, 18, 0xFFFF, {\"%d\", Flag}}\n";
+            "TEXT{0, 0, 18, 0xFFFF, true, {\"%d\", Flag}}\n";
         ExpectEq(EvalFirst(smd), "0", "ternary avg>50?1:0 -> 0");
     }
     {
@@ -273,7 +273,7 @@ int main() {
             "HISTORY_UPDATE{h, 60}\n"
             "HISTORY_UPDATE{h, 80}\n"
             "VAR{Flag, HISTORY_AVERAGE{h} > 50 ? 1 : 0}\n"
-            "TEXT{0, 0, 18, 0xFFFF, {\"%d\", Flag}}\n";
+            "TEXT{0, 0, 18, 0xFFFF, true, {\"%d\", Flag}}\n";
         ExpectEq(EvalFirst(smd), "1", "ternary avg>50?1:0 -> 1");
     }
 
@@ -286,7 +286,7 @@ int main() {
             "Start:\n"
             "HISTORY_UPDATE{h, 30}\n"
             "HISTORY_UPDATE{h, 50}\n"
-            "TEXT{0, 0, 18, 0xFFFF, {\"%d\", HISTORY_AVERAGE{h}}}\n";
+            "TEXT{0, 0, 18, 0xFFFF, true, {\"%d\", HISTORY_AVERAGE{h}}}\n";
         smd::Document doc;
         // First load-compile-eval
         doc.LoadFromMemory(smd, std::strlen(smd));
@@ -316,7 +316,7 @@ int main() {
             "Start:\n"
             "HISTORY_UPDATE{h, 100}\n"
             "HISTORY_UPDATE{h, 200}\n"
-            "TEXT{0, 0, 18, 0xFFFF, {\"%d\", HISTORY_AVERAGE{h}}}\n";
+            "TEXT{0, 0, 18, 0xFFFF, true, {\"%d\", HISTORY_AVERAGE{h}}}\n";
         smd::Document doc;
         doc.LoadFromMemory(smd, std::strlen(smd));
         doc.Compile();
@@ -335,7 +335,7 @@ int main() {
             "h = HISTORY{int, 8}\n"
             "Start:\n"
             "HISTORY_CLEAN{h}\n"
-            "TEXT{0, 0, 18, 0xFFFF, {\"%d\", HISTORY_AVERAGE{h}}}\n";
+            "TEXT{0, 0, 18, 0xFFFF, true, {\"%d\", HISTORY_AVERAGE{h}}}\n";
         smd::Document doc2;
         doc2.LoadFromMemory(cleanSmd, std::strlen(cleanSmd));
         doc2.Compile();
@@ -355,7 +355,7 @@ int main() {
             "Start:\n"
             "HISTORY_UPDATE{h, 5}\n"
             "HISTORY_UPDATE{h, 15}\n"
-            "TEXT{0, 0, 18, 0xFFFF, {\"%d\", HISTORY_AVERAGE{$h}}}\n";
+            "TEXT{0, 0, 18, 0xFFFF, true, {\"%d\", HISTORY_AVERAGE{$h}}}\n";
         ExpectEq(EvalFirst(smd), "10", "$ prefix: avg(5,15)=10");
     }
 
@@ -374,7 +374,7 @@ int main() {
             "HISTORY_UPDATE{hist_b, 100}\n"
             "HISTORY_UPDATE{hist_b, 200}\n"
             "VAR{sum, HISTORY_AVERAGE{hist_a} + HISTORY_AVERAGE{hist_b}}\n"
-            "TEXT{0, 0, 18, 0xFFFF, {\"%d\", sum}}\n";
+            "TEXT{0, 0, 18, 0xFFFF, true, {\"%d\", sum}}\n";
         ExpectEq(EvalFirst(smd), "165", "two histories: 15+150=165");
     }
 
@@ -386,7 +386,7 @@ int main() {
             "h = HISTORY{int, 8}\n"
             "Start:\n"
             "HISTORY_UPDATE{h, 42}\n"
-            "TEXT{0, 0, 18, 0xFFFF, {\"%d\", HISTORY_AVERAGE{h}}}\n";
+            "TEXT{0, 0, 18, 0xFFFF, true, {\"%d\", HISTORY_AVERAGE{h}}}\n";
         ExpectEq(EvalFirst(smd), "42", "single sample avg=42");
     }
 

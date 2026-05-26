@@ -58,7 +58,7 @@ int main() {
             "C2: COLOR{0xFFFF}\n"
             "C3: COLOR{0xABCD}\n"
             "C4: COLOR{0x1234}\n"
-            "Start:\nTEXT{0,0,18,0xFFFF,\"x\"}\n";
+            "Start:\nTEXT{0,0,18,0xFFFF,true,\"x\"}\n";
         smd::Document doc;
         if (!doc.LoadFromMemory(smd, std::strlen(smd))) {
             std::printf("FAIL Load: %s\n", doc.LastError()); return 1;
@@ -75,7 +75,7 @@ int main() {
         const char* smd =
             "Name = T\n"
             "Start:\n"
-            "TEXT{0, 0, 18, COLOR{0xF00F}, \"x\"}\n"   // 0xF00F (palindrome)
+            "TEXT{0, 0, 18, COLOR{0xF00F}, true, \"x\"}\n"   // 0xF00F (palindrome)
             "BOX{0, 0, 10, 10, COLOR{0x12AB}}\n";       // -> 0xBA21
         smd::Document doc;
         doc.LoadFromMemory(smd, std::strlen(smd));
@@ -95,7 +95,7 @@ int main() {
             "Name = T\n"
             "base: 0x1230\n"
             "Start:\n"
-            "TEXT{0, 0, 18, COLOR{base + 4}, \"x\"}\n";   // base+4 = 0x1234 -> 0x4321
+            "TEXT{0, 0, 18, COLOR{base + 4}, true, \"x\"}\n";   // base+4 = 0x1234 -> 0x4321
         smd::Document doc;
         doc.LoadFromMemory(smd, std::strlen(smd));
         if (!doc.Compile()) {

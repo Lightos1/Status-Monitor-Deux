@@ -9,7 +9,7 @@ int main() {
         "Start:\n"
         "VAR{R, Game_ResolutionRenderCalls_int[0]}\n"
         "VAR{Out, {\"%dx%d_%d\", R.width, R.height, R.calls}}\n"
-        "TEXT{0, 0, 18, 0xFFFF, Out}\n";
+        "TEXT{0, 0, 18, 0xFFFF, true, Out}\n";
     smd::Document doc;
     if (!doc.LoadFromMemory(smd, std::strlen(smd))) {
         std::printf("Load fail: %s\n", doc.LastError()); return 1;

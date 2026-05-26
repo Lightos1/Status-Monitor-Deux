@@ -57,7 +57,7 @@ int main() {
     }
     {
         smd::Document doc;
-        const char* bad = "Name = T\nStart:\nTEXT{0, 0, 18, 0xFFFF, unknown_identifier_that_is_very_long_indeed}\n";
+        const char* bad = "Name = T\nStart:\nTEXT{0, 0, 18, 0xFFFF, true, unknown_identifier_that_is_very_long_indeed}\n";
         doc.LoadFromMemory(bad, std::strlen(bad));
         if (!doc.Compile()) Expect40(doc, "long-ident-compile");
         else std::printf("[long-ident-compile] no error -- skipping\n");

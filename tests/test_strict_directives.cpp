@@ -47,7 +47,7 @@ static void Expect(const char* label, const char* smd,
 int main() {
     // -- stray top-level #endif
     Expect("stray-endif",
-        "Name = T\nStart:\nTEXT{0,0,18,0xFFFF,\"x\"}\n#endif\n",
+        "Name = T\nStart:\nTEXT{0,0,18,0xFFFF,true,\"x\"}\n#endif\n",
         false, "stray #endif");
     Expect("stray-endif-only",
         "Name = T\nStart:\n#endif\n",
@@ -55,25 +55,25 @@ int main() {
 
     // -- stray top-level #else / #elif
     Expect("stray-else",
-        "Name = T\nStart:\n#else\nTEXT{0,0,18,0xFFFF,\"x\"}\n",
+        "Name = T\nStart:\n#else\nTEXT{0,0,18,0xFFFF,true,\"x\"}\n",
         false, "stray #else");
     Expect("stray-elif",
-        "Name = T\nStart:\n#elif 1\nTEXT{0,0,18,0xFFFF,\"x\"}\n",
+        "Name = T\nStart:\n#elif 1\nTEXT{0,0,18,0xFFFF,true,\"x\"}\n",
         false, "stray #elif");
 
     // -- duplicate #else inside an else branch
     Expect("double-else",
-        "Name = T\nStart:\n#if 1\nTEXT{0,0,18,0xFFFF,\"a\"}\n"
-        "#else\nTEXT{0,0,18,0xFFFF,\"b\"}\n"
-        "#else\nTEXT{0,0,18,0xFFFF,\"c\"}\n"
+        "Name = T\nStart:\n#if 1\nTEXT{0,0,18,0xFFFF,true,\"a\"}\n"
+        "#else\nTEXT{0,0,18,0xFFFF,true,\"b\"}\n"
+        "#else\nTEXT{0,0,18,0xFFFF,true,\"c\"}\n"
         "#endif\n",
         false, "duplicate #else");
 
     // -- #elif AFTER #else (illegal)
     Expect("elif-after-else",
-        "Name = T\nStart:\n#if 1\nTEXT{0,0,18,0xFFFF,\"a\"}\n"
-        "#else\nTEXT{0,0,18,0xFFFF,\"b\"}\n"
-        "#elif 0\nTEXT{0,0,18,0xFFFF,\"c\"}\n"
+        "Name = T\nStart:\n#if 1\nTEXT{0,0,18,0xFFFF,true,\"a\"}\n"
+        "#else\nTEXT{0,0,18,0xFFFF,true,\"b\"}\n"
+        "#elif 0\nTEXT{0,0,18,0xFFFF,true,\"c\"}\n"
         "#endif\n",
         false, "#elif after #else");
 
@@ -87,19 +87,19 @@ int main() {
 
     // -- Positive cases: legitimate use is unchanged.
     Expect("ok-bare-if",
-        "Name = T\nStart:\n#if 1\nTEXT{0,0,18,0xFFFF,\"a\"}\n#endif\n",
+        "Name = T\nStart:\n#if 1\nTEXT{0,0,18,0xFFFF,true,\"a\"}\n#endif\n",
         true, nullptr);
     Expect("ok-if-else",
-        "Name = T\nStart:\n#if 1\nTEXT{0,0,18,0xFFFF,\"a\"}\n"
-        "#else\nTEXT{0,0,18,0xFFFF,\"b\"}\n#endif\n",
+        "Name = T\nStart:\n#if 1\nTEXT{0,0,18,0xFFFF,true,\"a\"}\n"
+        "#else\nTEXT{0,0,18,0xFFFF,true,\"b\"}\n#endif\n",
         true, nullptr);
     Expect("ok-if-elif-else",
-        "Name = T\nStart:\n#if 1\nTEXT{0,0,18,0xFFFF,\"a\"}\n"
-        "#elif 0\nTEXT{0,0,18,0xFFFF,\"b\"}\n"
-        "#else\nTEXT{0,0,18,0xFFFF,\"c\"}\n#endif\n",
+        "Name = T\nStart:\n#if 1\nTEXT{0,0,18,0xFFFF,true,\"a\"}\n"
+        "#elif 0\nTEXT{0,0,18,0xFFFF,true,\"b\"}\n"
+        "#else\nTEXT{0,0,18,0xFFFF,true,\"c\"}\n#endif\n",
         true, nullptr);
     Expect("ok-nested-if",
-        "Name = T\nStart:\n#if 1\n#if 1\nTEXT{0,0,18,0xFFFF,\"a\"}\n#endif\n#endif\n",
+        "Name = T\nStart:\n#if 1\n#if 1\nTEXT{0,0,18,0xFFFF,true,\"a\"}\n#endif\n#endif\n",
         true, nullptr);
     Expect("ok-var-numeric",
         "Name = T\nStart:\nVAR{x, 5}\n",

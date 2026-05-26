@@ -66,7 +66,7 @@ int main() {
         "Name = T\n"
         "FpsLine: {\"FPS=%d\", Game_FPS_int}\n"
         "Start:\n"
-        "TEXT{0, 0, 18, 0xFFFF, FpsLine}\n";
+        "TEXT{0, 0, 18, 0xFFFF, true, FpsLine}\n";
 
     smd::Document doc;
     if (!doc.LoadFromMemory(smd, std::strlen(smd))) {

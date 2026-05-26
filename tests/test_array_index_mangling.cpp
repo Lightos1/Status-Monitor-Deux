@@ -10,7 +10,7 @@ int main() {
         "EnableGame: true\n"
         "Start:\n"
         "#if $Game_ResolutionRenderCalls_int[0].calls != 0xFFFF\n"
-        "TEXT{Game_ResolutionRenderCalls_int[0].width, Game_ResolutionViewportCalls_int[3].height, 15, 0xFFFF, \"x\"}\n"
+        "TEXT{Game_ResolutionRenderCalls_int[0].width, Game_ResolutionViewportCalls_int[3].height, 15, 0xFFFF, true, \"x\"}\n"
         "#endif\n";
     smd::Document doc;
     if (!doc.LoadFromMemory(smd, std::strlen(smd))) {

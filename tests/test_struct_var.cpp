@@ -11,7 +11,7 @@ int main() {
         "VAR{x_width, R.width}\n"
         "VAR{x_height, R.height}\n"
         "VAR{Out, {\"%dx%d\", x_width, x_height}}\n"
-        "TEXT{0, 0, 18, 0xFFFF, Out}\n";
+        "TEXT{0, 0, 18, 0xFFFF, true, Out}\n";
     smd::Document doc;
     if (!doc.LoadFromMemory(smd, std::strlen(smd))) { std::printf("Load: %s\n", doc.LastError()); return 1; }
     smd::ResolutionEntry r[8] = {};
