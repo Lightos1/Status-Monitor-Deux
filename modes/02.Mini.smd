@@ -173,6 +173,9 @@ VAR{Lines, 0}
 	#endif
 	#if $EnableRAM and $User_ShowRAM and $category == "RAM"
 		GET_DIMENSIONS{dimensions, fontsize, true, "4444/4444MB@4444.4"}
+		#if $BoxWidth < $dimensions.x
+			VAR{BoxWidth, dimensions.x}
+		#endif
 		VAR{Lines, Lines + 1}
 	#endif
 	#if $EnableBoard
@@ -244,7 +247,7 @@ VAR{Lines, 0}
 	#endif
 	#if $EnableRAM and $User_ShowRAM and $category == "RAM"
 		VAR{LeftText, LeftText + IETF_GET{RamTextCat} + " \n"}
-		#if $User_ShowRealFrequencies
+		#if $User_ShowRealFrequencies and $RAM_RealHz_int
 			#if $RAM_LoadAll_int and $User_ShowRAMLoad
 				VAR{RightText, RightText + RAMrealLoadText + "\n"}
 			#else
@@ -331,7 +334,7 @@ VAR{Lines, 0}
 #endfor
 
 GET_DIMENSIONS{LeftDimensions, fontsize, true, LeftText}
-VAR{BoxWidth, BoxWidth + LeftDimensions.x + Offset}
+VAR{BoxWidth, BoxWidth + LeftDimensions.x}
 BOX{0, 0, BoxWidth, LeftDimensions.y + 4, User_BoxColor}
 TEXT{0, fontsize, fontsize, User_CategoryColor, true, LeftText}
-TEXT{LeftDimensions.x + Offset, fontsize, fontsize, User_TextColor, true, RightText}
+TEXT{LeftDimensions.x, fontsize, fontsize, User_TextColor, true, RightText}
