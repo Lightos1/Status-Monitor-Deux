@@ -531,7 +531,7 @@ namespace tsl {
 			 * @return Blended color
 			 */
 			// Source: https://github.com/ppkantorski/libultrahand/blob/e2ff5aa464154678cb4b6270ff45256e237c6f1e/libtesla/include/tesla.hpp#L1312
-            inline u8 __attribute__((always_inline)) blendColor(const u8 src, const u8 dst, const u8 alpha) {
+            __attribute__((always_inline)) u8 blendColor(const u8 src, const u8 dst, const u8 alpha) {
                 return ((src * (15u - alpha)) + (dst * alpha)) >> 4;
             }
 			
@@ -1177,7 +1177,7 @@ namespace tsl {
 			 * @param y Y Pos
 			 * @return Offset
 			 */
-			const u32 getPixelOffset(u32 x, u32 y) {
+			__attribute__((always_inline)) u32 getPixelOffset(u32 x, u32 y) {
 				if (this->m_scissoring) {
 					if (x < this->m_scissorBounds[0] ||
 						y < this->m_scissorBounds[1] ||
