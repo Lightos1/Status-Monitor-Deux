@@ -95,6 +95,7 @@ BoardTextCat = IETF{"BRD"}
 FanTextCat   = IETF{"FAN"}
 FpsTextCat   = IETF{"FPS"}
 NoDataText   = IETF{"n/d"}
+IETF_LOCALE{NoDataText, "PL-PL", "b/d"}
 
 COMMON_MARGIN = 0
 BackgroundColor = COLOR{0x0000}
