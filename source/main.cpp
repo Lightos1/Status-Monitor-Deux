@@ -24,12 +24,32 @@ HidSixAxisSensorHandle sixaxisHandles[Controller_Max];
 
 extern "C" {
 	//This is done to save some space as they have no practical use in our case
-	void* __real___cxa_throw(void *thrown_exception, void *pvar, void (*dest)(void *));
+	void* __real___cxa_throw();
+	void* __real___cxa_rethrow();
+	void* __real___cxa_allocate_exception();
+	void* __real___cxa_free_exception();
+	void* __real___cxa_begin_catch();
+	void* __real___cxa_end_catch();
+	void* __real___cxa_call_unexpected();
+	void* __real___cxa_call_terminate();
+	void* __real__ZSt19__throw_logic_errorPKc();
+	void* __real__ZSt20__throw_length_errorPKc();
+	void* __real__ZNSt11logic_errorC2EPKc();
 	void* __real__Unwind_Resume();
 	void* __real___gxx_personality_v0();
-	void __wrap___cxa_throw(void *thrown_exception, void *pvar, void (*dest)(void *)) {abort();}
-	void __wrap__Unwind_Resume() {}
-	void __wrap___gxx_personality_v0() {}
+	void __wrap___cxa_throw() {__builtin_unreachable();}
+	void __wrap___cxa_rethrow() {__builtin_unreachable();}
+	void __wrap___cxa_allocate_exception() {__builtin_unreachable();}
+	void __wrap___cxa_free_exception() {__builtin_unreachable();}
+	void __wrap___cxa_begin_catch() {__builtin_unreachable();}
+	void __wrap___cxa_end_catch() {__builtin_unreachable();}
+	void __wrap___cxa_call_unexpected() {__builtin_unreachable();}
+	void __wrap___cxa_call_terminate() {__builtin_unreachable();}
+	void __wrap__ZSt19__throw_logic_errorPKc() {__builtin_unreachable();}
+	void __wrap__ZSt20__throw_length_errorPKc() {__builtin_unreachable();}
+	void __wrap__ZNSt11logic_errorC2EPKc() {__builtin_unreachable();}
+	void __wrap__Unwind_Resume() {__builtin_unreachable();}
+	void __wrap___gxx_personality_v0() {__builtin_unreachable();}
 }
 
 class MainMenu : public tsl::Gui {
