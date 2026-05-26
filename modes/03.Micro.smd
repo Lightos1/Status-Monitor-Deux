@@ -85,7 +85,7 @@ User_OldFpsAverage = false
 User_Ordering = LIST{str, {"CPU", "GPU", "RAM", "BRD", "FAN", "FPS"}}
 ;;User_Ordering_Description = In which order should data be rendered from left to right.
 ;;User_Ordering_Name = Data order
-;;User_Ordering_Name = Kolejność danych
+;;User_Ordering_Name_PL-PL = Kolejność danych
 ;;User_Ordering_DefaultValue = LIST{str, {"CPU", "GPU", "RAM", "BRD", "FAN", "FPS"}}
 
 CpuTextCat   = IETF{"CPU"}
