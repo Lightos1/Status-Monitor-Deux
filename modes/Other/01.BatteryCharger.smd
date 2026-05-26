@@ -27,7 +27,7 @@ IETF_LOCALE{Text08Format, "PL-PL", "Przepływ mocy w baterii%s: %+.3f W\n"}
 IETF_LOCALE{Text09Format, "PL-PL", "Pozostały czas pracy na baterii: %s\n"}
 IETF_LOCALE{Text10Format, "PL-PL", "Typ ładowarki: %u\n"}
 IETF_LOCALE{Text11Format, "PL-PL", "Maksymalne napięcie ładowarki: %u mV\n"}
-IETF_LOCALE{Text12Format, "PL-PL", "Maksymalne natężenie ładowarki: %u mV\n"}
+IETF_LOCALE{Text12Format, "PL-PL", "Maksymalne natężenie ładowarki: %u mA\n"}
 IETF_LOCALE{Avg5s,        "PL-PL", " (śr. z 5s)"}
 IETF_LOCALE{Title,        "PL-PL", "Dane o baterii i ładowarce:"}
 
