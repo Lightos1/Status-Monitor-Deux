@@ -75,11 +75,6 @@ void ExpectEq(const std::string& actual, const char* expected, const char* label
     }
 }
 
-void ExpectTrue(bool cond, const char* label) {
-    if (cond) std::printf("  PASS %s\n", label);
-    else { std::printf("  FAIL %s\n", label); ++g_failures; }
-}
-
 } // namespace
 
 int main() {
@@ -227,9 +222,9 @@ int main() {
             "HISTORY_UPDATE{h, 20}\n"
             "HISTORY_UPDATE{h, 30}\n"
             "#if HISTORY_AVERAGE{h} < 25\n"
-            "TEXT{0, 0, 18, 0xFFFF, \"LOW\"}\n"
+            "TEXT{0, 0, 18, 0xFFFF, true, \"LOW\"}\n"
             "#else\n"
-            "TEXT{0, 0, 18, 0xFFFF, \"HIGH\"}\n"
+            "TEXT{0, 0, 18, 0xFFFF, true, \"HIGH\"}\n"
             "#endif\n";
         ExpectEq(EvalFirst(smd), "LOW", "#if avg<25 -> LOW");
     }
@@ -242,9 +237,9 @@ int main() {
             "HISTORY_UPDATE{h, 40}\n"
             "HISTORY_UPDATE{h, 60}\n"
             "#if HISTORY_AVERAGE{h} >= 25\n"
-            "TEXT{0, 0, 18, 0xFFFF, \"HIGH\"}\n"
+            "TEXT{0, 0, 18, 0xFFFF, true, \"HIGH\"}\n"
             "#else\n"
-            "TEXT{0, 0, 18, 0xFFFF, \"LOW\"}\n"
+            "TEXT{0, 0, 18, 0xFFFF, true, \"LOW\"}\n"
             "#endif\n";
         ExpectEq(EvalFirst(smd), "HIGH", "#if avg>=25 -> HIGH");
     }
