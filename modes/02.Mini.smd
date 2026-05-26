@@ -150,7 +150,6 @@ Start:
 VAR{LeftText, ""}
 VAR{RightText, ""}
 VAR{BoxWidth, 0}
-VAR{Lines, 0}
 #if $System_IsDocked
 	VAR{fontsize, User_DockedFontSize}
 #else
@@ -162,21 +161,18 @@ VAR{Lines, 0}
 		#if $BoxWidth < $dimensions.x
 			VAR{BoxWidth, dimensions.x}
 		#endif
-		VAR{Lines, Lines + 1}
 	#endif
 	#if $EnableGPU and $User_ShowGPU and $category == "GPU"
 		GET_DIMENSIONS{dimensions, fontsize, true, "100.0%(100.0 | 100.0)@4444.4"}
 		#if $BoxWidth < $dimensions.x
 			VAR{BoxWidth, dimensions.x}
 		#endif
-		VAR{Lines, Lines + 1}
 	#endif
 	#if $EnableRAM and $User_ShowRAM and $category == "RAM"
 		GET_DIMENSIONS{dimensions, fontsize, true, "4444/4444MB@4444.4"}
 		#if $BoxWidth < $dimensions.x
 			VAR{BoxWidth, dimensions.x}
 		#endif
-		VAR{Lines, Lines + 1}
 	#endif
 	#if $EnableBoard
 		#if $User_ShowTEMP  and $category == "TEMP"
@@ -184,21 +180,18 @@ VAR{Lines, 0}
 			#if $BoxWidth < $dimensions.x
 				VAR{BoxWidth, dimensions.x}
 			#endif
-			VAR{Lines, Lines + 1}
 		#endif
 		#if $User_ShowDRAW and $category == "DRAW"
 			GET_DIMENSIONS{dimensions, fontsize, true, "-44.44W[44:44]"}
 			#if $BoxWidth < $dimensions.x
 				VAR{BoxWidth, dimensions.x}
 			#endif
-			VAR{Lines, Lines + 1}
 		#endif
 		#if $User_ShowFAN and $category == "FAN"
 			GET_DIMENSIONS{dimensions, fontsize, true, "100.0%"}
 			#if $BoxWidth < $dimensions.x
 				VAR{BoxWidth, dimensions.x}
 			#endif
-			VAR{Lines, Lines + 1}
 		#endif
 	#endif
 	#if $EnableGame
@@ -208,21 +201,18 @@ VAR{Lines, 0}
 				#if $BoxWidth < $dimensions.x
 					VAR{BoxWidth, dimensions.x}
 				#endif
-				VAR{Lines, Lines + 1}
 			#endif
 			#if $User_ShowRES and $category == "RES"
 				GET_DIMENSIONS{dimensions, fontsize, true, "3840x2160 || 3840x2160"}
 				#if $BoxWidth < $dimensions.x
 					VAR{BoxWidth, dimensions.x}
 				#endif
-				VAR{Lines, Lines + 1}
 			#endif
 			#if $User_ShowREAD and $category == "READ"
 				GET_DIMENSIONS{dimensions, fontsize, true, "4444.4 MiB/s"}
 				#if $BoxWidth < $dimensions.x
 					VAR{BoxWidth, dimensions.x}
 				#endif
-				VAR{Lines, Lines + 1}
 			#endif
 		#endif
 	#endif
