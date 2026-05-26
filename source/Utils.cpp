@@ -50,6 +50,8 @@ std::string overrideLanguage;
 std::map<std::string, std::map<std::string, std::string>> config;
 LocalTimeType LocalTime;
 std::unordered_map<std::string, std::string> locale;
+bool teslaCombo = false;
+bool ultrahandCombo = false;
 
 //Checks
 Result clkrstCheck = 1;
@@ -1075,6 +1077,7 @@ void ParseIniFile() {
 				keyCombo = parsedData["ultrahand"]["key_combo"];
 				removeSpaces(keyCombo);
 				convertToUpper(keyCombo);
+				ultrahandCombo = true;
 			}
 			
 		} else if (teslaConfigFileIn) {
@@ -1091,6 +1094,7 @@ void ParseIniFile() {
 				keyCombo = parsedData["tesla"]["key_combo"];
 				removeSpaces(keyCombo);
 				convertToUpper(keyCombo);
+				teslaCombo = true;
 			}
 		}
 	}

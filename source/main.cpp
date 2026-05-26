@@ -17,6 +17,7 @@ HidSixAxisSensorHandle sixaxisHandles[Controller_Max];
 #include "Configuration/EditConfigColor.hpp"
 #include "Configuration/EditConfigInt.hpp"
 #include "Configuration/ConfigurationSubMenu.hpp"
+#include "Configuration/ConfigurationMainMenu.hpp"
 #include "Configuration/Configuration.hpp"
 #include "RenderingPipelineDummy.hpp"
 #include "MemoryDebug.hpp"
@@ -30,6 +31,7 @@ public:
 	std::string formattedKeyCombo;
 	std::string m_folderName;
 	std::string footerBackup;
+	bool isMainMenu = false;
 
 	bool FindConfigs(const char* data, size_t size) {
 		size_t lineStart = 0;
@@ -137,7 +139,10 @@ public:
 			m_folderName = folderName;
 			defaultButtonView = locale["Footer"];
 		}
-		else defaultButtonView = locale["MainMenuFooter"];
+		else {
+			isMainMenu = true;
+			defaultButtonView = locale["MainMenuFooter"];
+		}
     }
 
 	~MainMenu() {
@@ -184,17 +189,19 @@ public:
                     auto folderItem = new tsl::elm::ListItem(name, "\uE133", true);
                     folderItem->setClickListener([this, localPath, name](uint64_t keys) {
                         if (keys & KEY_A) {
-							tsl::hlp::requestForeground(true);
                             tsl::changeTo<MainMenu>(localPath, name);
                             return true;
                         }
 						#ifdef DEBUG
 						else if (keys & KEY_Y) {
-							tsl::hlp::requestForeground(true);
 							tsl::changeTo<MemoryCheck>();
 							return true;							
 						}
 						#endif
+						else if (isMainMenu && (keys & KEY_DLEFT)) {
+							tsl::changeTo<ConfigurationMainMenu>();
+							return true;
+						}
                         return false;
                     });
                     list->addItem(folderItem);
@@ -234,13 +241,11 @@ public:
 								if (info.layerWidth != 0 && info.layerHeight != 0 && info.layerWidth != 448 && info.layerHeight != 720) {
 									smd::Document doc;
 									if (doc.LoadFromFile(full_path.c_str()) == false) {
-										tsl::hlp::requestForeground(true);
 										tsl::changeTo<RenderingPipeline>(full_path);
 										return true;
 									}
 									BindAllPredefined(doc);
 									if (doc.Compile() == false) {
-										tsl::hlp::requestForeground(true);
 										tsl::changeTo<RenderingPipeline>(full_path);
 										return true;
 									}
@@ -252,12 +257,13 @@ public:
 								tsl::changeTo<RenderingPipeline>(full_path);
 								return true;
 							}
-							else if (doesHaveConfig == true) {
-								if (keys & KEY_Y) {
-									tsl::hlp::requestForeground(true);
-									tsl::changeTo<Configuration>(full_path, info.name);
-									return true;
-								}
+							else if (doesHaveConfig == true && (keys & KEY_Y)) {
+								tsl::changeTo<Configuration>(full_path, info.name);
+								return true;
+							}
+							else if (isMainMenu && (keys & KEY_DLEFT)) {
+								tsl::changeTo<ConfigurationMainMenu>();
+								return true;
 							}
 						}
                         return false;

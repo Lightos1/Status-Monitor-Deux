@@ -1910,9 +1910,9 @@ namespace tsl {
                 if (this->m_maxWidth == 0) {
                     if (this->m_value.length() > 0) {
                         auto [valueWidth, valueHeight] = renderer->drawString(this->m_value.c_str(), false, 0, 0, 20, tsl::style::color::ColorTransparent);
-                        this->m_maxWidth = this->getWidth() - valueWidth - 70;
+                        this->m_maxWidth = this->getWidth() - valueWidth - 80;
                     } else {
-                        this->m_maxWidth = this->getWidth() - 40;
+                        this->m_maxWidth = this->getWidth() - 70;
                     }
 
                     auto [width, height] = renderer->drawString(this->m_text.c_str(), false, 0, 0, 23, tsl::style::color::ColorTransparent);
