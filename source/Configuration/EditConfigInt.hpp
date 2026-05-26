@@ -14,8 +14,12 @@ private:
 	tsl::elm::ListItem* m_item;
 	std::string m_localName;
 	bool isFont = false;
+	int64_t* m_out;
+	std::map<std::string, std::string>* m_config;
 public:
-	EditConfigInt(std::string key, std::string value, std::string rangeMin, std::string rangeMax, std::string defaultValue, tsl::elm::ListItem* item, std::string localName, std::string type) {
+	EditConfigInt(std::string key, std::string value, std::string rangeMin, std::string rangeMax, std::string defaultValue, tsl::elm::ListItem* item, std::string localName, std::string type, int64_t* out = nullptr, std::map<std::string, std::string>* config = nullptr) {
+		m_out = out;
+		m_config = config;
 		defaultButtonView = locale["FooterWithReset"];
 		if (localName.length() > 0) m_localName = localName;
 		else m_localName = key;
@@ -89,7 +93,10 @@ public:
 		}
 		if (keysDown & KEY_A) {
 			std::string temp = std::to_string(current_value);
-			configs.at(m_key).value = temp;
+			auto it = configs.find(m_key);
+			if (m_out != nullptr) *m_out = current_value;
+			if (it != configs.end()) configs[m_key].value = temp;
+			if (m_config != nullptr) m_config->at(m_key) = temp;
 			m_item->setValue(temp, false);
 			tsl::hlp::requestForeground(true);
 			tsl::goBack();

@@ -222,7 +222,7 @@ extern PwmChannelSession g_ICon;
 extern std::string folderpath;
 extern std::string filename;
 extern std::string filepath;
-extern uint8_t batteryTimeLeftRefreshRate;
+extern int64_t batteryTimeLeftRefreshRate;
 extern bool touchScreen;
 extern NxFpsSharedBlock* NxFps;
 extern bool SaltySD;

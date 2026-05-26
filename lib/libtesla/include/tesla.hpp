@@ -1998,6 +1998,10 @@ namespace tsl {
 				this->m_maxWidth = 0;
 			}
 
+			virtual inline std::string getValue() { 
+				return this->m_value;
+			}
+
 		protected:
 			std::string m_text;
 			std::string m_value = "";

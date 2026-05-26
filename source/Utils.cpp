@@ -34,7 +34,7 @@ PwmChannelSession g_ICon;
 std::string folderpath = "sdmc:/switch/.overlays/";
 std::string filename = "";
 std::string filepath = "";
-uint8_t batteryTimeLeftRefreshRate = 10;
+int64_t batteryTimeLeftRefreshRate = 10;
 bool touchScreen = true;
 NxFpsSharedBlock* NxFps = 0;
 bool SaltySD = false;
@@ -52,6 +52,26 @@ LocalTimeType LocalTime;
 std::unordered_map<std::string, std::string> locale;
 bool teslaCombo = false;
 bool ultrahandCombo = false;
+
+std::string defaultConfig = "[EN-US]\n"
+							"Footer=\xEE\x83\xA1  Back     \xEE\x83\xA0  OK\n"
+							"MainMenuFooter=\xEE\x83\xA1  Back     \xEE\x83\xA0  OK       \xEE\x83\xAD  Settings\n"
+							"FooterWithReset=\xEE\x83\xA1  Back     \xEE\x83\xA0  OK       \xEE\x83\xA2  Default\n"
+							"FooterMoveUpDown=\xEE\x83\xA1  Back     \xEE\x83\xA0  OK       \xEE\x85\x87  \xEE\x88\xA4    \xEE\x85\x88  \xEE\x88\xA5\n"
+							"Bools=Turn on/off settings\n"
+							"Ints=Adjust values\n"
+							"Colors=Change colors\n"
+							"List=Adjust lists\n"
+							"key_combo=Exit key Combo\n"
+							"battery_avg_iir_filter=Battery amperage with IIR filter\n"
+							"battery_time_left_refreshrate=Battery time left refresh rate\n"
+							"touch_screen=Enable touch screen\n"
+							"motion_control=Enable motion controls\n"
+							"left_joycon_motion_key_combo=Left Joycon motion control key combo\n"
+							"Right_joycon_motion_key_combo=Right Joycon motion control key combo\n"
+							"pro_controller_motion_key_combo=Pro Controller motion control key combo\n"
+							"jump_immediately_to_single_smd=Jump to detected SMD file if only one was detected\n"
+							"override_language=Force other language";
 
 //Checks
 Result clkrstCheck = 1;
@@ -251,7 +271,7 @@ void BatteryChecker(void*) {
 			static int itr = 0;;
 			BatteryTimeCache[itr++ % cacheElements] = (int32_t)batteryTimeEstimateInMinutes;
 			uint64_t new_tick_TTE = svcGetSystemTick();
-			if (armTicksToNs(new_tick_TTE - tick_TTE) / 1'000'000'000 >= batteryTimeLeftRefreshRate) {
+			if (armTicksToNs(new_tick_TTE - tick_TTE) / 1'000'000'000 >= (uint64_t)batteryTimeLeftRefreshRate) {
 				size_t to_divide = itr < cacheElements ? itr : cacheElements;
 				BoardData.BatteryTimeEstimateInMinutes_int = (int16_t)(std::accumulate(&BatteryTimeCache[0], &BatteryTimeCache[to_divide], 0) / to_divide);
 				tick_TTE = new_tick_TTE;
@@ -1099,41 +1119,70 @@ void ParseIniFile() {
 		}
 	}
 
+	std::unordered_map<std::string, std::unordered_map<std::string, std::string>> defaultIni = parseIni(defaultConfig);
+	std::unordered_map<std::string, std::string> defaultLocale = defaultIni["EN-US"];
+	std::map<std::string, std::map<std::string, std::string>> temp = getParsedDataFromIniFile(localeIniPath.c_str());
+
 	if (override_check == true && temp_overrideLanguage.length() > 0) {
 		overrideLanguage = temp_overrideLanguage;
-		std::map<std::string, std::map<std::string, std::string>> temp = getParsedDataFromIniFile(localeIniPath.c_str());
-		std::string toParse = 	"[EN-US]\n"
-								"Footer=\xEE\x83\xA1  Back     \xEE\x83\xA0  OK\n"
-								"MainMenuFooter=\xEE\x83\xA1  Back     \xEE\x83\xA0  OK       \xEE\x83\xAD  Settings\n"
-								"FooterWithReset=\xEE\x83\xA1  Back     \xEE\x83\xA0  OK       \xEE\x83\xA2  Default\n"
-								"FooterMoveUpDown=\xEE\x83\xA1  Back     \xEE\x83\xA0  OK       \xEE\x85\x87  \xEE\x88\xA4    \xEE\x85\x88  \xEE\x88\xA5\n"
-								"Bools=Turn on/off settings\n"
-								"Ints=Adjust values\n"
-								"Colors=Change colors\n"
-								"List=Adjust lists\n"
-								"key_combo=Exit key Combo\n"
-								"battery_avg_iir_filter=Battery amperage with IIR filter\n"
-								"battery_time_left_refreshrate=Battery time left refresh rate\n"
-								"touch_screen=Enable touch screen\n"
-								"motion_control=Enable motion controls\n"
-								"left_joycon_motion_key_combo=Left Joycon motion control key combo\n"
-								"Right_joycon_motion_key_combo=Right Joycon motion control key combo\n"
-								"pro_controller_motion_key_combo=Pro Controller motion control key combo\n"
-								"jump_immediately_to_single_smd=Jump to detected SMD file if only one was detected\n"
-								"override_language=Force other language";
-		std::unordered_map<std::string, std::unordered_map<std::string, std::string>> defaultIni = parseIni(toParse);
-		std::unordered_map<std::string, std::string> defaultLocale = defaultIni["EN-US"];
 		auto it = temp.find(overrideLanguage);
 		if (it != temp.end()) {
 			locale = std::unordered_map<std::string, std::string>(it->second.begin(), it->second.end());
 			for (const auto& [key, data] : defaultLocale) {
-				if (locale.find(key) != locale.end()) locale[key] = resolveHexEscapes(locale[key]);
+				auto it2 = locale.find(key);
+				if (it2 != locale.end()) it2->second = resolveHexEscapes(locale[key]);
 				else locale[key] = resolveHexEscapes(data);
 			}
 		}
 		else {
 			for (const auto& [key, data] : defaultLocale) {
 				locale[key] = resolveHexEscapes(data);
+			}
+		}
+	}
+	else {
+		smInitialize();
+		Result rc = setInitialize();
+		smExit();
+		if (R_SUCCEEDED(rc)) {
+			u64 languageCode;
+			setGetSystemLanguage(&languageCode);
+			SetLanguage language;
+			setMakeLanguage(languageCode, &language);
+			setExit();
+			switch(language) {
+				case SetLanguage_JA:     {overrideLanguage = "JA-JP"; break;}
+				case SetLanguage_FR:     {overrideLanguage = "FR-FR"; break;}
+				case SetLanguage_DE:     {overrideLanguage = "DE-DE"; break;}
+				case SetLanguage_IT:     {overrideLanguage = "IT-IT"; break;}
+				case SetLanguage_ES:     {overrideLanguage = "ES-ES"; break;}
+				case SetLanguage_ZHCN:
+				case SetLanguage_ZHHANS: {overrideLanguage = "ZH-CN"; break;}
+				case SetLanguage_ZHTW:
+				case SetLanguage_ZHHANT: {overrideLanguage = "ZH-TW"; break;}
+				case SetLanguage_KO:     {overrideLanguage = "KO-KR"; break;}
+				case SetLanguage_NL:     {overrideLanguage = "NL-NL"; break;}
+				case SetLanguage_PT:     {overrideLanguage = "PT-PT"; break;}
+				case SetLanguage_RU:     {overrideLanguage = "RU-RU"; break;}
+				case SetLanguage_FRCA:   {overrideLanguage = "FR-CA"; break;}
+				case SetLanguage_ES419:  {overrideLanguage = "ES-419"; break;}
+				case SetLanguage_PTBR:   {overrideLanguage = "PT-BR"; break;}
+				default:                 {overrideLanguage = "EN-US"; break;}
+			}
+
+			auto it = temp.find(overrideLanguage);
+			if (it == temp.end()) {
+				for (const auto& [key, data] : defaultLocale) {
+					locale[key] = resolveHexEscapes(data);
+				}
+			}
+			else {
+				locale = std::unordered_map<std::string, std::string>(it->second.begin(), it->second.end());
+				for (const auto& [key, data] : defaultLocale) {
+					auto it2 = locale.find(key);
+					if (it2 != locale.end()) it2->second = resolveHexEscapes(locale[key]);
+					else locale[key] = resolveHexEscapes(data);
+				}
 			}
 		}
 	}

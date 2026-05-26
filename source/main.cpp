@@ -367,35 +367,6 @@ public:
 				}
 				else hocclkCheck = 0;
 			}
-			if (overrideLanguage.length() == 0) {
-				if (R_SUCCEEDED(setInitialize())) {
-					u64 languageCode;
-					setGetSystemLanguage(&languageCode);
-					SetLanguage language;
-					setMakeLanguage(languageCode, &language);
-					setExit();
-					switch(language) {
-						case SetLanguage_JA:     {overrideLanguage = "JA-JP"; break;}
-						case SetLanguage_FR:     {overrideLanguage = "FR-FR"; break;}
-						case SetLanguage_DE:     {overrideLanguage = "DE-DE"; break;}
-						case SetLanguage_IT:     {overrideLanguage = "IT-IT"; break;}
-						case SetLanguage_ES:     {overrideLanguage = "ES-ES"; break;}
-						case SetLanguage_ZHCN:
-						case SetLanguage_ZHHANS: {overrideLanguage = "ZH-CN"; break;}
-						case SetLanguage_ZHTW:
-						case SetLanguage_ZHHANT: {overrideLanguage = "ZH-TW"; break;}
-						case SetLanguage_KO:     {overrideLanguage = "KO-KR"; break;}
-						case SetLanguage_NL:     {overrideLanguage = "NL-NL"; break;}
-						case SetLanguage_PT:     {overrideLanguage = "PT-PT"; break;}
-						case SetLanguage_RU:     {overrideLanguage = "RU-RU"; break;}
-						case SetLanguage_ENGB:   {overrideLanguage = "EN-GB"; break;}
-						case SetLanguage_FRCA:   {overrideLanguage = "FR-CA"; break;}
-						case SetLanguage_ES419:  {overrideLanguage = "ES-419"; break;}
-						case SetLanguage_PTBR:   {overrideLanguage = "PT-BR"; break;}
-						default:                 {overrideLanguage = "EN-US"; break;}
-					}
-				}
-			}
 		});
 		Hinted = envIsSyscallHinted(0x6F);
 		hidGetSixAxisSensorHandles(&sixaxisHandles[Controller_ProController], 1, HidNpadIdType_No1,      HidNpadStyleTag_NpadFullKey);
