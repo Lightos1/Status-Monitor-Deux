@@ -108,8 +108,8 @@ VAR{FPSavg, User_OldFpsAverage ? Game_FpsAvgOld_float : Game_FpsAvg_float}
 VAR{TextBaseOffset, MaxSize.x + 2}
 #if $FPSavg < 254 and $FPSavg >= 0
 	#if $GraphHeight < $User_GraphWidth
-		GET_DIMENSIONS{dimensions, GraphHeight + 4, FPStext}
-		TEXT{TextBaseOffset + (((User_GraphWidth + 2) - dimensions.x) / 2), GraphHeight + 4, GraphHeight + 4, User_FpsCounterColor, FPStext}
+		GET_DIMENSIONS{dimensions, GraphHeight + 4, true, FPStext}
+		TEXT{TextBaseOffset + (((User_GraphWidth + 2) - dimensions.x) / 2), GraphHeight + 4, GraphHeight + 4, User_FpsCounterColor, true, FPStext}
 	#endif
 #endif
 EMPTY_BOX{TextBaseOffset, 5, User_GraphWidth + 2, GraphHeight  + 2, User_BorderColor}
