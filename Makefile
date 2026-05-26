@@ -63,7 +63,21 @@ ifdef DEBUG
 endif
 
 ASFLAGS		:=	-g $(ARCH)
-LDFLAGS		=	-specs=$(DEVKITPRO)/libnx/switch.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map) -Wl,-wrap,__cxa_throw -Wl,-wrap,_Unwind_Resume -Wl,-wrap,__gxx_personality_v0
+LDFLAGS		=	-specs=$(DEVKITPRO)/libnx/switch.specs -g $(ARCH) -Wl,-Map,$(notdir $*.map)
+LDFLAGS     += -Wl,--wrap,__cxa_pure_virtual \
+			-Wl,--wrap,__cxa_throw \
+			-Wl,--wrap,__cxa_rethrow \
+			-Wl,--wrap,__cxa_allocate_exception \
+			-Wl,--wrap,__cxa_free_exception \
+			-Wl,--wrap,__cxa_begin_catch \
+			-Wl,--wrap,__cxa_end_catch \
+			-Wl,--wrap,__cxa_call_unexpected \
+			-Wl,--wrap,__cxa_call_terminate \
+			-Wl,--wrap,__gxx_personality_v0 \
+			-Wl,--wrap,_Unwind_Resume \
+			-Wl,--wrap,_ZSt19__throw_logic_errorPKc \
+			-Wl,--wrap,_ZSt20__throw_length_errorPKc \
+			-Wl,--wrap,_ZNSt11logic_errorC2EPKc
 
 LIBS		:=	-lnx
 
