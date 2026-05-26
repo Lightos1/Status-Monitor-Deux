@@ -25,7 +25,7 @@ Text3: {"NVJPG: %u.%u MHz", Misc_NvJpgHz_int / 1000000, (Misc_NvJpgHz_int / 1000
 Start:
 VAR{Text, Text1 + "\n" + Text2 + "\n" + Text3}
 TEXT{0, 120, 20, 0xFFFF, false, IETF_GET{MultimediaText}}
-TEXT{15, 140, 15, 0xFFFF, Text}
+TEXT{15, 140, 15, 0xFFFF, false, Text}
 TEXT{0, 215, 20, 0xFFFF, false, IETF_GET{NetworkText}}
 #if $Misc_NetworkConnectionType_int == 1
 	TEXT{0, 240, 18, 0xFFFF, false, IETF_GET{WiFiText}}
