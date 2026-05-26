@@ -53,7 +53,7 @@ std::unordered_map<std::string, std::string> locale;
 bool teslaCombo = false;
 bool ultrahandCombo = false;
 
-std::string defaultConfig = "[EN-US]\n"
+std::string defaultLocale = "[EN-US]\n"
 							"Footer=\xEE\x83\xA1  Back     \xEE\x83\xA0  OK\n"
 							"MainMenuFooter=\xEE\x83\xA1  Back     \xEE\x83\xA0  OK       \xEE\x83\xAD  Settings\n"
 							"FooterWithReset=\xEE\x83\xA1  Back     \xEE\x83\xA0  OK       \xEE\x83\xA2  Default\n"
@@ -160,6 +160,33 @@ void gpuLoadThread(void*) {
 	} while(!leventWait(&threadexit, 16'666'000));
 }
 
+//[21.0.0+]
+typedef struct {
+    u32 input_current_limit;          ///< Input (Sink) current limit in mA
+    u32 boost_mode_current_limit;     ///< Output (Source/VBUS/OTG) current limit in mA
+    u32 fast_charge_current_limit;    ///< Battery charging current limit in mA
+    u32 charge_voltage_limit;         ///< Battery charging voltage limit in mV
+    PsmChargerType charger_type;
+    u8 hi_z_mode;
+    bool battery_charging;
+    u8 pad[2];
+    PsmVdd50State vdd50_state;        ///< Power Delivery Controller State
+    u32 temperature_celcius;          ///< Battery temperature in milli C
+    u32 battery_charge_percentage;    ///< Raw battery charged capacity per cent-mille
+    u32 battery_charge_milli_voltage; ///< Voltage average in mV
+    u32 battery_age_percentage;       ///< Battery age per cent-mille
+	u32 unk_x2C;                      ///< the same as charger_input_voltage_limit?
+    u32 usb_power_role;
+    u32 usb_charger_type;
+    u32 charger_input_voltage_limit;  ///< Charger and external device voltage limit in mV
+    u32 charger_input_current_limit;  ///< Charger and external device current limit in mA
+    bool fast_battery_charging;
+    bool controller_power_supply;
+    bool otg_request;
+    u8 reserved;
+    u8 unk_x44[0x10];
+} PsmBatteryChargeInfoFieldsNew;
+
 void BatteryChecker(void*) {
 	if (R_FAILED(psmCheck) || R_FAILED(i2cCheck)){
 		return;
@@ -214,9 +241,17 @@ void BatteryChecker(void*) {
 		uint64_t startTick = svcGetSystemTick();
 
 		if (R_SUCCEEDED(psmGetBatteryChargeInfoFields(&_batteryChargeInfoFields))) {
-			BoardData.ChargerConnected_int = _batteryChargeInfoFields.usb_charger_type;
-			BoardData.ChargerVoltageLimit_int = _batteryChargeInfoFields.charger_input_voltage_limit;
-			BoardData.ChargerCurrentLimit_int = _batteryChargeInfoFields.charger_input_current_limit;
+			if (hosversionAtLeast(21, 0, 0)) {
+				PsmBatteryChargeInfoFieldsNew* new_data = (PsmBatteryChargeInfoFieldsNew*)&_batteryChargeInfoFields;
+				BoardData.ChargerVoltageLimit_int = new_data->charger_input_voltage_limit;
+				BoardData.ChargerCurrentLimit_int = new_data->charger_input_current_limit;
+				BoardData.ChargerConnected_int = new_data->usb_charger_type;			
+			}
+			else {
+				BoardData.ChargerVoltageLimit_int = _batteryChargeInfoFields.charger_input_voltage_limit;
+				BoardData.ChargerCurrentLimit_int = _batteryChargeInfoFields.charger_input_current_limit;
+				BoardData.ChargerConnected_int = _batteryChargeInfoFields.usb_charger_type;
+			}
 			BoardData.BatteryTemperatureCelcius_float = (float)_batteryChargeInfoFields.temperature_celcius / 1000.0;
 			BoardData.BatteryChargePercentage_float = (float)_batteryChargeInfoFields.battery_charge_percentage / 1000.0;
 			BoardData.BatteryAgePercentage_float = (float)_batteryChargeInfoFields.battery_age_percentage / 1000.0;
@@ -912,8 +947,8 @@ void createDefaultFile(std::string filepath) {
 	setIniFile(filepath, "status-monitor-deux", "motion_control", "true", "");
 	setIniFile(filepath, "status-monitor-deux", "left_joycon_motion_key_combo", "ZL+L+LSTICK", "");
 	setIniFile(filepath, "status-monitor-deux", "right_joycon_motion_key_combo", "ZR+R+RSTICK", "");
-	setIniFile(filepath, "status-monitor-deux", "pro_controller_motion_key_combo", "true", "");
-	setIniFile(filepath, "status-monitor-deux", "jump_immediately_to_single_smd", "ZR+R+RSTICK", "");
+	setIniFile(filepath, "status-monitor-deux", "pro_controller_motion_key_combo", "ZR+R+RSTICK", "");
+	setIniFile(filepath, "status-monitor-deux", "jump_immediately_to_single_smd", "true", "");
 	setIniFile(filepath, "status-monitor-deux", "save_and_load_movable_overlay_position", "true", "");
 	setIniFile(filepath, "status-monitor-deux", "override_language", "false", "");
 	setIniFile(filepath, "status-monitor-deux", "override_language_ietf_code", "EN-US", "");
@@ -1119,8 +1154,8 @@ void ParseIniFile() {
 		}
 	}
 
-	std::unordered_map<std::string, std::unordered_map<std::string, std::string>> defaultIni = parseIni(defaultConfig);
-	std::unordered_map<std::string, std::string> defaultLocale = defaultIni["EN-US"];
+	std::unordered_map<std::string, std::unordered_map<std::string, std::string>> defaultIni = parseIni(defaultLocale);
+	std::unordered_map<std::string, std::string> m_defaultLocale = defaultIni["EN-US"];
 	std::map<std::string, std::map<std::string, std::string>> temp = getParsedDataFromIniFile(localeIniPath.c_str());
 
 	if (override_check == true && temp_overrideLanguage.length() > 0) {
@@ -1128,14 +1163,14 @@ void ParseIniFile() {
 		auto it = temp.find(overrideLanguage);
 		if (it != temp.end()) {
 			locale = std::unordered_map<std::string, std::string>(it->second.begin(), it->second.end());
-			for (const auto& [key, data] : defaultLocale) {
+			for (const auto& [key, data] : m_defaultLocale) {
 				auto it2 = locale.find(key);
 				if (it2 != locale.end()) it2->second = resolveHexEscapes(locale[key]);
 				else locale[key] = resolveHexEscapes(data);
 			}
 		}
 		else {
-			for (const auto& [key, data] : defaultLocale) {
+			for (const auto& [key, data] : m_defaultLocale) {
 				locale[key] = resolveHexEscapes(data);
 			}
 		}
@@ -1172,13 +1207,13 @@ void ParseIniFile() {
 
 			auto it = temp.find(overrideLanguage);
 			if (it == temp.end()) {
-				for (const auto& [key, data] : defaultLocale) {
+				for (const auto& [key, data] : m_defaultLocale) {
 					locale[key] = resolveHexEscapes(data);
 				}
 			}
 			else {
 				locale = std::unordered_map<std::string, std::string>(it->second.begin(), it->second.end());
-				for (const auto& [key, data] : defaultLocale) {
+				for (const auto& [key, data] : m_defaultLocale) {
 					auto it2 = locale.find(key);
 					if (it2 != locale.end()) it2->second = resolveHexEscapes(locale[key]);
 					else locale[key] = resolveHexEscapes(data);

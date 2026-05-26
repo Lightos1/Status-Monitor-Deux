@@ -12,7 +12,7 @@ private:
 			if (!configFile) return;
 			fprintf(configFile, "[%s]\n", desiredSection.c_str());
 			for (const auto& [key, data] : m_configs)
-				fprintf(configFile, "User_%s = %s\n", key.c_str(), trim(data).c_str());
+				fprintf(configFile, "%s = %s\n", key.c_str(), trim(data).c_str());
 			fclose(configFile);
 			return;
 		}
@@ -33,8 +33,10 @@ private:
 					updatedContent = updatedContent.substr(0, updatedContent.length() - 1);
 					addNewLine = true;
 				}
-				updatedContent += key + " = " + trim(data) + "\n";
-				if (addNewLine) { updatedContent += "\n"; addNewLine = false; }
+				if (data.length() > 0) {
+					updatedContent += key + " = " + trim(data) + "\n";
+					if (addNewLine) { updatedContent += "\n"; addNewLine = false; }
+				}
 			}
 		};
 
@@ -68,8 +70,10 @@ private:
 							updatedContent = updatedContent.substr(0, updatedContent.length() - 1);
 							addNewLine = true;
 						}
-						updatedContent += lookupKey + " = " + trim(it->second) + "\n";
-						if (addNewLine) { updatedContent += "\n"; addNewLine = false; }
+						if (it->second.length() > 0) {
+							updatedContent += lookupKey + " = " + trim(it->second) + "\n";
+							if (addNewLine) { updatedContent += "\n"; addNewLine = false; }
+						}
 						continue;
 					}
 				}
@@ -88,7 +92,7 @@ private:
 		if (!sectionFound) {
 			updatedContent += "\n[" + desiredSection + "]\n";
 			for (const auto& [key, data] : m_configs)
-				updatedContent += key + " = " + trim(data) + "\n";
+				if (data.length() > 0) updatedContent += key + " = " + trim(data) + "\n";
 		}
 
 		configFile = fopen(fileToEdit.c_str(), "w");
@@ -120,7 +124,7 @@ public:
 		defaultButtonView = buttonBackup;
 		setDataToIniFile("sdmc:/config/status-monitor-deux/config.ini", "status-monitor-deux");
 		for (const auto& [key, value] : m_configs) {
-			config["status-monitor-deux"][key] = value;
+			if (value.length() > 0) config["status-monitor-deux"][key] = value;
 		}
 	}
 
@@ -132,7 +136,7 @@ public:
 			auto Item = new tsl::elm::ListItem(locale["key_combo"]);
 			Item->setClickListener([this](uint64_t keys) {
 				if (keys & KEY_A) {
-					//tsl::changeTo<EditConfigCombo>(true);
+					tsl::changeTo<EditConfigKeyCombo>(true, "key_combo", m_configs["key_combo"], locale["key_combo"]);
 					return true;
 				}
 				return false;
@@ -161,7 +165,7 @@ public:
 					return true;
 				}
 				return false;
-			});		
+			});
 			list->addItem(Item);
 		}
 
@@ -174,7 +178,7 @@ public:
 					return true;
 				}
 				return false;
-			});		
+			});
 			list->addItem(Item);
 		}
 
@@ -195,7 +199,7 @@ public:
 			auto Item = new tsl::elm::ListItem(locale["left_joycon_motion_key_combo"]);
 			Item->setClickListener([this](uint64_t keys) {
 				if (keys & KEY_A) {
-					//tsl::changeTo<EditConfigCombo>(false);
+					tsl::changeTo<EditConfigKeyCombo>(false, "left_joycon_motion_key_combo", m_configs["left_joycon_motion_key_combo"], locale["left_joycon_motion_key_combo"]);
 					return true;
 				}
 				return false;
@@ -207,7 +211,7 @@ public:
 			auto Item = new tsl::elm::ListItem(locale["right_joycon_motion_key_combo"]);
 			Item->setClickListener([this](uint64_t keys) {
 				if (keys & KEY_A) {
-					//tsl::changeTo<EditConfigCombo>(false);
+					tsl::changeTo<EditConfigKeyCombo>(false, "right_joycon_motion_key_combo", m_configs["right_joycon_motion_key_combo"], locale["right_joycon_motion_key_combo"]);
 					return true;
 				}
 				return false;
@@ -219,7 +223,7 @@ public:
 			auto Item = new tsl::elm::ListItem(locale["pro_controller_motion_key_combo"]);
 			Item->setClickListener([this](uint64_t keys) {
 				if (keys & KEY_A) {
-					//tsl::changeTo<EditConfigCombo>(false);
+					tsl::changeTo<EditConfigKeyCombo>(false, "pro_controller_motion_key_combo", m_configs["pro_controller_motion_key_combo"], locale["pro_controller_motion_key_combo"]);
 					return true;
 				}
 				return false;

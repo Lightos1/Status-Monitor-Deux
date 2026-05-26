@@ -238,6 +238,8 @@ extern std::string overrideLanguage;
 extern std::map<std::string, std::map<std::string, std::string>> config;
 extern LocalTimeType LocalTime;
 extern std::unordered_map<std::string, std::string> locale;
+extern bool teslaCombo;
+extern bool ultrahandCombo;
 
 //Checks
 extern Result clkrstCheck;

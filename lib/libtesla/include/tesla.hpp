@@ -1000,6 +1000,7 @@ namespace tsl {
 				} while (i < stringLength);
 
 				maxX = std::max(currX, maxX);
+				if (uniform == false && string[i-1] != '\n') currY += lineHeight;
 
 				return { maxX - x, currY - y };
 			}
@@ -1910,9 +1911,9 @@ namespace tsl {
                 if (this->m_maxWidth == 0) {
                     if (this->m_value.length() > 0) {
                         auto [valueWidth, valueHeight] = renderer->drawString(this->m_value.c_str(), false, 0, 0, 20, tsl::style::color::ColorTransparent);
-                        this->m_maxWidth = this->getWidth() - valueWidth - 80;
+                        this->m_maxWidth = this->getWidth() - valueWidth - 60;
                     } else {
-                        this->m_maxWidth = this->getWidth() - 70;
+                        this->m_maxWidth = this->getWidth() - 60;
                     }
 
                     auto [width, height] = renderer->drawString(this->m_text.c_str(), false, 0, 0, 23, tsl::style::color::ColorTransparent);
@@ -1922,7 +1923,7 @@ namespace tsl {
                     if (this->m_trunctuated) {
                         auto [width, height] = renderer->drawString(this->m_scrollText.c_str(), false, 0, 0, 23, tsl::style::color::ColorTransparent);
                         this->m_textWidth = width;
-                        this->m_ellipsisText = renderer->limitStringLength(this->m_text, false, 22, this->m_maxWidth);
+                        this->m_ellipsisText = renderer->limitStringLength(this->m_text, false, 23, this->m_maxWidth);
 						this->designatedOffset = this->getX() + 20;
                     } else {
                         this->m_textWidth = width;
