@@ -170,7 +170,7 @@ Start:
 		GET_DIMENSIONS{TargetDims, 15, false, GPUTargetFreqText}
 	#endif
 
-	#if $CPU_RealHz_int and $User_ShowRealFrequencies
+	#if $GPU_RealHz_int and $User_ShowRealFrequencies
 		VAR{height_offset, height_offset + TargetDims.y}
 		TEXT{0, height_offset, 15, 0xFFFF, false, GPURealFreqText}
 		GET_DIMENSIONS{RealDims, 15, false, GPURealFreqText}
@@ -196,10 +196,13 @@ Start:
 		#endif
 		TEXT{DeltaOffset + 20, delta_offset, 15, 0xFFFF, false, GPUdeltaText}
 	#else
-		#if $User_ShowRealFrequencies
+		#if $User_ShowRealFrequencies and $GPU_RealHz_int
 			VAR{height_offset, height_offset + RealDims.y}
-		#else
+		#elif $User_ShowTargetFrequencies
 			VAR{height_offset, height_offset + TargetDims.y}
+		#else
+			GET_DIMENSIONS{dimensions, 15, false, "Ą"}
+			VAR{height_offset, height_offset + dimensions.y}
 		#endif
 	#endif
 
