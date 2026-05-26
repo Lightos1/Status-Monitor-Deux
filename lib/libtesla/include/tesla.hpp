@@ -53,13 +53,7 @@ inline float M_PI = 3.14159265358979323846;
 #include <filesystem>
 
 extern "C" {
-#ifdef TESLA_INIT_IMPL
-	void __assert_func(const char *_file, int _line, const char *_func, const char *_expr ) {
-		abort();
-	}
-#else
 	void __assert_func(const char *_file, int _line, const char *_func, const char *_expr);
-#endif
 }
 
 #include <stdlib.h>
@@ -126,9 +120,6 @@ inline bool isValid4444HexColor(const std::string& hexColor) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 
-#ifdef TESLA_INIT_IMPL
-	#define STB_TRUETYPE_IMPLEMENTATION
-#endif
 #include "stb_truetype.h"
 
 #pragma GCC diagnostic pop
@@ -3312,74 +3303,3 @@ namespace tsl {
 
 }
 
-
-#ifdef TESLA_INIT_IMPL
-
-namespace tsl::cfg {
-
-	u16 LayerWidth  = 0;
-	u16 LayerHeight = 0;
-	u16 LayerPosX   = 0;
-	u16 LayerPosY   = 0;
-	u16 FramebufferWidth  = 0;
-	u16 FramebufferHeight = 0;
-	u16 OrigLayerWidth = 0;
-	u16 OrigLayerHeight = 0;
-	u16 LayerMaxWidth = 1280;
-	u16 LayerMaxHeight = 720;
-}
-
-extern "C" void __libnx_init_time(void);
-
-extern "C" {
-
-	u32 __nx_applet_type = AppletType_None;
-	u32  __nx_nv_transfermem_size = 0x40000;
-	ViLayerFlags __nx_vi_stray_layer_flags = (ViLayerFlags)0;
-
-	u32 __nx_fs_num_sessions = 1;
-
-	/**
-	 * @brief libtesla service initializing function to override libnx's
-	 * 
-	 */
-	void __appInit(void) {
-		tsl::hlp::doWithSmSession([]{
-			ASSERT_FATAL(fsInitialize());
-			ASSERT_FATAL(fsdevMountSdmc());
-			ASSERT_FATAL(hidInitialize());      // Controller inputs and Touch
-			if (hosversionAtLeast(16,0,0)) {
-				ASSERT_FATAL(plInitialize(PlServiceType_User));       // Font data
-			}
-			else 
-				ASSERT_FATAL(plInitialize(PlServiceType_System));
-			ASSERT_FATAL(pmdmntInitialize());   // PID querying
-			ASSERT_FATAL(hidsysInitialize());   // Focus control
-			ASSERT_FATAL(setsysInitialize());   // Settings querying
-			ASSERT_FATAL(apmInitialize());
-		});
-		Service *plSrv = plGetServiceSession();
-		Service plClone;
-		ASSERT_FATAL(serviceClone(plSrv, &plClone));
-		serviceClose(plSrv);
-		*plSrv = plClone;
-        
-	}
-
-	/**
-	 * @brief libtesla service exiting function to override libnx's
-	 * 
-	 */
-	void __appExit(void) {
-		apmExit();
-		fsExit();
-		hidExit();
-		plExit();
-		pmdmntExit();
-		hidsysExit();
-		setsysExit();
-	}
-
-}
-
-#endif
