@@ -4,6 +4,7 @@ class ConfigurationMainMenu : public tsl::Gui {
 private:
 	std::map<std::string, std::string> m_configs;
 	std::string buttonBackup;
+	bool skipConfigSaving = false;
 
 	void setDataToIniFile(const std::string& fileToEdit, const std::string& desiredSection) {
 		FILE* configFile = fopen(fileToEdit.c_str(), "r");
@@ -108,8 +109,8 @@ public:
 		if (it != config.end()) m_configs = it->second;
 
 		if (m_configs.find("battery_avg_iir_filter") == m_configs.end()) m_configs["battery_avg_iir_filter"] = "false";
-		if (m_configs.find("battery_time_left_refreshrate") == m_configs.end()) m_configs["battery_avg_iir_filter"] = "10";
-		if (m_configs.find("touch_screen") == m_configs.end()) m_configs["battery_avg_iir_filter"] = "false";
+		if (m_configs.find("battery_time_left_refreshrate") == m_configs.end()) m_configs["battery_time_left_refreshrate"] = "10";
+		if (m_configs.find("touch_screen") == m_configs.end()) m_configs["touch_screen"] = "true";
 		if (m_configs.find("motion_control") == m_configs.end()) m_configs["motion_control"] = "true";
 		if (m_configs.find("left_joycon_motion_key_combo") == m_configs.end()) m_configs["left_joycon_motion_key_combo"] = "ZL+L+LSTICK";
 		if (m_configs.find("right_joycon_motion_key_combo") == m_configs.end()) m_configs["right_joycon_motion_key_combo"] = "ZR+R+RSTICK";
@@ -122,9 +123,11 @@ public:
 
 	~ConfigurationMainMenu() {
 		defaultButtonView = buttonBackup;
-		setDataToIniFile("sdmc:/config/status-monitor-deux/config.ini", "status-monitor-deux");
-		for (const auto& [key, value] : m_configs) {
-			if (value.length() > 0) config["status-monitor-deux"][key] = value;
+		if (skipConfigSaving == false) {
+			setDataToIniFile("sdmc:/config/status-monitor-deux/config.ini", "status-monitor-deux");
+			for (const auto& [key, value] : m_configs) {
+				if (value.length() > 0) config["status-monitor-deux"][key] = value;
+			}
 		}
 	}
 
@@ -136,7 +139,7 @@ public:
 			auto Item = new tsl::elm::ListItem(locale["key_combo"]);
 			Item->setClickListener([this](uint64_t keys) {
 				if (keys & KEY_A) {
-					tsl::changeTo<EditConfigKeyCombo>(true, "key_combo", m_configs["key_combo"], locale["key_combo"]);
+					tsl::changeTo<EditConfigKeyCombo>(true, "key_combo", m_configs["key_combo"], locale["key_combo"], &m_configs, &keyCombo);
 					return true;
 				}
 				return false;
@@ -199,7 +202,7 @@ public:
 			auto Item = new tsl::elm::ListItem(locale["left_joycon_motion_key_combo"]);
 			Item->setClickListener([this](uint64_t keys) {
 				if (keys & KEY_A) {
-					tsl::changeTo<EditConfigKeyCombo>(false, "left_joycon_motion_key_combo", m_configs["left_joycon_motion_key_combo"], locale["left_joycon_motion_key_combo"]);
+					tsl::changeTo<EditConfigKeyCombo>(false, "left_joycon_motion_key_combo", m_configs["left_joycon_motion_key_combo"], locale["left_joycon_motion_key_combo"], &m_configs, &leftJoyconMotionKeyCombo);
 					return true;
 				}
 				return false;
@@ -211,7 +214,7 @@ public:
 			auto Item = new tsl::elm::ListItem(locale["right_joycon_motion_key_combo"]);
 			Item->setClickListener([this](uint64_t keys) {
 				if (keys & KEY_A) {
-					tsl::changeTo<EditConfigKeyCombo>(false, "right_joycon_motion_key_combo", m_configs["right_joycon_motion_key_combo"], locale["right_joycon_motion_key_combo"]);
+					tsl::changeTo<EditConfigKeyCombo>(false, "right_joycon_motion_key_combo", m_configs["right_joycon_motion_key_combo"], locale["right_joycon_motion_key_combo"], &m_configs, &rightJoyconMotionKeyCombo);
 					return true;
 				}
 				return false;
@@ -223,7 +226,7 @@ public:
 			auto Item = new tsl::elm::ListItem(locale["pro_controller_motion_key_combo"]);
 			Item->setClickListener([this](uint64_t keys) {
 				if (keys & KEY_A) {
-					tsl::changeTo<EditConfigKeyCombo>(false, "pro_controller_motion_key_combo", m_configs["pro_controller_motion_key_combo"], locale["pro_controller_motion_key_combo"]);
+					tsl::changeTo<EditConfigKeyCombo>(false, "pro_controller_motion_key_combo", m_configs["pro_controller_motion_key_combo"], locale["pro_controller_motion_key_combo"], &m_configs, &proControllerMotionKeyCombo);
 					return true;
 				}
 				return false;
@@ -249,6 +252,22 @@ public:
 			Item->setClickListener([this](uint64_t keys) {
 				if (keys & KEY_A) {
 					//tsl::changeTo<EditConfigLanguage>();
+					return true;
+				}
+				return false;
+			});		
+			list->addItem(Item);
+		}
+
+		{
+			auto Item = new tsl::elm::ListItem(locale["reset_settings"], "\uE141");
+			Item->setClickListener([this](uint64_t keys) {
+				if (keys & KEY_A) {
+					skipConfigSaving = true;
+					removeIniSection("sdmc:/config/status-monitor-deux/config.ini", "status-monitor-deux");
+					tsl::setNextOverlay(filepath, "");
+					tsl::goBack();
+					tsl::goBack();
 					return true;
 				}
 				return false;

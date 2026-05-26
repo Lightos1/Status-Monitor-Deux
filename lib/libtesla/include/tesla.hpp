@@ -412,10 +412,6 @@ namespace tsl {
 				return KEY_DRIGHT;
 			else if (strcasecmp(value.c_str(), "DDOWN")  == 0)
 				return KEY_DDOWN;
-			else if (strcasecmp(value.c_str(), "SL")     == 0)
-				return KEY_SL;
-			else if (strcasecmp(value.c_str(), "SR")     == 0)
-				return KEY_SR;
 			else return 0;
 		}
 

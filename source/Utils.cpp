@@ -58,6 +58,9 @@ std::string defaultLocale = "[EN-US]\n"
 							"MainMenuFooter=\xEE\x83\xA1  Back     \xEE\x83\xA0  OK       \xEE\x83\xAD  Settings\n"
 							"FooterWithReset=\xEE\x83\xA1  Back     \xEE\x83\xA0  OK       \xEE\x83\xA2  Default\n"
 							"FooterMoveUpDown=\xEE\x83\xA1  Back     \xEE\x83\xA0  OK       \xEE\x85\x87  \xEE\x88\xA4    \xEE\x85\x88  \xEE\x88\xA5\n"
+							"FooterModify=\xEE\x83\xA1  Back     \xEE\x83\xA0  OK       \xEE\x83\xA2  Modify\n"
+							"UltrahandCombo=Ultrahand combo\n"
+							"TeslaMenuCombo=Tesla menu combo\n"
 							"Bools=Turn on/off settings\n"
 							"Ints=Adjust values\n"
 							"Colors=Change colors\n"
@@ -71,7 +74,8 @@ std::string defaultLocale = "[EN-US]\n"
 							"Right_joycon_motion_key_combo=Right Joycon motion control key combo\n"
 							"pro_controller_motion_key_combo=Pro Controller motion control key combo\n"
 							"jump_immediately_to_single_smd=Jump to detected SMD file if only one was detected\n"
-							"override_language=Force other language";
+							"override_language=Force other language\n"
+							"reset_settings=Reset settings";
 
 //Checks
 Result clkrstCheck = 1;
@@ -826,6 +830,64 @@ void convertToUpper(std::string& str) {
 
 void convertToLower(std::string& str) {
 	std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+}
+
+void convertHidnpadKeyToButtonCombination (u64 bitfield, std::string& buttonCombinationToShow, std::string& buttonCombinationToConfig) {
+	buttonCombinationToShow = "";
+	buttonCombinationToConfig = "";
+	std::unordered_map<HidNpadButton, std::string> replacesEmoji{
+		{HidNpadButton_L, "\uE0E4"},
+		{HidNpadButton_R, "\uE0E5"},
+		{HidNpadButton_ZL, "\uE0E6"},
+		{HidNpadButton_ZR, "\uE0E7"},
+		{HidNpadButton_A, "\uE0E0"},
+		{HidNpadButton_B, "\uE0E1"},
+		{HidNpadButton_X, "\uE0E2"},
+		{HidNpadButton_Y, "\uE0E3"},
+		{HidNpadButton_Up, "\uE0EB"},
+		{HidNpadButton_Down, "\uE0EC"},
+		{HidNpadButton_Left, "\uE0ED"},
+		{HidNpadButton_Right, "\uE0EE"},
+		{HidNpadButton_Plus, "\uE0EF"},
+		{HidNpadButton_Minus, "\uE0F0"},
+		{HidNpadButton_StickL, "\uE104"},
+		{HidNpadButton_StickR, "\uE105"}
+	};
+
+	std::unordered_map<HidNpadButton, std::string> replaces{
+		{HidNpadButton_L, "L"},
+		{HidNpadButton_R, "R"},
+		{HidNpadButton_ZL, "ZL"},
+		{HidNpadButton_ZR, "ZR"},
+		{HidNpadButton_A, "A"},
+		{HidNpadButton_B, "B"},
+		{HidNpadButton_X, "X"},
+		{HidNpadButton_Y, "Y"},
+		{HidNpadButton_Up, "DUP"},
+		{HidNpadButton_Down, "DDOWN"},
+		{HidNpadButton_Left, "DLEFT"},
+		{HidNpadButton_Right, "DRIGHT"},
+		{HidNpadButton_Plus, "PLUS"},
+		{HidNpadButton_Minus, "MINUS"},
+		{HidNpadButton_StickL, "LSTICK"},
+		{HidNpadButton_StickR, "RSTICK"}
+	};
+
+	size_t count = 0;
+
+	for (const auto& [key, value] : replaces) {
+		if (bitfield & key) {
+			bool addPlus = buttonCombinationToShow.length() > 0;
+			if (addPlus == true) {
+				buttonCombinationToShow += " + ";
+				buttonCombinationToConfig += "+";
+			}
+			buttonCombinationToShow += replacesEmoji[key];
+			buttonCombinationToConfig += value;
+			count++;
+			if (count >= 4) break;
+		}
+	}
 }
 
 void formatButtonCombination(std::string& line) {

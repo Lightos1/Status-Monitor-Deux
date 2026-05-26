@@ -200,7 +200,6 @@ public:
 		}
 
 		std::string version = APP_VERSION;
-		version += "\n\uE136: " + formattedKeyCombo;
 		if (m_folderName.length() > 0) version += "\n\n" + m_folderName;
 
 		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, version.c_str());
