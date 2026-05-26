@@ -9,6 +9,7 @@ private:
 	bool isColor = false;
 	bool isError = false;
 	bool isOrdering = false;
+	bool skipSavingConfig = false;
 	void FindConfigs(const char* data, size_t size) {
 		size_t lineStart = 0;
 		for (size_t i = 0; i < size; ++i) {
@@ -273,7 +274,7 @@ public:
 	std::string footerBackup;
 	Configuration(std::string path, std::string name) {
 		footerBackup = defaultButtonView;
-		defaultButtonView = locale["FooterWithReset"];
+		defaultButtonView = locale["Footer"];
 		tsl::hlp::requestForeground(true);
 		filepath = path;
 		FILE* file = fopen(filepath.c_str(), "rb");
@@ -341,40 +342,42 @@ public:
 
 	~Configuration() {
 		defaultButtonView = footerBackup;
-		if (keys_to_convert.empty()) for (const auto& [key, data] : configs) {
-			if (configs[key].value.starts_with("LIST")) {
-				keys_to_convert.emplace_back(key);
-				std::string list = listToFlatList(configs[key].value);
-				configs[key].value = list;
+		if (skipSavingConfig == false) {
+			if (keys_to_convert.empty()) for (const auto& [key, data] : configs) {
+				if (configs[key].value.starts_with("LIST")) {
+					keys_to_convert.emplace_back(key);
+					std::string list = listToFlatList(configs[key].value);
+					configs[key].value = list;
+				}
 			}
-		}
-		else if (configs.size() > 0) for (size_t i = 0; i < keys_to_convert.size(); i++) {
-			auto it = configs.find(keys_to_convert[i]);
-			if (it != configs.end()) {
-				std::string list = listToFlatList(it->second.value);
-				it->second.value = list;
+			else if (configs.size() > 0) for (size_t i = 0; i < keys_to_convert.size(); i++) {
+				auto it = configs.find(keys_to_convert[i]);
+				if (it != configs.end()) {
+					std::string list = listToFlatList(it->second.value);
+					it->second.value = list;
+				}
 			}
-		}
-		setDataToIniFile("sdmc:/config/status-monitor-deux/config.ini", section_name);
+			setDataToIniFile("sdmc:/config/status-monitor-deux/config.ini", section_name);
 
-		auto settings = config.find(section_name);
-		if (settings == config.end()) {
-			configs.clear();
-			return;
-		}
-		
-		for (size_t i = 0; i < keys_to_convert.size(); i++) {
-			auto it = configs.find(keys_to_convert[i]);
-			if (it != configs.end()) {
-				std::string list = flatListToList(it->second.value);
-				it->second.value = list;
+			auto settings = config.find(section_name);
+			if (settings == config.end()) {
+				configs.clear();
+				return;
 			}
+			
+			for (size_t i = 0; i < keys_to_convert.size(); i++) {
+				auto it = configs.find(keys_to_convert[i]);
+				if (it != configs.end()) {
+					std::string list = flatListToList(it->second.value);
+					it->second.value = list;
+				}
+			}
+			for (const auto& [key, data] : configs) {
+				std::string m_key = "User_" + key;
+				settings->second[m_key] = configs[key].value;
+			}
+			configs.clear();
 		}
-		for (const auto& [key, data] : configs) {
-			std::string m_key = "User_" + key;
-			settings->second[m_key] = configs[key].value;
-		}
-		configs.clear();
 	}
 
 	virtual tsl::elm::Element* createUI() override {
@@ -429,6 +432,19 @@ public:
 			});
 			list->addItem(Item);
 		}
+
+		auto Item = new tsl::elm::ListItem(locale["reset_settings"], "\uE141");
+		Item->setClickListener([this](uint64_t keys) {
+			if (keys & KEY_A) {
+				tsl::hlp::requestForeground(true);
+				removeIniSection("sdmc:/config/status-monitor-deux/config.ini", section_name);
+				config.extract(section_name);
+				tsl::goBack();
+				return true;
+			}
+			return false;
+		});
+		list->addItem(Item);		
 
 		rootFrame->setContent(list);
 		return rootFrame;

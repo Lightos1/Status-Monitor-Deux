@@ -5,9 +5,11 @@ private:
 	std::string m_type;
 	std::string showType;
 	std::string m_name;
+	std::string footerBackup;
 public:
 	ConfigurationSubMenu(std::string type, std::string name) {
-		defaultButtonView = locale["FooterWithReset"];
+		footerBackup = defaultButtonView;
+		defaultButtonView = locale["Footer"];
 		m_type = type;
 		if (m_type.compare("bool") == 0) {
 			showType = "\uE142\uE14B\uE14C";
@@ -22,6 +24,10 @@ public:
 			showType = "\uE047\uE048";
 		}
 		m_name = name + "\n" + showType;
+	}
+
+	~ConfigurationSubMenu() {
+		defaultButtonView = footerBackup;
 	}
 
 	virtual tsl::elm::Element* createUI() override {

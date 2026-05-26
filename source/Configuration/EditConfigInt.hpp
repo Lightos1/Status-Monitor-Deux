@@ -16,10 +16,12 @@ private:
 	bool isFont = false;
 	int64_t* m_out;
 	std::map<std::string, std::string>* m_config;
+	std::string footerBackup;
 public:
 	EditConfigInt(std::string key, std::string value, std::string rangeMin, std::string rangeMax, std::string defaultValue, tsl::elm::ListItem* item, std::string localName, std::string type, int64_t* out = nullptr, std::map<std::string, std::string>* config = nullptr) {
 		m_out = out;
 		m_config = config;
+		footerBackup = defaultButtonView;
 		defaultButtonView = locale["FooterWithReset"];
 		if (localName.length() > 0) m_localName = localName;
 		else m_localName = key;
@@ -36,6 +38,10 @@ public:
 		min_str = std::to_string(min);
 		max_str = std::to_string(max);
 		if (type.compare("font") == 0) isFont = true;
+	}
+
+	~EditConfigInt() {
+		defaultButtonView = footerBackup;
 	}
 
 	virtual tsl::elm::Element* createUI() override {
