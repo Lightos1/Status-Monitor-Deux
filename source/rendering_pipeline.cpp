@@ -398,6 +398,7 @@ tsl::elm::Element* RenderingPipeline::createUI() {
 		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, name);
 	else rootFrame = new tsl::elm::OverlayFrame("", "");
 	auto Status = new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, u16 x, u16 y, u16 w, u16 h) {
+		uint64_t tick_start = svcGetSystemTick();
 		if (error.length() > 0) {
 			renderer->drawString(error.c_str(), false, 20, 120, 20, renderer->a(0xFFFF));
 		}
@@ -458,6 +459,8 @@ tsl::elm::Element* RenderingPipeline::createUI() {
 			}
 		}
 		if (deactivateOriginalFooter == true && FullMode == true) renderer->drawString(ComboButtonFooter.c_str(), false, 30, 693, 23, a(rootFrame->defaultTextColor));
+		uint64_t deltaTick = svcGetSystemTick() - tick_start;
+		SystemData.overlayRenderingFrameTimeInNs = armTicksToNs(deltaTick);
 	});
 
 	rootFrame->setContent(Status);
@@ -474,8 +477,7 @@ void RenderingPipeline::update() {
 	if (displayRefreshRate) {
 		SystemData.DisplayRefreshRate_int = *displayRefreshRate;
 	}
-	uint64_t tick = svcGetSystemTick();
-	uint64_t deltaTick = tick - LocalTime.relative_tick;
+	uint64_t deltaTick = svcGetSystemTick() - LocalTime.relative_tick;
 	int64_t seconds_passed = deltaTick / systemtickfrequency;
 	time_t new_timestamp = LocalTime.timestamp + seconds_passed;
 	struct tm local_time;

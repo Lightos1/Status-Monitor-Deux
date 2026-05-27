@@ -1,5 +1,6 @@
 Name = Full
 NAME_LOCALE{"PL-PL", "Pełny"}
+VERSION = 1
 
 User_RefreshRate = 1
 ;;User_RefreshRate_Description = Max FPS of rendered overlay. It won't be faster than your current refresh rate because of vsync.
@@ -129,8 +130,16 @@ FpsNoDataText = IETF_GET{FpsNDText}
 ReadSpeedText: {IETF_GET{ReadSpeedTextFormat}, Game_ReadSpeedPerSecond_float / 1048576}
 ReadSpeedUnkText = IETF_GET{ReadSpeedUnkTextFormat}
 
+EnableBenchmark = false
+;FrameTimeAverage = HISTORY{int, 10}
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 Start:
+#if $EnableBenchmark
+	HISTORY_UPDATE{FrameTimeAverage, System_OverlayRenderingFrameTimeInNs_int}
+	VAR{Average, HISTORY_AVERAGE{FrameTimeAverage}}
+	TEXT{240, 120, 20, COLOR{0xCCCF}, true, {"MS: %d.%03d", Average / 1000000, (Average / 1000) % 1000}}
+#endif
 ;CPU
 #if $EnableCPU
 	TEXT{0, 120, 20, COLOR{0xCCCF}, false, IETF_GET{CpuUsageText}}

@@ -1,5 +1,6 @@
 Name = Graph
 NAME_LOCALE{"PL-PL", "Wykres"}
+VERSION = 1
 
 User_RefreshRate = 30
 ;;User_RefreshRate_Description = Max FPS of rendered overlay. It won't be faster than your current refresh rate because of vsync.

@@ -337,7 +337,7 @@ Note: there's no enforcement that the `Bind*` you call matches the suffix; you'r
 
 **Game**: `Game_LastFrameNumber_int`, `Game_IsGameRunning`, `Game_FPS_int`, `Game_FpsAvgOld_float`, `Game_FpsAvg_float`, `Game_ReadSpeedPerSecond_float`, `Game_ResolutionRenderCalls_int` (BindResolutionArray, 8 entries), `Game_ResolutionViewportCalls_int` (BindResolutionArray, 8 entries).
 
-**System**: `System_DisplayRefreshRate_int`, `System_IsDocked`, `System_KeysDown_int`, `System_KeysHeld_int`, `formattedKeyCombo` (string), `System_ClockHour_int`, `System_ClockMinute_int`, `System_ClockSecond_int`, `System_CalendarYear_int`, `System_CalendarMonth_int`, `System_CalendarDay_int`.
+**System**: `System_DisplayRefreshRate_int`, `System_IsDocked`, `System_KeysDown_int`, `System_KeysHeld_int`, `formattedKeyCombo` (string), `System_ClockHour_int`, `System_ClockMinute_int`, `System_ClockSecond_int`, `System_CalendarYear_int`, `System_CalendarMonth_int`, `System_CalendarDay_int`, `System_OverlayRenderingFrameTimeInNs_int`.
 
 **Misc**: `Misc_IsWiFiPassphrase`, `Misc_NvDecHz_int`, `Misc_NvEncHz_int`, `Misc_NvJpgHz_int`, `Misc_NetworkConnectionType_int`, `Misc_WiFiPassphrase_str`.
 

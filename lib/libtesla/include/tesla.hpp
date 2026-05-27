@@ -506,11 +506,15 @@ namespace tsl {
 			 * @param y Y pos
 			 * @param color Color
 			 */
-			inline void setPixel(s16 x, s16 y, Color color) {
+			[[gnu::always_inline]] void setPixel(s16 x, s16 y, Color color) {
 				if (x < 0 || y < 0 || x >= cfg::FramebufferWidth || y >= cfg::FramebufferHeight)
 					return;
 
 				static_cast<Color*>(this->getCurrentFramebuffer())[this->getPixelOffset(x, y)] = color;
+			}
+
+			[[gnu::always_inline]] void setPixelWithOffset(u32 offset, Color color) {
+				static_cast<Color*>(this->getCurrentFramebuffer())[offset] = color;
 			}
 
 			/**
@@ -522,7 +526,7 @@ namespace tsl {
 			 * @return Blended color
 			 */
 			// Source: https://github.com/ppkantorski/libultrahand/blob/e2ff5aa464154678cb4b6270ff45256e237c6f1e/libtesla/include/tesla.hpp#L1312
-            __attribute__((always_inline)) u8 blendColor(const u8 src, const u8 dst, const u8 alpha) {
+            [[gnu::always_inline]] u8 blendColor(const u8 src, const u8 dst, const u8 alpha) {
                 return ((src * (15u - alpha)) + (dst * alpha)) >> 4;
             }
 			
@@ -533,11 +537,12 @@ namespace tsl {
 			 * @param y Y pos
 			 * @param color Color
 			 */
-			inline void setPixelBlendSrc(s16 x, s16 y, Color color) {
-				if (x < 0 || y < 0 || x >= cfg::FramebufferWidth || y >= cfg::FramebufferHeight)
+			[[gnu::always_inline]] void setPixelBlendSrc(s16 x, s16 y, Color color) {
+				if (x < 0 || y < 0 || x >= cfg::FramebufferWidth || y >= cfg::FramebufferHeight) [[unlikely]]
 					return;
 
-				Color src((static_cast<u16*>(this->getCurrentFramebuffer()))[this->getPixelOffset(x, y)]);
+				u32 offset = this->getPixelOffset(x, y);
+				Color src((static_cast<u16*>(this->getCurrentFramebuffer()))[offset]);
 				Color dst(color);
 				Color end(0);
 
@@ -546,31 +551,32 @@ namespace tsl {
 				end.b = this->blendColor(src.b, dst.b, dst.a);
 				end.a = src.a;
 
-				this->setPixel(x, y, end);
+				this->setPixelWithOffset(offset, end);
 			}
 
-			/**
-			 * @brief Draws a single destination blended pixel onto the screen
-			 * 
-			 * @param x X pos 
-			 * @param y Y pos
-			 * @param color Color
-			 */
-			inline void setPixelBlendDst(s16 x, s16 y, Color color) {
-				if (x < 0 || y < 0 || x >= cfg::FramebufferWidth || y >= cfg::FramebufferHeight)
-					return;
-
-				Color src((static_cast<u16*>(this->getCurrentFramebuffer()))[this->getPixelOffset(x, y)]);
-				Color dst(color);
-				Color end(0);
-
-				end.r = this->blendColor(src.r, dst.r, dst.a);
-				end.g = this->blendColor(src.g, dst.g, dst.a);
-				end.b = this->blendColor(src.b, dst.b, dst.a);
-				end.a = (dst.a + (src.a * (0xF - dst.a) >> 4));
-
-				this->setPixel(x, y, end);
-			}
+            /** 
+             * @brief Draws a single destination blended pixel onto the screen 
+             *  
+             * @param x X pos  
+             * @param y Y pos 
+             * @param color Color 
+             */ 
+            [[gnu::always_inline]] void setPixelBlendDst(s16 x, s16 y, Color color) { 
+                if (x < 0 || y < 0 || x >= cfg::FramebufferWidth || y >= cfg::FramebufferHeight) [[unlikely]] 
+                    return; 
+ 
+                u32 offset = this->getPixelOffset(x, y); 
+                Color src((static_cast<u16*>(this->getCurrentFramebuffer()))[offset]); 
+                Color dst(color); 
+                Color end(0); 
+ 
+                end.r = this->blendColor(src.r, dst.r, dst.a); 
+                end.g = this->blendColor(src.g, dst.g, dst.a); 
+                end.b = this->blendColor(src.b, dst.b, dst.a); 
+                end.a = (dst.a + (src.a * (0xF - dst.a) >> 4)); 
+ 
+                this->setPixelWithOffset(offset, end); 
+            }
 
 			/**
 			 * @brief Draws a rectangle of given sizes
@@ -1088,6 +1094,7 @@ namespace tsl {
 			NWindow m_window;
 			Framebuffer m_framebuffer;
 			void *m_currentFramebuffer = nullptr;
+			u32 m_framebufferWidthDiv4 = 0;
 			
 			bool m_scissoring = false;
 			u16 m_scissorBounds[4];
@@ -1101,7 +1108,7 @@ namespace tsl {
 			 * 
 			 * @return Framebuffer address
 			 */
-			inline void* getCurrentFramebuffer() {
+			[[gnu::always_inline]] void* getCurrentFramebuffer() {
 				return this->m_currentFramebuffer;
 			}
 
@@ -1157,34 +1164,44 @@ namespace tsl {
 			inline void waitForVSync() {
 				eventWait(&this->m_vsyncEvent, UINT64_MAX);
 			}
-
+			
 			#pragma GCC push_options
 			#pragma GCC optimize ("O3")
 
-			/**
-			 * @brief Decodes a x and y coordinate into a offset into the swizzled framebuffer
-			 * 
-			 * @param x X pos
-			 * @param y Y Pos
-			 * @return Offset
-			 */
-			inline u32 getPixelOffset(u32 x, u32 y) {
-				if (this->m_scissoring) {
+			[[gnu::cold, gnu::noinline]]
+			u32 getPixelOffset_oob() const {
+				return cfg::FramebufferWidth * cfg::FramebufferHeight * 2 + 1;
+			}
+
+			[[gnu::pure, gnu::always_inline]] u32 getPixelOffset(u32 x, u32 y) {
+				//I think this is the most optimized getPixelOffset we can get.
+				//Using out of order execution to the maximum
+				//Only 22 instructions on hot path in ARM64
+				[[assume(x < cfg::FramebufferWidth)]];
+				[[assume(y < cfg::FramebufferHeight)]];
+
+				if (this->m_scissoring) [[unlikely]] {
 					if (x < this->m_scissorBounds[0] ||
 						y < this->m_scissorBounds[1] ||
 						x > this->m_scissorBounds[0] + this->m_scissorBounds[2] ||
 						y > this->m_scissorBounds[1] + this->m_scissorBounds[3])
-							return cfg::FramebufferWidth * cfg::FramebufferHeight * 2 + 1;
+							return getPixelOffset_oob();
 				}
 
-				u32 tmpPos = ((y & 127) / 16) + (x / 32 * 8) + ((y / 16 / 8) * (this->m_framebuffer.width_aligned / 4));
-				tmpPos *= 16 * 16 * 4;
+				u32 tile_acc = (y >> 4 & 7) + ((x >> 5) << 3);
+				//Compiler trick to force assembly output better utilizing out of order execution
+				asm volatile("" : "+r"(tile_acc));
+				const u32 tile_offset = (y >> 7) * this->m_framebufferWidthDiv4 + tile_acc;
 
-				tmpPos += ((y % 16) / 8) * 512 + ((x % 32) / 16) * 256 + ((y % 8) / 2) * 64 + ((x % 16) / 8) * 32 + (y % 2) * 16 + (x % 8) * 2;
-				
-				return tmpPos / 2;
+				const u32 swiz = ((y >> 3) & 1) << 8   // y[3]
+							| ((x >> 4) & 1) << 7   // x[4]
+							| ((y >> 1) & 3) << 5   // y[2:1]
+							| ((x >> 3) & 1) << 4   // x[3]
+							| ( y       & 1) << 3   // y[0]
+							| ( x       & 7);       // x[2:0]
+
+				return tile_offset * 512 + swiz;
 			}
-
 			#pragma GCC pop_options
 
 			/**
@@ -1235,6 +1252,7 @@ namespace tsl {
 					ASSERT_FATAL(viSetLayerPosition(&this->m_layer, cfg::LayerPosX, cfg::LayerPosY));
 					ASSERT_FATAL(nwindowCreateFromLayer(&this->m_window, &this->m_layer));
 					ASSERT_FATAL(framebufferCreate(&this->m_framebuffer, &this->m_window, cfg::FramebufferWidth, cfg::FramebufferHeight, PIXEL_FORMAT_RGBA_4444, 2));
+					this->m_framebufferWidthDiv4 = this->m_framebuffer.width_aligned >> 2;
 					ASSERT_FATAL(this->initFonts());
 				});
 

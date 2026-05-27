@@ -1,5 +1,6 @@
 Name = Game Resolutions
 NAME_LOCALE{"PL-PL", "Rozdzielczości w grze"}
+VERSION = 1
 
 COMMON_MARGIN = 0
 

@@ -1,4 +1,5 @@
 Name = Mini
+VERSION = 1
 
 User_RefreshRate = 1
 ;;User_RefreshRate_Description = Max FPS of rendered overlay. It won't be faster than your current refresh rate because of vsync.

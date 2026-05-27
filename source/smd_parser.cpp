@@ -358,6 +358,7 @@ static bool IsPredefinedReadOnlyName(const std::string& n) {
 		"System_KeysDown_int", "System_KeysHeld_int", "formattedKeyCombo",
 		"System_ClockHour_int", "System_ClockMinute_int", "System_ClockSecond_int",
 		"System_CalendarYear_int", "System_CalendarMonth_int", "System_CalendarDay_int",
+		"System_OverlayRenderingFrameTimeInNs_int",
 		// Misc
 		"Misc_IsWiFiPassphrase",
 		"Misc_NvDecHz_int", "Misc_NvEncHz_int", "Misc_NvJpgHz_int",

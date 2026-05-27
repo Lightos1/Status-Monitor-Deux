@@ -1,5 +1,6 @@
 Name = Battery/Charger
 NAME_LOCALE{"PL-PL", "Ładowarka/Bateria"}
+VERSION = 1
 
 Text01Format = IETF{"Battery Actual Capacity: %.0f mAh\n"}
 Text02Format = IETF{"Battery Designed Capacity: %.0f mAh\n"}

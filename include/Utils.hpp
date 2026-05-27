@@ -204,6 +204,7 @@ struct SystemDataType {
 	int64_t CalendarYear;
 	int64_t CalendarMonth;
 	int64_t CalendarDay;
+	int64_t overlayRenderingFrameTimeInNs;
 };
 
 struct MiscDataType {
@@ -352,6 +353,7 @@ inline void BindAllPredefined(smd::Document& doc) {
 	doc.BindInt64 ("System_CalendarYear_int",                   &SystemData.CalendarYear);
 	doc.BindInt64 ("System_CalendarMonth_int",                 	&SystemData.CalendarMonth);
 	doc.BindInt64 ("System_CalendarDay_int",                  	&SystemData.CalendarDay);
+	doc.BindInt64 ("System_OverlayRenderingFrameTimeInNs_int",  &SystemData.overlayRenderingFrameTimeInNs);
     doc.BindString("formattedKeyCombo",                  		&SystemData.formattedKeyCombo);
     doc.BindBool  ("Misc_IsWiFiPassphrase",               		&MiscData.IsWiFiPassphrase);
     doc.BindInt64 ("Misc_NvDecHz_int",                    		&MiscData.NvDecHz_int);

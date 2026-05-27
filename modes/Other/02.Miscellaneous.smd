@@ -1,5 +1,6 @@
 Name = Miscellaneous
 NAME_LOCALE{"PL-PL", "Różności"}
+VERSION = 1
 
 MultimediaText   = IETF{"Multimedia clock rates:"}
 NetworkText      = IETF{"Network:"}
