@@ -3,8 +3,8 @@ NAME_LOCALE{"PL-PL", "Pełny"}
 VERSION = 1
 
 User_RefreshRate = 1
-;;User_RefreshRate_Description = Max FPS of rendered overlay. It won't be faster than your current refresh rate because of vsync.
-;;User_RefreshRate_Description_PL-PL = Maksymalne odświeżanie nakładki. Przez vsync nie będzie szybsze niż odświeżanie ekranu.
+;;User_RefreshRate_Description = Max refresh rate of rendered overlay. It won't be faster than your current display refresh rate because of vsync.
+;;User_RefreshRate_Description_PL-PL = Maksymalna częstotliwość odświeżania nakładki. Przez vsync nie będzie szybsza niż odświeżanie ekranu.
 ;;User_RefreshRate_Name = Refresh rate
 ;;User_RefreshRate_Name_PL-PL = Odświeżanie
 ;;User_RefreshRate_DefaultValue = 1
