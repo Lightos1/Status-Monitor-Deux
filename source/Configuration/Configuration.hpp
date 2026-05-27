@@ -1,4 +1,7 @@
 #pragma once
+#include "EditConfigOrdering.hpp"
+#include "EditConfigColor.hpp"
+#include "ConfigurationSubMenu.hpp"
 
 class Configuration : public tsl::Gui {
 private:

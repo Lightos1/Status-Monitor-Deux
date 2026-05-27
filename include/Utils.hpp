@@ -8,6 +8,7 @@
 #include <numeric>
 #include <sys/stat.h>
 #include "smd_parser.hpp"
+#include <array>
 
 #if defined(__cplusplus)
 extern "C"
@@ -266,6 +267,11 @@ extern MiscDataType MiscData;
 extern SysClkContext sysclkCTX;
 extern HocClkContext hocclkCTX;
 extern FieldDescriptor fd;
+static constexpr unsigned char impl_defaultLocale[] = {
+	#embed "defaultLocale.ini"
+	, 0
+};
+extern std::array<unsigned char, sizeof(impl_defaultLocale)> defaultLocale;
 
 inline void BindAllPredefined(smd::Document& doc) {
     doc.BindInt64 ("CPU_Hz_int",                          		&CpuData.Hz_int);

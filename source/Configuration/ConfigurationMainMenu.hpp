@@ -1,4 +1,6 @@
 #pragma once
+#include "EditConfigLanguage.hpp"
+#include "EditConfigKeyCombo.hpp"
 
 class ConfigurationMainMenu : public tsl::Gui {
 private:
@@ -251,7 +253,7 @@ public:
 			auto Item = new tsl::elm::ListItem(locale["override_language"]);
 			Item->setClickListener([this](uint64_t keys) {
 				if (keys & KEY_A) {
-					//tsl::changeTo<EditConfigLanguage>();
+					tsl::changeTo<EditConfigLanguage>(&skipConfigSaving);
 					return true;
 				}
 				return false;

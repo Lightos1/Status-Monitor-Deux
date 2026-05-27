@@ -13,11 +13,7 @@ HidSixAxisSensorHandle sixaxisHandles[Controller_Max];
 
 #include "rendering_pipeline.hpp"
 #include "DataTypes.hpp"
-#include "Configuration/EditConfigOrdering.hpp"
-#include "Configuration/EditConfigColor.hpp"
 #include "Configuration/EditConfigInt.hpp"
-#include "Configuration/ConfigurationSubMenu.hpp"
-#include "Configuration/EditConfigKeyCombo.hpp"
 #include "Configuration/ConfigurationMainMenu.hpp"
 #include "Configuration/Configuration.hpp"
 #include "RenderingPipelineDummy.hpp"

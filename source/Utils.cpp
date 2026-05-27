@@ -53,10 +53,7 @@ std::unordered_map<std::string, std::string> locale;
 bool teslaCombo = false;
 bool ultrahandCombo = false;
 
-static constexpr unsigned char defaultLocale[] = {
-	#embed "defaultLocale.ini"
-	, 0
-};
+std::array<unsigned char, sizeof(impl_defaultLocale)> defaultLocale = std::to_array(impl_defaultLocale);
 
 //Checks
 Result clkrstCheck = 1;
@@ -1197,7 +1194,7 @@ void ParseIniFile() {
 		}
 	}
 
-	std::unordered_map<std::string, std::unordered_map<std::string, std::string>> defaultIni = parseIni(std::string((const char*)defaultLocale, sizeof(defaultLocale)));
+	std::unordered_map<std::string, std::unordered_map<std::string, std::string>> defaultIni = parseIni(std::string((const char*)impl_defaultLocale, sizeof(impl_defaultLocale)));
 	std::unordered_map<std::string, std::string> m_defaultLocale = defaultIni["EN-US"];
 	std::map<std::string, std::map<std::string, std::string>> temp = getParsedDataFromIniFile(localeIniPath.c_str());
 
