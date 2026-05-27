@@ -226,7 +226,7 @@ void BatteryChecker(void*) {
 		uint64_t startTick = svcGetSystemTick();
 
 		if (R_SUCCEEDED(psmGetBatteryChargeInfoFields(&_batteryChargeInfoFields))) {
-			if (hosversionAtLeast(21, 0, 0)) {
+			if (hosversionAtLeast(17, 0, 0)) {
 				PsmBatteryChargeInfoFieldsNew* new_data = (PsmBatteryChargeInfoFieldsNew*)&_batteryChargeInfoFields;
 				BoardData.ChargerVoltageLimit_int = new_data->charger_input_voltage_limit;
 				BoardData.ChargerCurrentLimit_int = new_data->charger_input_current_limit;
