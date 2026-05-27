@@ -491,13 +491,11 @@ void RenderingPipeline::update() {
 // ─── handleInput ─────────────────────────────────────────────────────────────
 
 bool RenderingPipeline::handleInput(uint64_t keysDown, uint64_t keysHeld, touchPosition touchInput, JoystickPosition leftJoyStick, JoystickPosition rightJoyStick) {
-	static u32 last_layer_w = tsl::cfg::LayerWidth;
-	static u32 last_layer_h = tsl::cfg::LayerHeight;
-	if (tsl::cfg::LayerWidth != last_layer_w || tsl::cfg::LayerHeight != last_layer_h) {
+	if (tsl::cfg::LayerWidth != m_last_layer_w || tsl::cfg::LayerHeight != m_last_layer_h) {
 		m_layer_pos_x_window = tsl::cfg::LayerPosX;
 		m_layer_pos_y_window = tsl::cfg::LayerPosY;
-		last_layer_w = tsl::cfg::LayerWidth;
-		last_layer_h = tsl::cfg::LayerHeight;
+		m_last_layer_w = tsl::cfg::LayerWidth;
+		m_last_layer_h = tsl::cfg::LayerHeight;
 	}
 
 	if (error.length() != 0) {
@@ -508,7 +506,6 @@ bool RenderingPipeline::handleInput(uint64_t keysDown, uint64_t keysHeld, touchP
 		}
 		return false;
 	}
-	static uint64_t last_time = armTicksToNs(svcGetSystemTick());
 
 	int64_t mnx = 0, mny = 0;
 	bool haveBounds = !s_rects.empty();
@@ -617,7 +614,6 @@ bool RenderingPipeline::handleInput(uint64_t keysDown, uint64_t keysHeld, touchP
 		}
 		if (m_motionControl == true && (changingPos == false || sixaxisChangingPos == true)) [[unlikely]] {
 			HidSixAxisSensorState sixaxis = {0};
-			static bool start = false;
 			s32 id = -1;
 			u64 style_set = padGetStyleSet(&pad);
 			if (style_set & HidNpadStyleTag_NpadJoyDual) {
@@ -634,7 +630,7 @@ bool RenderingPipeline::handleInput(uint64_t keysDown, uint64_t keysHeld, touchP
 				if ((keysHeld & proControllerMotionMappedButtons) == proControllerMotionMappedButtons) id = Controller_ProController;
 			}
 			if (id < 0) {
-				start = false;
+				m_gyro_started = false;
 				changingPos = false;
 				sixaxisChangingPos = false;
 			}
@@ -646,8 +642,8 @@ bool RenderingPipeline::handleInput(uint64_t keysDown, uint64_t keysHeld, touchP
 					hidGetSixAxisSensorStates(sixaxisHandles[id], &sixaxis, 1);
 				}
 				if (sixaxis.acceleration.x != 0.f || sixaxis.acceleration.y != 0.f || sixaxis.acceleration.z != -1.f) {
-					if (start == false) {
-						start = true;
+					if (m_gyro_started == false) {
+						m_gyro_started = true;
 						float sensitivity = 200;
 						gyroCursor_init(cursor, (float)m_base_x, (float)m_base_y, sensitivity);
 						m_anchor_offset_x = 0;
@@ -659,7 +655,7 @@ bool RenderingPipeline::handleInput(uint64_t keysDown, uint64_t keysHeld, touchP
 					applyDrag();
 				}
 				else {
-					start = false;
+					m_gyro_started = false;
 					changingPos = false;
 					sixaxisChangingPos = false;
 				}
@@ -703,8 +699,8 @@ bool RenderingPipeline::handleInput(uint64_t keysDown, uint64_t keysHeld, touchP
 			keysDown = padGetButtonsDown(&pad);
 			svcSleepThread(1000000);
 			new_time = armTicksToNs(svcGetSystemTick());
-		} while (new_time - last_time < timeout);
-		last_time = new_time;
+		} while (new_time - m_last_time < timeout);
+		m_last_time = new_time;
 	}
 	SystemData.KeysHeld_int = keysHeld;
 	SystemData.KeysDown_int = keysDown;

@@ -43,6 +43,10 @@ private:
 	int64_t m_anchor_offset_y = 0;
 	int64_t m_saved_base_x = -1;
 	int64_t m_saved_base_y = -1;
+	uint64_t m_last_time = armTicksToNs(svcGetSystemTick());
+	bool m_gyro_started = false;
+	u32 m_last_layer_w = tsl::cfg::LayerWidth;
+	u32 m_last_layer_h = tsl::cfg::LayerHeight;
 
 	struct TouchRect { int64_t x, y, w, h; };
 	static inline std::vector<TouchRect> s_rects{};
