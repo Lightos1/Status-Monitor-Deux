@@ -53,29 +53,10 @@ std::unordered_map<std::string, std::string> locale;
 bool teslaCombo = false;
 bool ultrahandCombo = false;
 
-std::string defaultLocale = "[EN-US]\n"
-							"Footer=\xEE\x83\xA1  Back     \xEE\x83\xA0  OK\n"
-							"MainMenuFooter=\xEE\x83\xA1  Back     \xEE\x83\xA0  OK       \xEE\x83\xAD  Settings\n"
-							"FooterWithReset=\xEE\x83\xA1  Back     \xEE\x83\xA0  OK       \xEE\x83\xA2  Default\n"
-							"FooterMoveUpDown=\xEE\x83\xA1  Back     \xEE\x83\xA0  OK       \xEE\x85\x87  \xEE\x88\xA4    \xEE\x85\x88  \xEE\x88\xA5\n"
-							"FooterModify=\xEE\x83\xA1  Back     \xEE\x83\xA0  OK       \xEE\x83\xA2  Modify\n"
-							"UltrahandCombo=Ultrahand combo\n"
-							"TeslaMenuCombo=Tesla menu combo\n"
-							"Bools=Turn on/off settings\n"
-							"Ints=Adjust values\n"
-							"Colors=Change colors\n"
-							"List=Adjust lists\n"
-							"key_combo=Exit key Combo\n"
-							"battery_avg_iir_filter=Battery amperage with IIR filter\n"
-							"battery_time_left_refreshrate=Battery time left refresh rate\n"
-							"touch_screen=Enable touch screen\n"
-							"motion_control=Enable motion controls\n"
-							"left_joycon_motion_key_combo=Left Joycon motion control key combo\n"
-							"Right_joycon_motion_key_combo=Right Joycon motion control key combo\n"
-							"pro_controller_motion_key_combo=Pro Controller motion control key combo\n"
-							"jump_immediately_to_single_smd=Jump to detected SMD file if only one was detected\n"
-							"override_language=Force other language\n"
-							"reset_settings=Reset settings";
+static constexpr unsigned char defaultLocale[] = {
+	#embed "defaultLocale.ini"
+	, 0
+};
 
 //Checks
 Result clkrstCheck = 1;
@@ -1216,22 +1197,30 @@ void ParseIniFile() {
 		}
 	}
 
-	std::unordered_map<std::string, std::unordered_map<std::string, std::string>> defaultIni = parseIni(defaultLocale);
+	std::unordered_map<std::string, std::unordered_map<std::string, std::string>> defaultIni = parseIni(std::string((const char*)defaultLocale, sizeof(defaultLocale)));
 	std::unordered_map<std::string, std::string> m_defaultLocale = defaultIni["EN-US"];
 	std::map<std::string, std::map<std::string, std::string>> temp = getParsedDataFromIniFile(localeIniPath.c_str());
 
 	if (override_check == true && temp_overrideLanguage.length() > 0) {
 		overrideLanguage = temp_overrideLanguage;
 		auto it = temp.find(overrideLanguage);
+		bool isGood = false;
 		if (it != temp.end()) {
+			isGood = true;
 			locale = std::unordered_map<std::string, std::string>(it->second.begin(), it->second.end());
 			for (const auto& [key, data] : m_defaultLocale) {
+				if (locale.find(key) == locale.end()) {
+					isGood = false;
+					break;
+				}
+			}
+			if (isGood == true) for (const auto& [key, data] : m_defaultLocale) {
 				auto it2 = locale.find(key);
 				if (it2 != locale.end()) it2->second = resolveHexEscapes(locale[key]);
 				else locale[key] = resolveHexEscapes(data);
 			}
 		}
-		else {
+		if (isGood == false) {
 			for (const auto& [key, data] : m_defaultLocale) {
 				locale[key] = resolveHexEscapes(data);
 			}
@@ -1268,18 +1257,26 @@ void ParseIniFile() {
 			}
 
 			auto it = temp.find(overrideLanguage);
-			if (it == temp.end()) {
-				for (const auto& [key, data] : m_defaultLocale) {
-					locale[key] = resolveHexEscapes(data);
-				}
-			}
-			else {
+			bool isGood = false;
+			if (it != temp.end()) {
 				locale = std::unordered_map<std::string, std::string>(it->second.begin(), it->second.end());
+				isGood = true;
 				for (const auto& [key, data] : m_defaultLocale) {
+					if (locale.find(key) == locale.end()) {
+						isGood = false;
+						break;
+					}
+				}
+				if (isGood == true) for (const auto& [key, data] : m_defaultLocale) {
 					auto it2 = locale.find(key);
 					if (it2 != locale.end()) it2->second = resolveHexEscapes(locale[key]);
 					else locale[key] = resolveHexEscapes(data);
 				}
+			}
+			if (isGood == false) {
+				for (const auto& [key, data] : m_defaultLocale) {
+					locale[key] = resolveHexEscapes(data);
+				}				
 			}
 		}
 	}
