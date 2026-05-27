@@ -1168,7 +1168,7 @@ namespace tsl {
 			 * @param y Y Pos
 			 * @return Offset
 			 */
-			__attribute__((always_inline)) u32 getPixelOffset(u32 x, u32 y) {
+			inline u32 getPixelOffset(u32 x, u32 y) {
 				if (this->m_scissoring) {
 					if (x < this->m_scissorBounds[0] ||
 						y < this->m_scissorBounds[1] ||
@@ -1177,7 +1177,7 @@ namespace tsl {
 							return cfg::FramebufferWidth * cfg::FramebufferHeight * 2 + 1;
 				}
 
-				u32 tmpPos = ((y & 127) / 16) + (x / 32 * 8) + ((y / 16 / 8) * (((cfg::FramebufferWidth / 2) / 16 * 8)));
+				u32 tmpPos = ((y & 127) / 16) + (x / 32 * 8) + ((y / 16 / 8) * (this->m_framebuffer.width_aligned / 4));
 				tmpPos *= 16 * 16 * 4;
 
 				tmpPos += ((y % 16) / 8) * 512 + ((x % 32) / 16) * 256 + ((y % 8) / 2) * 64 + ((x % 16) / 8) * 32 + (y % 2) * 16 + (x % 8) * 2;
