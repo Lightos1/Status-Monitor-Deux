@@ -1034,7 +1034,7 @@ bool ProcessSmdSettings(std::string filename, uint32_t crc32, uint16_t* x, uint1
 	return false;
 }
 
-static std::string resolveHexEscapes(const std::string& s) {
+std::string resolveHexEscapes(const std::string& s) {
     std::string result;
     for (size_t i = 0; i < s.size(); ++i) {
         if (s[i] == '\\' && i + 3 <= s.size() && s[i + 1] == 'x' &&
@@ -1042,7 +1042,12 @@ static std::string resolveHexEscapes(const std::string& s) {
             std::isxdigit(static_cast<unsigned char>(s[i + 3]))) {
             result += static_cast<char>(std::stoul(s.substr(i + 2, 2), nullptr, 16));
             i += 3;
-        } else {
+        } 
+		else if (s[i] == '\\' && s[i+1] == 'n') {
+			result += "\n";
+			i++;
+		}
+		else {
             result += s[i];
         }
     }

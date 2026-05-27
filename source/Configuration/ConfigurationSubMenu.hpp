@@ -6,6 +6,69 @@ private:
 	std::string showType;
 	std::string m_name;
 	std::string footerBackup;
+	static constexpr size_t descriptionSize = 18;
+
+	std::string wrapText(const std::string& text, u32 maxWidth, u32 fontsize) {
+		std::string wrappedText;
+		std::string currentLine;
+		std::string currentWord;
+		auto renderer = tsl::gfx::Renderer::getRenderer();
+
+		// Helper lambda to measure string width invisibly
+		auto measureWidth = [&](const std::string& str) {
+			// Passing 0, 0 for x/y since we only care about the returned width
+			
+			const auto [width, height] = renderer.drawString(str.c_str(), false, 0, fontsize, fontsize, renderer.a(0x0000));
+			return width;
+		};
+
+		for (char c : text) {
+			if (c == ' ') {
+				// Check if adding the current word exceeds our max width
+				if (measureWidth(currentLine + currentWord) > maxWidth && !currentLine.empty()) {
+					// Drop the trailing space from the previous line before breaking
+					if (!currentLine.empty() && currentLine.back() == ' ') {
+						currentLine.pop_back();
+					}
+					wrappedText += currentLine + "\n";
+					currentLine = currentWord + " ";
+				} else {
+					currentLine += currentWord + " ";
+				}
+				currentWord.clear();
+			} else if (c == '\n') {
+				// Respect any explicit newlines already in the string
+				wrappedText += currentLine + currentWord + "\n";
+				currentLine.clear();
+				currentWord.clear();
+			} else {
+				currentWord += c;
+			}
+		}
+
+		// Append whatever is left over at the end of the loop
+		if (!currentWord.empty()) {
+			if (measureWidth(currentLine + currentWord) > maxWidth && !currentLine.empty()) {
+				if (!currentLine.empty() && currentLine.back() == ' ') {
+					currentLine.pop_back();
+				}
+				wrappedText += currentLine + "\n" + currentWord;
+			} else {
+				wrappedText += currentLine + currentWord;
+			}
+		} else if (!currentLine.empty()) {
+			wrappedText += currentLine;
+		}
+
+		return wrappedText;
+	}
+
+	size_t GetHeight(const std::string& text, size_t fontsize) {
+		auto renderer = tsl::gfx::Renderer::getRenderer();
+		const auto [width, height] = renderer.drawString(text.c_str(), false, 0, fontsize, fontsize, renderer.a(0x0000));
+		return height;
+	}
+
 public:
 	ConfigurationSubMenu(std::string type, std::string name) {
 		footerBackup = defaultButtonView;
@@ -35,11 +98,30 @@ public:
 		auto list = new tsl::elm::List();
 
 		for (const auto& [key, data] : configs) {
+			std::string descriptionAdjusted = data.localDescriptionAdjusted;
+			
+			if (data.localDescription.length() > 0 && descriptionAdjusted.length() == 0) {
+				configs[key].localDescriptionAdjusted = wrapText(resolveHexEscapes(data.localDescription), 360, descriptionSize);
+				descriptionAdjusted = configs[key].localDescriptionAdjusted;
+			}
+
+			auto addDescription = [&]() {
+				if (descriptionAdjusted.length() > 0) {
+					auto height = GetHeight(descriptionAdjusted, descriptionSize) + descriptionSize;
+					auto Status = new tsl::elm::CustomDrawer([this, descriptionAdjusted, height](tsl::gfx::Renderer *renderer, u16 x, u16 y, u16 w, u16 h) {
+						renderer->drawString(descriptionAdjusted.c_str(), false, x+5, y+descriptionSize+5, descriptionSize, 0xFCCC);
+						renderer->drawRect(x, y+5, 2, height-descriptionSize+5, 0xFCCC);
+						renderer->drawRect(x, y+5, 5, 2, 0xFCCC);
+					});
+					list->addItem(Status, height);
+				}
+			};
+
 			if ((data.type.compare(m_type) == 0) || (data.type.compare("font") == 0 && m_type.compare("int") == 0)) {
 				if (m_type.compare("int") == 0) {
 					int64_t temp;
 					if (isNumeric(data.rangeMin, &temp) == true && isNumeric(data.rangeMax, &temp) == true) {
-						auto Item = new tsl::elm::ListItem(data.localName.length() > 0 ? data.localName : key, data.value);
+						auto Item = new tsl::elm::ListItem(data.localName.length() > 0 ? data.localName : key, data.value, false);
 						Item->setClickListener([this, key, data, Item](uint64_t keys) {
 							if (keys & KEY_A) {
 								tsl::hlp::requestForeground(true);
@@ -48,6 +130,7 @@ public:
 							}
 							return false;
 						});
+						addDescription();
 						list->addItem(Item);
 					}
 					else {
@@ -69,6 +152,7 @@ public:
 						}
 						return false;
 					});
+					addDescription();
 					list->addItem(Item);
 				}
 				else if (data.type.compare("bool") == 0) {
@@ -81,6 +165,7 @@ public:
 						}
 						return false;
 					});
+					addDescription();
 					list->addItem(Item);
 				}
 				else if (data.type.compare("color") == 0) {
@@ -110,6 +195,7 @@ public:
 							}
 							return false;
 						});
+						addDescription();
 						list->addItem(Item);
 					}
 					else {

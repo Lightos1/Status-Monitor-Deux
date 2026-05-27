@@ -8,6 +8,7 @@ struct Data {
 	std::string defaultValue;
 	std::string localName;
 	std::string localDescription;
+	std::string localDescriptionAdjusted;
 	bool localNameWasFound;
 	bool localDescriptionWasFound;
 };

@@ -475,3 +475,4 @@ std::string lookupSMF(const std::string& folderPath);
 std::string listToFlatList(const std::string& input);
 std::string flatListToList(const std::string& input);
 void convertHidnpadKeyToButtonCombination (u64 bitfield, std::string& buttonCombinationToShow, std::string& buttonCombinationToConfig);
+std::string resolveHexEscapes(const std::string& s);

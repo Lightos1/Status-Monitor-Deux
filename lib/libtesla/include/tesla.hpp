@@ -1908,7 +1908,7 @@ namespace tsl {
 			 *              already set, matching upstream libtesla. Equivalent to
 			 *              calling \ref setValue after construction.
 			 */
-			ListItem(std::string text, std::string value = "", bool faint = false) : Element(), m_text(text), m_value(value), m_faint(faint) {}
+			ListItem(std::string text, std::string value = "", bool faint = false, std::string description = "") : Element(), m_text(text), m_value(value), m_faint(faint), m_description(description) {}
 			virtual ~ListItem() {}
 
 			virtual void draw(gfx::Renderer *renderer) override {
@@ -2010,10 +2010,11 @@ namespace tsl {
 
 		protected:
 			std::string m_text;
-			std::string m_value = "";
+			std::string m_value;
+			bool m_faint;
+			std::string m_description;
 			std::string m_scrollText = "";
 			std::string m_ellipsisText = "";
-			bool m_faint = false;
             bool m_scroll = false;
             bool m_trunctuated = false;
 			u32 m_maxWidth = 0;
@@ -2384,43 +2385,55 @@ namespace tsl {
 				this->m_listHeight = 0;
 			}
 
-			virtual Element* requestFocus(Element *oldFocus, FocusDirection direction) override {
+virtual Element* requestFocus(Element *oldFocus, FocusDirection direction) override {
 				if (this->m_items.size() == 0)
 					return nullptr;
 
-				// Initial focus (no direction): pick the first item.
+				Element *newFocus = nullptr;
+
+				// Initial focus (no direction)
 				if (direction == FocusDirection::None || oldFocus == nullptr) {
-					this->m_focusedIndex = 0;
-					this->updateScrollOffset();
-					return this->m_items[0].element;
+					for (u16 i = 0; i < this->m_items.size(); i++) {
+						newFocus = this->m_items[i].element->requestFocus(oldFocus, direction);
+						if (newFocus != nullptr) {
+							this->m_focusedIndex = i;
+							this->updateScrollOffset();
+							return newFocus;
+						}
+					}
+					return nullptr; // Nothing focusable found
 				}
 
 				// Find which entry currently has focus.
 				auto it = std::find(this->m_items.begin(), this->m_items.end(), oldFocus);
-				if (it == this->m_items.end()) {
-					this->m_focusedIndex = 0;
-					this->updateScrollOffset();
-					return this->m_items[0].element;
+				const size_t curIdx = (it != this->m_items.end()) ? static_cast<size_t>(it - this->m_items.begin()) : this->m_focusedIndex;
+
+				if (direction == FocusDirection::Down) {
+					for (size_t i = curIdx + 1; i < this->m_items.size(); i++) {
+						newFocus = this->m_items[i].element->requestFocus(oldFocus, direction);
+						if (newFocus != nullptr && newFocus != oldFocus) {
+							this->m_focusedIndex = static_cast<u16>(i);
+							this->updateScrollOffset();
+							return newFocus;
+						}
+					}
+					return oldFocus; // Hit the bottom, bounce back original focus
+				}
+				else if (direction == FocusDirection::Up) {
+					if (curIdx > 0) {
+						for (s32 i = static_cast<s32>(curIdx) - 1; i >= 0; i--) {
+							newFocus = this->m_items[i].element->requestFocus(oldFocus, direction);
+							if (newFocus != nullptr && newFocus != oldFocus) {
+								this->m_focusedIndex = static_cast<u16>(i);
+								this->updateScrollOffset();
+								return newFocus;
+							}
+						}
+					}
+					return oldFocus; // Hit the top, bounce back original focus
 				}
 
-				const size_t curIdx = static_cast<size_t>(it - this->m_items.begin());
-
-				if (direction == FocusDirection::Up) {
-					if (curIdx == 0)
-						return this->m_items[0].element;       // already at top, let parent shake
-					this->m_focusedIndex = static_cast<u16>(curIdx - 1);
-					this->updateScrollOffset();
-					return this->m_items[this->m_focusedIndex].element;
-				}
-				else if (direction == FocusDirection::Down) {
-					if (curIdx + 1 >= this->m_items.size())
-						return this->m_items.back().element;   // already at bottom
-					this->m_focusedIndex = static_cast<u16>(curIdx + 1);
-					this->updateScrollOffset();
-					return this->m_items[this->m_focusedIndex].element;
-				}
-
-				return it->element;
+				return it != this->m_items.end() ? it->element : oldFocus;
 			}
 
 		protected:

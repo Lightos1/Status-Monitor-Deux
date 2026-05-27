@@ -3,7 +3,8 @@ NAME_LOCALE{"PL-PL", "Wykres"}
 VERSION = 1
 
 User_RefreshRate = 30
-;;User_RefreshRate_Description = Max FPS of rendered overlay. It won't be faster than your current refresh rate because of vsync.
+;;User_RefreshRate_Description = Max refresh rate of rendered overlay. It won't be faster than your current display refresh rate because of vsync.
+;;User_RefreshRate_Description_PL-PL = Maksymalne odświeżanie nakładki. Przez vsync nie będzie szybsze niż odświeżanie ekranu.
 ;;User_RefreshRate_Name = Refresh rate
 ;;User_RefreshRate_Name_PL-PL = Odświeżanie
 ;;User_RefreshRate_DefaultValue = 30
@@ -45,8 +46,8 @@ User_BoxColor = COLOR{0x1117}
 ;;User_BoxColor_DefaultValue = COLOR{0x1117}
 User_MinValueColor = COLOR{0xFFFF}
 ;;User_MinValueColor_Description = Color of lowest value printed on the bottom left.
-;;User_MinValueColor_Name = \"0\" color
-;;User_MinValueColor_Name_PL-PL = Kolor liczby \"0\"
+;;User_MinValueColor_Name = "0" color
+;;User_MinValueColor_Name_PL-PL = Kolor liczby "0"
 ;;User_MinValueColor_DefaultValue = COLOR{0xFFFF}
 User_MaxValueColor = COLOR{0xFFFF}
 ;;User_MaxValueColor_Description = Color of highest value printed on the top left.
