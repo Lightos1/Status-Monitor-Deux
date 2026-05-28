@@ -3292,23 +3292,6 @@ static inline std::string MaterializeText(Document::Impl& im,
 // section below, but Compile() calls it to pre-tokenize #if conditions.
 static std::vector<std::string> TokenizeCondition(const std::string& s);
 
-// Free heap memory that is only needed during the Compile() pass.
-// Called at the end of a successful Compile() to return source-string
-// allocations that are no longer referenced by the evaluator.
-//
-// What is safe to clear:
-//   CExpr::source          — only used by te_compile() inside Compile()
-//   AstNode::condSource    — replaced by condToksCached for #if evaluation
-//   AstNode::varCondSource — replaced by varCondToksCached for VAR ternary
-//   FormatSpec::argExprs   — only used to drive BuildFormatArg() in Compile()
-//   FormatArg::numericSource — only fed to te_compile() inside Compile()
-//
-// What must NOT be cleared:
-//   FormatArg::condSource  — used at runtime by EvalCondition in MaterializeText
-//   GraphCondParsed::condSource — used by GraphConditionMatches slow-path
-//   FormatSpec::fmt, argIsString, compiledArgs, argTernaries — all runtime
-//   All AstNode name/key strings, listVal data, historyTarget, etc.
-
 bool Document::Compile() {
 	Impl& im = *m_impl;
 	// Free any prior compiled expressions.
