@@ -71,7 +71,7 @@ int main() {
     {
         smd::Document doc;
         const char* bad =
-            "Name: T\n"
+            "Name = T\n"
             "Start:\n"
             "VAR{x, this_is_not_a_valid_expression $$$ }\n"
             "TEXT{0, 0, 18, 0xFFFF, true, x}\n";
@@ -97,13 +97,13 @@ int main() {
     {
         smd::Document doc;
         const char* bad =
-            "Name: T\n"
+            "Name = T\n"
             "Start:\n"
             "VAR{LayerWidth, 100}\n";   // NB: LayerWidth is RW-default, not RO
         // LayerWidth is in the R/W defaults, so VAR{LayerWidth, ...} is OK.
         // Use a true read-only name:
         const char* bad2 =
-            "Name: T\n"
+            "Name = T\n"
             "Start:\n"
             "VAR{Game_FPS_int, 100}\n";
         if (doc.LoadFromMemory(bad2, std::strlen(bad2))) {
