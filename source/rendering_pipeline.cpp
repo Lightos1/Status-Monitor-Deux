@@ -199,6 +199,18 @@ bool RenderingPipeline::IsInsideTouchRange(int64_t screen_x, int64_t screen_y) c
 	return false;
 }
 
+inline uint64_t get_current_heap_position() {
+    return (uintptr_t)(sbrk(0));
+}
+
+size_t RenderingPipeline::getFreeHeapMemory() const {
+	uint64_t heap_pos = get_current_heap_position();
+	MemoryInfo info;
+	u32 dummy;
+	svcQueryMemory(&info, &dummy, heap_pos);
+	return (info.addr+info.size) - heap_pos;
+}
+
 // ─── Constructor ─────────────────────────────────────────────────────────────
 
 RenderingPipeline::RenderingPipeline(std::string filepath, bool double_back) {
@@ -398,7 +410,6 @@ tsl::elm::Element* RenderingPipeline::createUI() {
 		rootFrame = new tsl::elm::OverlayFrame(APP_TITLE, name);
 	else rootFrame = new tsl::elm::OverlayFrame("", "");
 	auto Status = new tsl::elm::CustomDrawer([this](tsl::gfx::Renderer *renderer, u16 x, u16 y, u16 w, u16 h) {
-		uint64_t tick_start = svcGetSystemTick();
 		if (error.length() > 0) {
 			renderer->drawString(error.c_str(), false, 20, 120, 20, renderer->a(0xFFFF));
 		}
@@ -459,8 +470,6 @@ tsl::elm::Element* RenderingPipeline::createUI() {
 			}
 		}
 		if (deactivateOriginalFooter == true && FullMode == true) renderer->drawString(ComboButtonFooter.c_str(), false, 30, 693, 23, a(rootFrame->defaultTextColor));
-		uint64_t deltaTick = svcGetSystemTick() - tick_start;
-		SystemData.overlayRenderingFrameTimeInNs = armTicksToNs(deltaTick);
 	});
 
 	rootFrame->setContent(Status);
@@ -470,6 +479,8 @@ tsl::elm::Element* RenderingPipeline::createUI() {
 // ─── update ──────────────────────────────────────────────────────────────────
 
 void RenderingPipeline::update() {
+	SystemData.OverlayRenderingFrameTimeInNs = frameTimeInNS;
+	SystemData.OverlayMemoryLeftInB =  getFreeHeapMemory();
 	if (error.length() != 0) return;
 	s_rects.clear();
 	doc.Reset(changingPos);

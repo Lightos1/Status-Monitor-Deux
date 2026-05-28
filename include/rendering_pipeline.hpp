@@ -62,6 +62,7 @@ private:
 	static void PreRecordCallback(std::string& outLocaleCode, void* user);
 	static void RecordCallback(smd::RenderCommand& cmd, void* user);
 	static void DryRunCallback(smd::RenderCommand& cmd, void* user);
+	size_t getFreeHeapMemory() const;
 
 	bool IsInsideTouchRange(int64_t screen_x, int64_t screen_y) const;
 

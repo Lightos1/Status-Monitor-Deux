@@ -139,6 +139,7 @@ inline bool fontCache = true;
 inline bool isChineseTraditionalOverride = false;
 inline std::string defaultButtonView = "\uE0E1  Back     \uE0E0  OK";
 inline bool isDocked = false;
+inline uint64_t frameTimeInNS = 0;
 
 using namespace std::literals::chrono_literals;
 
@@ -2866,10 +2867,13 @@ virtual Element* requestFocus(Element *oldFocus, FocusDirection direction) overr
 
 			renderer.startFrame();
 
-
+			uint64_t startTick = svcGetSystemTick();
 			this->animationLoop();
 			this->getCurrentGui()->update();
 			this->getCurrentGui()->draw(&renderer);
+			uint64_t endTick = svcGetSystemTick();
+			uint64_t deltaTick = endTick - startTick;
+			frameTimeInNS = armTicksToNs(deltaTick);
 
 			renderer.endFrame();
 		}

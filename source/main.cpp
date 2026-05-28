@@ -17,7 +17,9 @@ HidSixAxisSensorHandle sixaxisHandles[Controller_Max];
 #include "Configuration/ConfigurationMainMenu.hpp"
 #include "Configuration/Configuration.hpp"
 #include "RenderingPipelineDummy.hpp"
+#ifdef DEBUG
 #include "MemoryDebug.hpp"
+#endif
 
 extern "C" {
 	//This is done to save some space as they have no practical use in our case

@@ -204,7 +204,8 @@ struct SystemDataType {
 	int64_t CalendarYear;
 	int64_t CalendarMonth;
 	int64_t CalendarDay;
-	int64_t overlayRenderingFrameTimeInNs;
+	int64_t OverlayRenderingFrameTimeInNs;
+	int64_t OverlayMemoryLeftInB;
 };
 
 struct MiscDataType {
@@ -353,7 +354,8 @@ inline void BindAllPredefined(smd::Document& doc) {
 	doc.BindInt64 ("System_CalendarYear_int",                   &SystemData.CalendarYear);
 	doc.BindInt64 ("System_CalendarMonth_int",                 	&SystemData.CalendarMonth);
 	doc.BindInt64 ("System_CalendarDay_int",                  	&SystemData.CalendarDay);
-	doc.BindInt64 ("System_OverlayRenderingFrameTimeInNs_int",  &SystemData.overlayRenderingFrameTimeInNs);
+	doc.BindInt64 ("System_OverlayRenderingFrameTimeInNs_int",  &SystemData.OverlayRenderingFrameTimeInNs);
+	doc.BindInt64 ("System_OverlayMemoryLeftInB_int",           &SystemData.OverlayMemoryLeftInB);
     doc.BindString("formattedKeyCombo",                  		&SystemData.formattedKeyCombo);
     doc.BindBool  ("Misc_IsWiFiPassphrase",               		&MiscData.IsWiFiPassphrase);
     doc.BindInt64 ("Misc_NvDecHz_int",                    		&MiscData.NvDecHz_int);
@@ -476,3 +478,5 @@ std::string listToFlatList(const std::string& input);
 std::string flatListToList(const std::string& input);
 void convertHidnpadKeyToButtonCombination (u64 bitfield, std::string& buttonCombinationToShow, std::string& buttonCombinationToConfig);
 std::string resolveHexEscapes(const std::string& s);
+
+extern "C" void* sbrk(intptr_t increment);
