@@ -807,7 +807,23 @@ static std::string PreprocessExpr(const std::string& s) {
 			continue;
 		}
 		if (c == '"') { inStr = true; out.push_back(c); continue; }
-		if (c == '$') continue;            // drop variable marker
+		if (c == '$') {
+			// Drop $ only when it is a variable-marker sigil, i.e. it
+			// immediately precedes an identifier start character (letter
+			// or underscore).  A bare $ that does NOT precede an
+			// identifier (e.g. the `$$$` in a deliberately bad expression)
+			// is kept as-is so that te_compile sees an unrecognised token
+			// and returns an error.  Without this guard every `$` was
+			// silently discarded, making `$$$` vanish and allowing
+			// expressions like `this_is_not_a_valid_expression $$$` to
+			// compile successfully.
+			if (i + 1 < s.size()
+				&& (std::isalpha((unsigned char)s[i + 1]) || s[i + 1] == '_'))
+				continue;   // sigil: drop it
+			// Stray $: preserve it so te_compile rejects the expression.
+			out.push_back(c);
+			continue;
+		}
 		// Bare `true` / `false` as numeric literals. The config parser
 		// recognises these for `key: true` / `key: false`, so authors
 		// reasonably expect `VAR{flag, true}` and `#if $cond == true`
@@ -3275,6 +3291,23 @@ static inline std::string MaterializeText(Document::Impl& im,
 // Forward declaration: TokenizeCondition is defined in the condition-evaluator
 // section below, but Compile() calls it to pre-tokenize #if conditions.
 static std::vector<std::string> TokenizeCondition(const std::string& s);
+
+// Free heap memory that is only needed during the Compile() pass.
+// Called at the end of a successful Compile() to return source-string
+// allocations that are no longer referenced by the evaluator.
+//
+// What is safe to clear:
+//   CExpr::source          — only used by te_compile() inside Compile()
+//   AstNode::condSource    — replaced by condToksCached for #if evaluation
+//   AstNode::varCondSource — replaced by varCondToksCached for VAR ternary
+//   FormatSpec::argExprs   — only used to drive BuildFormatArg() in Compile()
+//   FormatArg::numericSource — only fed to te_compile() inside Compile()
+//
+// What must NOT be cleared:
+//   FormatArg::condSource  — used at runtime by EvalCondition in MaterializeText
+//   GraphCondParsed::condSource — used by GraphConditionMatches slow-path
+//   FormatSpec::fmt, argIsString, compiledArgs, argTernaries — all runtime
+//   All AstNode name/key strings, listVal data, historyTarget, etc.
 
 bool Document::Compile() {
 	Impl& im = *m_impl;
