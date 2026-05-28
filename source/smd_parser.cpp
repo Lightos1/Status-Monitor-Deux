@@ -173,6 +173,23 @@ struct GraphCondParsed {
 	te_expr* lineCompiled = nullptr;
 	te_expr* fillCompiled = nullptr;
 	double   xScratch     = 0.0;
+
+	// Pre-compiled fast-path for GraphConditionMatches() (built at Compile() time).
+	// For the common case of a single comparison (e.g. `x < 30`), we pre-compile
+	// both sides against a te_variable table that includes {x -> &xScratch}.
+	// GraphConditionMatches() then needs only two te_eval() calls + one compare --
+	// no allocation, no string parsing, no te_compile per sample.
+	//
+	// condFastOp: one of "<", ">", "<=", ">=", "==", "!=" (comparison),
+	//             or "" meaning pure-truth (no operator found).
+	// condFastLhs / condFastRhs: compiled exprs.  condFastRhs may be null
+	//   when condFastOp is "" (pure-truth check using only condFastLhs).
+	// condFastValid: false if the condition was too complex to pre-compile
+	//   (or/and chains, string literals, etc.) -- falls back to EvalCondition.
+	bool     condFastValid = false;
+	te_expr* condFastLhs   = nullptr;
+	te_expr* condFastRhs   = nullptr;
+	char     condFastOp[3] = {};   // null-terminated, max 2 chars ("<=", ">=", ...)
 };
 
 struct GraphCondDecl {
@@ -186,6 +203,9 @@ struct AstNode {
 	std::string             condSource;       // raw, post-preprocess
 	std::vector<AstNode>    thenBranch;
 	std::vector<AstNode>    elseBranch;
+	// Pre-tokenized form of condSource, filled at Compile() time.
+	// Avoids per-frame TokenizeCondition() string scan in EvalCondition().
+	std::vector<std::string> condToksCached;
 
 	// ---- For ----
 	// `#for $<loopVarName> in $<listName> ... #endfor`
@@ -253,6 +273,7 @@ struct AstNode {
 	// and pick eVarThen or eVarElse.
 	bool        varIsTernary = false;
 	std::string varCondSource;
+	std::vector<std::string> varCondToksCached;  // pre-tokenized at Compile() time
 	CExpr       eVarThen;
 	CExpr       eVarElse;
 
@@ -566,6 +587,25 @@ struct Document::Impl {
 	// automatically a one-shot: the NEXT Reset()/Evaluate() cycle behaves
 	// normally unless the caller passes freeze=true again.
 	bool m_frozen = false;
+
+	// ---- Pre-computed Reset dispatch lists (built at Compile() time) ----
+	//
+	// Reset() used to iterate privateVars/stringVars and call config.find()
+	// for every entry every frame.  These lists replace that with a flat
+	// array walk -- zero hash lookups, one pass over a compact array.
+	//
+	// Populated at the very end of Compile(); invalidated by Free().
+	std::vector<double*>      m_resetZeroVars;   // un-backed numeric VARs -> zero
+	std::vector<std::string*> m_resetClearVars;  // un-backed string VARs -> clear
+
+	// Format-backed string VARs need MaterializeText each Reset.
+	// We keep (value-ptr, config-key) pairs to avoid a map lookup.
+	struct ResetRematEntry { std::string* value; std::string key; };
+	std::vector<ResetRematEntry> m_resetRemat;
+
+	// Pre-computed dimsVars zero pointers (avoids map iteration + null checks).
+	struct DimZeroEntry { int64_t* x; int64_t* y; double* xm; double* ym; };
+	std::vector<DimZeroEntry> m_resetDimsZero;
 };
 
 // ===========================================================================
@@ -2093,6 +2133,13 @@ void Document::Free() {
 	m_impl->lastError.clear();
 	m_impl->lastErrorWrapped.clear();
 	m_impl->lastErrorWrappedOf = 0;
+	// Clear pre-computed Reset dispatch lists (built at Compile() time).
+	// These hold raw pointers into the maps cleared above, so they must
+	// be wiped before the next Compile() rebuilds them.
+	m_impl->m_resetZeroVars.clear();
+	m_impl->m_resetClearVars.clear();
+	m_impl->m_resetRemat.clear();
+	m_impl->m_resetDimsZero.clear();
 	// Reset locale cache so the next LoadFromMemory re-fires RecordCallback.
 	// The callback pointer and user data themselves survive Free() -- the host
 	// should only need to call SetRecordCallback() once per Document.
@@ -3223,6 +3270,10 @@ static inline std::string MaterializeText(Document::Impl& im,
 										  bool isLit,
 										  const std::string& strOrKey);
 
+// Forward declaration: TokenizeCondition is defined in the condition-evaluator
+// section below, but Compile() calls it to pre-tokenize #if conditions.
+static std::vector<std::string> TokenizeCondition(const std::string& s);
+
 bool Document::Compile() {
 	Impl& im = *m_impl;
 	// Free any prior compiled expressions.
@@ -3800,8 +3851,71 @@ bool Document::Compile() {
 				im.ownedExprs.push_back(p);
 				return true;
 			};
-			// Cond is NOT compiled (see above) -- left as raw source.
-			row.condCompiled = nullptr;
+			// Cond is NOT compiled via te_compile (see above) -- but we can
+			// pre-compile the fast path for simple comparisons like `x < 30`.
+			// Tokenize the condition; look for a single comparison operator at
+			// depth 0, with no or/and.  Both sides are compiled with rowVars
+			// (which includes x -> &row.xScratch).  If the condition is too
+			// complex, condFastValid stays false and GraphConditionMatches()
+			// falls back to the full EvalCondition slow path.
+			row.condCompiled  = nullptr;
+			row.condFastValid = false;
+			{
+				auto condToks = TokenizeCondition(row.condSource);
+				// Detect or/and -- too complex for the fast path.
+				bool hasLogical = false;
+				for (auto& t : condToks)
+					if (t == "or" || t == "and") { hasLogical = true; break; }
+
+				if (!hasLogical) {
+					// Find a comparison op.
+					size_t opIdx = condToks.size();
+					for (size_t ti = 0; ti < condToks.size(); ++ti) {
+						const auto& t = condToks[ti];
+						if (t=="==" || t=="!=" || t==">=" || t=="<=" ||
+							t==">"  || t=="<") { opIdx = ti; break; }
+					}
+
+					auto tryCompileSide = [&](size_t beg, size_t end) -> te_expr* {
+						std::string src;
+						for (size_t ti = beg; ti < end; ++ti) {
+							if (ti != beg) src.push_back(' ');
+							src += condToks[ti];
+						}
+						if (src.empty()) return nullptr;
+						int e2 = 0;
+						te_expr* p = te_compile(src.c_str(), rowVars.data(),
+												(int)rowVars.size(), &e2);
+						if (p) im.ownedExprs.push_back(p);
+						return p;
+					};
+
+					if (opIdx < condToks.size()) {
+						// Comparison form: lhs OP rhs
+						te_expr* lhs = tryCompileSide(0, opIdx);
+						te_expr* rhs = tryCompileSide(opIdx + 1, condToks.size());
+						if (lhs) {  // rhs may be null for degenerate input; ok
+							row.condFastLhs   = lhs;
+							row.condFastRhs   = rhs;
+							const std::string& opStr = condToks[opIdx];
+							// Copy at most 2 chars into the fixed buffer.
+							row.condFastOp[0] = opStr.size() > 0 ? opStr[0] : '\0';
+							row.condFastOp[1] = opStr.size() > 1 ? opStr[1] : '\0';
+							row.condFastOp[2] = '\0';
+							row.condFastValid = true;
+						}
+					} else {
+						// Pure-truth form: no comparison op.
+						te_expr* lhs = tryCompileSide(0, condToks.size());
+						if (lhs) {
+							row.condFastLhs   = lhs;
+							row.condFastRhs   = nullptr;
+							row.condFastOp[0] = '\0';
+							row.condFastValid = true;
+						}
+					}
+				}
+			}
 			if (!compileOne(row.lineSource, row.lineCompiled, "lineCol")) return false;
 			if (!compileOne(row.fillSource, row.fillCompiled, "fillCol")) return false;
 		}
@@ -3814,6 +3928,9 @@ bool Document::Compile() {
 				case NodeKind::If:
 					// Condition is NOT a tinyexpr expression -- we evaluate
 					// it ourselves (see EvalCondition).
+					// Pre-tokenize now so EvalCondition skips the per-frame
+					// string scan.
+					n.condToksCached = TokenizeCondition(n.condSource);
 					if (!compileBlock(n.thenBranch)) return false;
 					if (!compileBlock(n.elseBranch)) return false;
 					break;
@@ -3914,8 +4031,10 @@ bool Document::Compile() {
 						break;
 					}
 					if (n.varIsTernary) {
-						// The cond goes through EvalCondition; only compile
-						// the then/else branches as straight tinyexpr.
+						// The cond goes through EvalCondition; pre-tokenize
+						// it now so the per-frame call skips TokenizeCondition.
+						n.varCondToksCached = TokenizeCondition(n.varCondSource);
+						// Only compile the then/else branches as straight tinyexpr.
 						if (!compile(n.eVarThen, "VAR.then")) return false;
 						if (!compile(n.eVarElse, "VAR.else")) return false;
 					} else {
@@ -3970,6 +4089,40 @@ bool Document::Compile() {
 				sit->second = MaterializeText(im, /*isLit=*/false, kv.first);
 			}
 		}
+	}
+
+	// ----- Build pre-computed Reset dispatch lists -----
+	// Reset() previously iterated privateVars/stringVars/dimsVars while
+	// calling config.find() on every entry each frame.  We instead build
+	// these flat lists once here so Reset() can do pure array traversals.
+	im.m_resetZeroVars.clear();
+	im.m_resetClearVars.clear();
+	im.m_resetRemat.clear();
+	im.m_resetDimsZero.clear();
+	for (auto& kv : im.privateVars) {
+		if (!kv.second) continue;
+		auto cit = im.config.find(kv.first);
+		bool configBacked = cit != im.config.end()
+			&& (cit->second.kind == ConfigKind::Integer
+			 || cit->second.kind == ConfigKind::Bool);
+		if (!configBacked) im.m_resetZeroVars.push_back(kv.second.get());
+	}
+	for (auto& kv : im.stringVars) {
+		auto cit = im.config.find(kv.first);
+		if (cit == im.config.end()) {
+			im.m_resetClearVars.push_back(&kv.second);
+		} else if (cit->second.kind == ConfigKind::Format) {
+			im.m_resetRemat.push_back({ &kv.second, kv.first });
+		}
+		// String / Integer / Bool configs: leave whatever was last written.
+	}
+	for (auto& kv : im.dimsVars) {
+		Impl::DimZeroEntry e;
+		e.x  = kv.second.dims    ? &kv.second.dims->x    : nullptr;
+		e.y  = kv.second.dims    ? &kv.second.dims->y    : nullptr;
+		e.xm = kv.second.xMirror ? kv.second.xMirror.get() : nullptr;
+		e.ym = kv.second.yMirror ? kv.second.yMirror.get() : nullptr;
+		im.m_resetDimsZero.push_back(e);
 	}
 
 	// First Reset(): zeroes un-config-backed VARs and re-materialises the
@@ -4231,11 +4384,24 @@ static bool IsTruthy(double v) {
 }
 
 static bool EvalCondition(CondCache& cc, const std::string& cond,
+						  Document::Impl& im);
+
+// Pre-tokenized overload forward decl (body follows immediately after the string overload).
+static bool EvalCondition(CondCache& cc, const std::vector<std::string>& toks,
+						  Document::Impl& im);
+
+static bool EvalCondition(CondCache& cc, const std::string& cond,
 						  Document::Impl& im) {
 	if (Trim(cond).empty()) return true;
 	auto toks = TokenizeCondition(cond);
+	return EvalCondition(cc, toks, im);
+}
 
-	// Split by top-level "or" -> ORs of ANDs of comparisons.
+// Pre-tokenized overload: takes tokens built at Compile() time to avoid the
+// per-frame string scan + vector<string> allocation from TokenizeCondition().
+static bool EvalCondition(CondCache& cc, const std::vector<std::string>& toks,
+						  Document::Impl& im) {
+	if (toks.empty()) return true;
 	std::vector<std::vector<std::string>> orGroups;
 	orGroups.emplace_back();
 	for (auto& t : toks) {
@@ -4511,6 +4677,11 @@ struct CondCache;
 static bool EvalCondition(CondCache& cc, const std::string& cond,
 						  Document::Impl& im);
 
+// Fast-path overload: tokens were already computed at Compile() time.
+// Skips TokenizeCondition() entirely; builds or/and groups in-place.
+static bool EvalCondition(CondCache& cc, const std::vector<std::string>& toks,
+						  Document::Impl& im);
+
 // Helper: render a single positional FormatArg slot into (out_d, out_s).
 // `isStrSlot` says whether the %-specifier consumes a string or a number;
 // for string slots we fill out_s and out_d is 0, and vice-versa.
@@ -4745,7 +4916,28 @@ static bool GraphConditionMatches(void* state, double sampleValue) {
 	auto* gs = (GraphMatchState*)state;
 	if (!gs || !gs->row || !gs->im) return false;
 	gs->row->xScratch = sampleValue;
-	// Build a one-off CondCache with `x` exposed via extraVars.
+
+	// Fast path (common case): condition was pre-compiled at Compile() time.
+	// Just set xScratch, call te_eval on each pre-compiled side, compare.
+	// Zero allocation, zero string parsing, zero te_compile per sample.
+	if (gs->row->condFastValid) {
+		const char* op = gs->row->condFastOp;
+		if (op[0] == '\0') {
+			// Pure-truth check: condFastRhs is null.
+			return gs->row->condFastLhs
+				&& IsTruthy(te_eval(gs->row->condFastLhs));
+		}
+		double L = gs->row->condFastLhs ? te_eval(gs->row->condFastLhs) : 0.0;
+		double R = gs->row->condFastRhs ? te_eval(gs->row->condFastRhs) : 0.0;
+		// op is at most 2 chars; dispatch on first char, then second.
+		if (op[0] == '<') return op[1] ? (L <= R) : (L < R);
+		if (op[0] == '>') return op[1] ? (L >= R) : (L > R);
+		if (op[0] == '=') return (L == R);   // "=="
+		/* != */          return (L != R);
+	}
+
+	// Slow fallback: complex conditions (or/and chains, string comparisons).
+	// Build a one-shot CondCache with `x` exposed via extraVars.
 	std::unordered_map<std::string, te_expr*> arithCache;
 	std::vector<te_expr*> extraOwned;
 	te_variable xVar = { "x", &gs->row->xScratch, 0, nullptr };
@@ -4778,25 +4970,37 @@ bool Document::Evaluate(Callback cb, void* user) {
 	// condition, growing memory without bound.
 	CondCache cc{ &m_impl->arithCache, m_impl };
 
-	auto evalExpr = [](const CExpr& e) -> double {
-		return e.compiled ? te_eval(e.compiled) : 0.0;
-	};
+	// Use a concrete struct instead of std::function to eliminate the
+	// per-call indirect dispatch through a type-erased closure on A57.
+	struct EvalWalker {
+		Document::Impl*    im;
+		Document::Callback cb;
+		void*              user;
+		CondCache*         cc;
 
-	std::function<bool(std::vector<AstNode>&)> walk = [&](std::vector<AstNode>& v) -> bool {
-		for (auto& n : v) {
-			switch (n.kind) {
-				case NodeKind::If: {
-					bool truth = EvalCondition(cc, n.condSource, *m_impl);
-					if (!walk(truth ? n.thenBranch : n.elseBranch)) return false;
-					break;
-				}
+		static double evalExpr(const CExpr& e) noexcept {
+			return e.compiled ? te_eval(e.compiled) : 0.0;
+		}
+
+		bool walk(std::vector<AstNode>& v) {
+			for (auto& n : v) {
+				switch (n.kind) {
+					case NodeKind::If: {
+						// Use pre-tokenized tokens when available (common case);
+						// avoids per-frame TokenizeCondition() string scan.
+						bool truth = !n.condToksCached.empty()
+							? EvalCondition(*cc, n.condToksCached, *im)
+							: EvalCondition(*cc, n.condSource,    *im);
+						if (!walk(truth ? n.thenBranch : n.elseBranch)) return false;
+						break;
+					}
 				case NodeKind::For: {
 					// Iterate the referenced list, writing the current
 					// element into the loop var's storage each iteration.
-					auto cit = m_impl->config.find(n.listName);
-					if (cit == m_impl->config.end()
+					auto cit = im->config.find(n.listName);
+					if (cit == im->config.end()
 					 || cit->second.kind != ConfigKind::List) {
-						m_impl->lastError = "#for: '" + n.listName
+						im->lastError = "#for: '" + n.listName
 							+ "' is not a LIST at evaluate time";
 						return false;
 					}
@@ -4805,22 +5009,22 @@ bool Document::Evaluate(Callback cb, void* user) {
 					// iterations (the privateVars / stringVars maps are not
 					// mutated during evaluation).
 					if (n.loopVarType == ListElemType::String) {
-						auto sit = m_impl->stringVars.find(n.loopVarName);
-						if (sit == m_impl->stringVars.end()) {
+						auto sit = im->stringVars.find(n.loopVarName);
+						if (sit == im->stringVars.end()) {
 							// Defensive: classify should have created it.
-							m_impl->stringVars[n.loopVarName];
-							sit = m_impl->stringVars.find(n.loopVarName);
+							im->stringVars[n.loopVarName];
+							sit = im->stringVars.find(n.loopVarName);
 						}
 						for (const auto& s : lv.strings) {
 							sit->second = s;
 							if (!walk(n.body)) return false;
 						}
 					} else {
-						auto pit = m_impl->privateVars.find(n.loopVarName);
-						if (pit == m_impl->privateVars.end()) {
-							m_impl->privateVars[n.loopVarName]
+						auto pit = im->privateVars.find(n.loopVarName);
+						if (pit == im->privateVars.end()) {
+							im->privateVars[n.loopVarName]
 								.reset(new double(0));
-							pit = m_impl->privateVars.find(n.loopVarName);
+							pit = im->privateVars.find(n.loopVarName);
 						}
 						double* slot = pit->second.get();
 						if (n.loopVarType == ListElemType::Int) {
@@ -4845,27 +5049,28 @@ bool Document::Evaluate(Callback cb, void* user) {
 						// The te_variable table already has all six names
 						// bound to stable double pointers, so EnsureVariable
 						// hands them back without allocating.
-						double* sw = EnsureVariable(*m_impl, n.varSrcWidthName);
-						double* sh = EnsureVariable(*m_impl, n.varSrcHeightName);
-						double* sc = EnsureVariable(*m_impl, n.varSrcCallsName);
-						auto dw = m_impl->privateVars.find(n.varName + "_width");
-						auto dh = m_impl->privateVars.find(n.varName + "_height");
-						auto dc = m_impl->privateVars.find(n.varName + "_calls");
-						if (sw && dw != m_impl->privateVars.end()) *dw->second = *sw;
-						if (sh && dh != m_impl->privateVars.end()) *dh->second = *sh;
-						if (sc && dc != m_impl->privateVars.end()) *dc->second = *sc;
+						double* sw = EnsureVariable(*im, n.varSrcWidthName);
+						double* sh = EnsureVariable(*im, n.varSrcHeightName);
+						double* sc = EnsureVariable(*im, n.varSrcCallsName);
+						auto dw = im->privateVars.find(n.varName + "_width");
+						auto dh = im->privateVars.find(n.varName + "_height");
+						auto dc = im->privateVars.find(n.varName + "_calls");
+						if (sw && dw != im->privateVars.end()) *dw->second = *sw;
+						if (sh && dh != im->privateVars.end()) *dh->second = *sh;
+						if (sc && dc != im->privateVars.end()) *dc->second = *sc;
 						break;
 					}
 					if (n.varIsString) {
-						auto it = m_impl->stringVars.find(n.varName);
-						if (it != m_impl->stringVars.end())
-							it->second = EvalStringExpr(*m_impl, n.stringRhs);
+						auto it = im->stringVars.find(n.varName);
+						if (it != im->stringVars.end())
+							it->second = EvalStringExpr(*im, n.stringRhs);
 					} else {
-						auto it = m_impl->privateVars.find(n.varName);
-						if (it != m_impl->privateVars.end()) {
+						auto it = im->privateVars.find(n.varName);
+						if (it != im->privateVars.end()) {
 							if (n.varIsTernary) {
-								bool truth = EvalCondition(cc, n.varCondSource,
-														   *m_impl);
+								bool truth = !n.varCondToksCached.empty()
+									? EvalCondition(*cc, n.varCondToksCached, *im)
+									: EvalCondition(*cc, n.varCondSource,    *im);
 								*it->second = evalExpr(truth ? n.eVarThen
 															  : n.eVarElse);
 							} else {
@@ -4884,8 +5089,8 @@ bool Document::Evaluate(Callback cb, void* user) {
 					cmd.color           = (uint16_t)(int64_t)evalExpr(n.eColor);
 					cmd.matchLineHeight = n.textMatchLineHeight;
 					cmd.text     = n.textIsInlineFormat
-						? EvalStringExpr(*m_impl, n.textInlineExpr)
-						: MaterializeText(*m_impl, n.textIsLiteral, n.textStrOrKey);
+						? EvalStringExpr(*im, n.textInlineExpr)
+						: MaterializeText(*im, n.textIsLiteral, n.textStrOrKey);
 					// Strip a trailing newline so the renderer doesn't measure
 					// a phantom empty line below the last visible line of text.
 					// This matters for bottom/right clamping (e.g. Mini.smd),
@@ -4949,8 +5154,8 @@ bool Document::Evaluate(Callback cb, void* user) {
 					break;
 				}
 				case NodeKind::HistoryUpdate: {
-					auto it = m_impl->histories.find(n.historyTarget);
-					if (it != m_impl->histories.end()) {
+					auto it = im->histories.find(n.historyTarget);
+					if (it != im->histories.end()) {
 						HistoryDecl& h = it->second;
 						// Evaluate the expression once in double precision;
 						// every history kind takes its sample value from here.
@@ -4979,7 +5184,7 @@ bool Document::Evaluate(Callback cb, void* user) {
 						// Refresh the average scratch immediately so any
 						// subsequent te_eval in this frame sees the updated
 						// average rather than the stale pre-frame value.
-						RefreshOneHistoryAvg(*m_impl, n.historyTarget);
+						RefreshOneHistoryAvg(*im, n.historyTarget);
 #ifdef DEBUG
 						// Surface as a render command so the host knows --
 						// useful for instrumentation/debug; release builds
@@ -4997,15 +5202,15 @@ bool Document::Evaluate(Callback cb, void* user) {
 					break;
 				}
 				case NodeKind::HistoryClean: {
-					auto it = m_impl->histories.find(n.historyTarget);
-					if (it != m_impl->histories.end()) {
+					auto it = im->histories.find(n.historyTarget);
+					if (it != im->histories.end()) {
 						// Cheapest to clear all three; the inactive ones
 						// are already empty so .clear() is a no-op on them.
 						it->second.samplesI.clear();
 						it->second.samplesF.clear();
 						it->second.samplesD.clear();
 						// Reset the average scratch to 0.0 immediately.
-						RefreshOneHistoryAvg(*m_impl, n.historyTarget);
+						RefreshOneHistoryAvg(*im, n.historyTarget);
 #ifdef DEBUG
 						RenderCommand cmd{};
 						cmd.type        = RenderCmdType::HistoryClean;
@@ -5018,16 +5223,16 @@ bool Document::Evaluate(Callback cb, void* user) {
 					break;
 				}
 				case NodeKind::GraphLineChart: {
-					auto hit = m_impl->histories.find(n.graphHistoryName);
-					if (hit == m_impl->histories.end()) break;
+					auto hit = im->histories.find(n.graphHistoryName);
+					if (hit == im->histories.end()) break;
 					HistoryDecl& h = hit->second;
 
 					std::vector<GraphConditionView> viewVec;
 					std::vector<GraphMatchState>    stateVec;
 					GraphCondDecl* gcd = nullptr;
 					if (!n.graphCondsName.empty()) {
-						auto git = m_impl->graphConds.find(n.graphCondsName);
-						if (git != m_impl->graphConds.end()) gcd = &git->second;
+						auto git = im->graphConds.find(n.graphCondsName);
+						if (git != im->graphConds.end()) gcd = &git->second;
 					}
 					if (gcd) {
 						// Reserve up-front so addresses stay stable while
@@ -5035,7 +5240,7 @@ bool Document::Evaluate(Callback cb, void* user) {
 						stateVec.reserve(gcd->rows.size());
 						viewVec.reserve(gcd->rows.size());
 						for (auto& row : gcd->rows) {
-							stateVec.push_back({ m_impl, &row });
+							stateVec.push_back({ im, &row });
 						}
 						for (size_t i = 0; i < gcd->rows.size(); ++i) {
 							auto& row = gcd->rows[i];
@@ -5079,7 +5284,7 @@ bool Document::Evaluate(Callback cb, void* user) {
 							// scratch survives until the next GraphLineChart
 							// for this same history (or until Free()).
 							{
-								auto& scratch = m_impl->floatSampleScratch[hit->first];
+								auto& scratch = im->floatSampleScratch[hit->first];
 								scratch.assign(h.samplesF.begin(), h.samplesF.end());
 								cmd.sampleType  = HistorySampleType::Float;
 								cmd.samples     = nullptr;
@@ -5104,11 +5309,11 @@ bool Document::Evaluate(Callback cb, void* user) {
 				case NodeKind::GetDimensions: {
 					int64_t fs = (int64_t)evalExpr(n.eFontSize);
 					std::string txt = n.textIsInlineFormat
-						? EvalStringExpr(*m_impl, n.textInlineExpr)
-						: MaterializeText(*m_impl, n.textIsLiteral, n.textStrOrKey);
+						? EvalStringExpr(*im, n.textInlineExpr)
+						: MaterializeText(*im, n.textIsLiteral, n.textStrOrKey);
 
-					auto it = m_impl->dimsVars.find(n.dimsName);
-					if (it == m_impl->dimsVars.end()) break;   // shouldn't happen
+					auto it = im->dimsVars.find(n.dimsName);
+					if (it == im->dimsVars.end()) break;   // shouldn't happen
 
 					// Cache key: text + 0x01 + fontSize. 0x01 is unlikely to
 					// appear in a real font-renderable string, so the join is
@@ -5125,8 +5330,8 @@ bool Document::Evaluate(Callback cb, void* user) {
 						key.push_back(n.textMatchLineHeight ? '1' : '0');
 					}
 
-					auto cacheIt = m_impl->dimsMeasureCache.find(key);
-					if (cacheIt != m_impl->dimsMeasureCache.end()) {
+					auto cacheIt = im->dimsMeasureCache.find(key);
+					if (cacheIt != im->dimsMeasureCache.end()) {
 						// Cache hit: reuse measurement, skip callback.
 						*it->second.dims = cacheIt->second;
 					} else {
@@ -5148,9 +5353,9 @@ bool Document::Evaluate(Callback cb, void* user) {
 						// few frames but RSS stays flat. Static text
 						// (labels) just gets re-inserted next frame.
 						constexpr size_t kDimsCacheCap = 256;
-						if (m_impl->dimsMeasureCache.size() >= kDimsCacheCap)
-							m_impl->dimsMeasureCache.clear();
-						m_impl->dimsMeasureCache[std::move(key)] = *it->second.dims;
+						if (im->dimsMeasureCache.size() >= kDimsCacheCap)
+							im->dimsMeasureCache.clear();
+						im->dimsMeasureCache[std::move(key)] = *it->second.dims;
 					}
 					// Refresh mirror doubles so subsequent expressions read
 					// the freshly written .x / .y values.
@@ -5158,12 +5363,14 @@ bool Document::Evaluate(Callback cb, void* user) {
 					*it->second.yMirror = (double)it->second.dims->y;
 					break;
 				}
-			}
-		}
+			} // switch
+		} // for
 		return true;
-	};
-	bool ok = walk(m_impl->script);
-	return ok;
+	} // walk()
+}; // EvalWalker
+
+	EvalWalker ew{ m_impl, cb, user, &cc };
+	return ew.walk(m_impl->script);
 }
 
 void Document::Reset(bool freeze) {
@@ -5179,48 +5386,22 @@ void Document::Reset(bool freeze) {
 	// refresh again at its own entry; the second refresh is essentially
 	// free (one pass over ~50 doubles).
 	RefreshScratches(im);
-	// For each private numeric VAR: if a config Integer/Bool with the same
-	// name exists, re-seed the VAR with that value. State-kind entries
-	// ('key = value') are intentionally skipped here -- they were seeded
-	// once at Compile() and are owned by the script as cross-frame state.
-	// Numeric VARs: only zero those that have NO matching config key at
-	// all. Config-backed VARs (both `:` default-kind and `=` constant-
-	// kind) are seeded once at Compile() and from then on carry whatever
-	// value the script most recently wrote -- Reset doesn't clobber them.
-	// This is what lets `lastFrame: 0` + `VAR{lastFrame, Game_LastFrameNumber_int}`
-	// carry state across frames without the parser undoing it.
-	for (auto& kv : im.privateVars) {
-		if (!kv.second) continue;
-		auto cit = im.config.find(kv.first);
-		bool configBacked = cit != im.config.end()
-			&& (cit->second.kind == ConfigKind::Integer
-			 || cit->second.kind == ConfigKind::Bool);
-		if (!configBacked) *kv.second = 0.0;
-	}
-	// String VARs: same policy. Config-backed entries carry their
-	// last-written value; un-backed entries get cleared each frame.
-	// Format-kind configs are special: they're treated as "always
-	// re-evaluate" by design (the whole point of a Format is that it
-	// pulls live host data), so we re-materialise them each Reset.
-	for (auto& kv : im.stringVars) {
-		auto cit = im.config.find(kv.first);
-		if (cit == im.config.end()) {
-			kv.second.clear();
-			continue;
-		}
-		if (cit->second.kind == ConfigKind::Format) {
-			kv.second = MaterializeText(im, /*isLit=*/false, kv.first);
-		}
-		// String / Integer / Bool configs: leave whatever the script (or
-		// initial seed) most recently wrote.
-	}
-	// Zero every GET_DIMENSIONS struct + its mirror doubles, so expressions
-	// that reference dims.x / dims.y see fresh state before the matching
-	// GET_DIMENSIONS command in the next Evaluate() repopulates them.
-	for (auto& kv : im.dimsVars) {
-		if (kv.second.dims)    { kv.second.dims->x = 0; kv.second.dims->y = 0; }
-		if (kv.second.xMirror) *kv.second.xMirror = 0.0;
-		if (kv.second.yMirror) *kv.second.yMirror = 0.0;
+	// Zero un-backed numeric VARs and clear un-backed string VARs.
+	// Backed VARs (config Integer/Bool/String/Format) are NOT touched --
+	// they carry whatever value the script most recently wrote.
+	// This used to iterate the maps and call config.find() per entry;
+	// now it's a flat array walk over lists pre-built at Compile() time.
+	for (double*      p : im.m_resetZeroVars)  *p = 0.0;
+	for (std::string* p : im.m_resetClearVars) p->clear();
+	// Re-materialise Format-kind config strings (always "live" semantics).
+	for (auto& e : im.m_resetRemat)
+		*e.value = MaterializeText(im, /*isLit=*/false, e.key);
+	// Zero every GET_DIMENSIONS struct + its mirror doubles.
+	for (auto& e : im.m_resetDimsZero) {
+		if (e.x)  *e.x  = 0;
+		if (e.y)  *e.y  = 0;
+		if (e.xm) *e.xm = 0.0;
+		if (e.ym) *e.ym = 0.0;
 	}
 	// Note: hostBinds scratch, configMirror, implicitZero, and dimsMeasureCache
 	// are intentionally NOT cleared. The first three either get refreshed at
