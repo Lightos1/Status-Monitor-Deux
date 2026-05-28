@@ -163,7 +163,7 @@ int main() {
     {
         std::printf("===== Read-only enforcement =====\n");
         const char* bad =
-            "Name: T\n"
+            "Name = T\n"
             "Start:\n"
             "VAR{CPU_Hz_int, 100}\n";
         smd::Document doc;
