@@ -807,23 +807,7 @@ static std::string PreprocessExpr(const std::string& s) {
 			continue;
 		}
 		if (c == '"') { inStr = true; out.push_back(c); continue; }
-		if (c == '$') {
-			// Drop $ only when it is a variable-marker sigil, i.e. it
-			// immediately precedes an identifier start character (letter
-			// or underscore).  A bare $ that does NOT precede an
-			// identifier (e.g. the `$$$` in a deliberately bad expression)
-			// is kept as-is so that te_compile sees an unrecognised token
-			// and returns an error.  Without this guard every `$` was
-			// silently discarded, making `$$$` vanish and allowing
-			// expressions like `this_is_not_a_valid_expression $$$` to
-			// compile successfully.
-			if (i + 1 < s.size()
-				&& (std::isalpha((unsigned char)s[i + 1]) || s[i + 1] == '_'))
-				continue;   // sigil: drop it
-			// Stray $: preserve it so te_compile rejects the expression.
-			out.push_back(c);
-			continue;
-		}
+		if (c == '$') continue;            // drop variable marker
 		// Bare `true` / `false` as numeric literals. The config parser
 		// recognises these for `key: true` / `key: false`, so authors
 		// reasonably expect `VAR{flag, true}` and `#if $cond == true`
@@ -3292,78 +3276,6 @@ static inline std::string MaterializeText(Document::Impl& im,
 // section below, but Compile() calls it to pre-tokenize #if conditions.
 static std::vector<std::string> TokenizeCondition(const std::string& s);
 
-// Free heap memory that is only needed during the Compile() pass.
-// Called at the end of a successful Compile() to return source-string
-// allocations that are no longer referenced by the evaluator.
-//
-// What is safe to clear:
-//   CExpr::source          — only used by te_compile() inside Compile()
-//   AstNode::condSource    — replaced by condToksCached for #if evaluation
-//   AstNode::varCondSource — replaced by varCondToksCached for VAR ternary
-//   FormatSpec::argExprs   — only used to drive BuildFormatArg() in Compile()
-//   FormatArg::numericSource — only fed to te_compile() inside Compile()
-//
-// What must NOT be cleared:
-//   FormatArg::condSource  — used at runtime by EvalCondition in MaterializeText
-//   GraphCondParsed::condSource — used by GraphConditionMatches slow-path
-//   FormatSpec::fmt, argIsString, compiledArgs, argTernaries — all runtime
-//   All AstNode name/key strings, listVal data, historyTarget, etc.
-
-static void ShrinkCExpr(CExpr& e) {
-	// Assign a default-constructed string to release any heap buffer while
-	// leaving `compiled` (the te_expr*) intact.
-	e.source = {};
-}
-
-static void ShrinkNodeSources(AstNode& n) {
-	ShrinkCExpr(n.eX);         ShrinkCExpr(n.eY);
-	ShrinkCExpr(n.eFontSize);  ShrinkCExpr(n.eColor);
-	ShrinkCExpr(n.eWidth);     ShrinkCExpr(n.eHeight);
-	ShrinkCExpr(n.eColorBox);
-	ShrinkCExpr(n.eRoundnessTL); ShrinkCExpr(n.eRoundnessTR);
-	ShrinkCExpr(n.eRoundnessBL); ShrinkCExpr(n.eRoundnessBR);
-	ShrinkCExpr(n.eX2);        ShrinkCExpr(n.eY2);
-	ShrinkCExpr(n.eDashOn);    ShrinkCExpr(n.eDashOff);
-	ShrinkCExpr(n.eHistoryValue);
-	ShrinkCExpr(n.eMin);       ShrinkCExpr(n.eMax);
-	ShrinkCExpr(n.eLineColor); ShrinkCExpr(n.eFillColor);
-	ShrinkCExpr(n.eVarValue);
-	ShrinkCExpr(n.eVarThen);   ShrinkCExpr(n.eVarElse);
-
-	// condSource is replaced by condToksCached for the fast path.
-	// Clear it only when tokens are available (which is always the case
-	// for non-empty conditions after a successful Compile).
-	if (!n.condToksCached.empty())    n.condSource    = {};
-	if (!n.varCondToksCached.empty()) n.varCondSource  = {};
-
-	// Recurse into child node vectors.
-	for (auto& child : n.thenBranch) ShrinkNodeSources(child);
-	for (auto& child : n.elseBranch) ShrinkNodeSources(child);
-	for (auto& child : n.body)       ShrinkNodeSources(child);
-}
-
-static void ShrinkCompiledSourceStrings(Document::Impl& im) {
-	// Walk the entire render script.
-	for (auto& n : im.script) ShrinkNodeSources(n);
-
-	// Clear the now-redundant arg source strings from every Format config.
-	// argExprs were only used by BuildFormatArg() during the Compile pass;
-	// the compiled argTernaries + compiledArgs carry the runtime state.
-	for (auto& kv : im.config) {
-		if (kv.second.kind == ConfigKind::Format && kv.second.fmtVal) {
-			kv.second.fmtVal->argExprs.clear();
-			kv.second.fmtVal->argExprs.shrink_to_fit();
-		}
-	}
-
-	// Clear numericSource from every FormatArg (te_compile is already done).
-	// condSource is deliberately NOT cleared -- MaterializeText reads it at
-	// runtime for ternary condition evaluation.
-	for (auto& fa : im.ownedFormatArgs) {
-		if (fa) fa->numericSource = {};
-	}
-}
-
 bool Document::Compile() {
 	Impl& im = *m_impl;
 	// Free any prior compiled expressions.
@@ -4008,9 +3920,6 @@ bool Document::Compile() {
 			}
 			if (!compileOne(row.lineSource, row.lineCompiled, "lineCol")) return false;
 			if (!compileOne(row.fillSource, row.fillCompiled, "fillCol")) return false;
-			// Source strings are consumed; release their heap now.
-			row.lineSource = {};
-			row.fillSource = {};
 		}
 	}
 
@@ -4218,14 +4127,6 @@ bool Document::Compile() {
 		im.m_resetDimsZero.push_back(e);
 	}
 
-	// ----- Release compile-only source strings -----
-	// Every CExpr::source, condSource, varCondSource, FormatSpec::argExprs,
-	// and FormatArg::numericSource was only needed to drive te_compile().
-	// Now that all te_expr* trees are built, free their heap allocations.
-	ShrinkCompiledSourceStrings(im);
-
-	// First Reset(): zeroes un-config-backed VARs and re-materialises the
-	// Format-kind strings (which are intentionally "always live").
 	Reset();
 	return true;
 }
