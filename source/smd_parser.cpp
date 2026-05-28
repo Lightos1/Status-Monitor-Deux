@@ -1101,7 +1101,8 @@ static bool ParseConfigValue(const std::string& raw, ConfigValue& out,
 		else { err = "LIST: unknown type '" + ty + "' (use int/float/double/str)"; return false; }
 
 		out.kind = ConfigKind::List;
-		out.listVal.elemType = etype;
+		out.listVal = std::make_unique<ListValue>();
+		out.listVal->elemType = etype;
 
 		// RANGE form?
 		if (elems.size() > 5 && elems.compare(0, 5, "RANGE") == 0
@@ -1132,10 +1133,10 @@ static bool ParseConfigValue(const std::string& raw, ConfigValue& out,
 			// Mismatched direction yields an empty list (matches Python).
 			if (step > 0) {
 				for (long long x = start; x < end_; x += step)
-					out.listVal.ints.push_back((int64_t)x);
+					out.listVal->ints.push_back((int64_t)x);
 			} else {
 				for (long long x = start; x > end_; x += step)
-					out.listVal.ints.push_back((int64_t)x);
+					out.listVal->ints.push_back((int64_t)x);
 			}
 			return true;
 		}
@@ -1154,14 +1155,14 @@ static bool ParseConfigValue(const std::string& raw, ConfigValue& out,
 					err = "LIST{str, ...}: element must be a quoted string: " + pp;
 					return false;
 				}
-				out.listVal.strings.push_back(Unescape(pp.substr(1, pp.size() - 2)));
+				out.listVal->strings.push_back(Unescape(pp.substr(1, pp.size() - 2)));
 			} else if (etype == ListElemType::Int) {
 				char* endp = nullptr;
 				long long iv = std::strtoll(pp.c_str(), &endp, 0);
 				if (endp == pp.c_str()) {
 					err = "LIST{int, ...}: not an integer: " + pp; return false;
 				}
-				out.listVal.ints.push_back((int64_t)iv);
+				out.listVal->ints.push_back((int64_t)iv);
 			} else {
 				// float or double -- stored in `doubles`
 				char* endp = nullptr;
@@ -1169,7 +1170,7 @@ static bool ParseConfigValue(const std::string& raw, ConfigValue& out,
 				if (endp == pp.c_str()) {
 					err = "LIST{float/double, ...}: not a number: " + pp; return false;
 				}
-				out.listVal.doubles.push_back(dv);
+				out.listVal->doubles.push_back(dv);
 			}
 		}
 		return true;
@@ -1217,13 +1218,14 @@ static bool ParseConfigValue(const std::string& raw, ConfigValue& out,
 		}
 		if (i >= p0.size()) { err = "format spec: unterminated fmt"; return false; }
 		out.kind = ConfigKind::Format;
-		out.fmtVal.fmt = Unescape(p0.substr(1, i - 1));
-		ScanFormatArgKinds(out.fmtVal.fmt, out.fmtVal.argIsString);
+		out.fmtVal = std::make_unique<FormatSpec>();
+		out.fmtVal->fmt = Unescape(p0.substr(1, i - 1));
+		ScanFormatArgKinds(out.fmtVal->fmt, out.fmtVal->argIsString);
 		// Keep raw arg text -- ternary trees and final preprocessing happen
 		// during a separate pass that has access to Impl maps (so it can
 		// own the produced FormatArg trees).
 		for (size_t k = 1; k < parts.size(); ++k)
-			out.fmtVal.argExprs.push_back(parts[k]);
+			out.fmtVal->argExprs.push_back(parts[k]);
 		return true;
 	}
 
@@ -1474,7 +1476,7 @@ static std::unique_ptr<FormatSpec> TryParseNestedFormat(const std::string& raw,
 		return nullptr;
 	}
 	auto out = std::unique_ptr<FormatSpec>(new FormatSpec());
-	*out = std::move(cv.fmtVal);
+	*out = std::move(*cv.fmtVal);
 	return out;
 }
 
@@ -1649,7 +1651,7 @@ static bool UpgradeNestedFormatSegments(Document::Impl& impl, StringExpr& se,
 static bool ResolveFormatArgs(Document::Impl& impl, std::string& err) {
 	for (auto& kv : impl.config) {
 		if (kv.second.kind != ConfigKind::Format) continue;
-		FormatSpec& f = kv.second.fmtVal;
+		FormatSpec& f = *kv.second.fmtVal;
 		f.argTernaries.clear();
 		f.argTernaries.reserve(f.argExprs.size());
 		for (size_t i = 0; i < f.argExprs.size(); ++i) {
@@ -2755,7 +2757,7 @@ bool Document::LoadFromMemory(const char* data, size_t size) {
 								+ "' is not a LIST";
 							return false;
 						}
-						n.loopVarType = cit->second.listVal.elemType;
+						n.loopVarType = cit->second.listVal->elemType;
 						// String-typed loop var: stash in stringNames so the
 						// body sees the loop variable as string-valued for
 						// subsequent VAR string-classification and for the
@@ -3274,6 +3276,78 @@ static inline std::string MaterializeText(Document::Impl& im,
 // section below, but Compile() calls it to pre-tokenize #if conditions.
 static std::vector<std::string> TokenizeCondition(const std::string& s);
 
+// Free heap memory that is only needed during the Compile() pass.
+// Called at the end of a successful Compile() to return source-string
+// allocations that are no longer referenced by the evaluator.
+//
+// What is safe to clear:
+//   CExpr::source          — only used by te_compile() inside Compile()
+//   AstNode::condSource    — replaced by condToksCached for #if evaluation
+//   AstNode::varCondSource — replaced by varCondToksCached for VAR ternary
+//   FormatSpec::argExprs   — only used to drive BuildFormatArg() in Compile()
+//   FormatArg::numericSource — only fed to te_compile() inside Compile()
+//
+// What must NOT be cleared:
+//   FormatArg::condSource  — used at runtime by EvalCondition in MaterializeText
+//   GraphCondParsed::condSource — used by GraphConditionMatches slow-path
+//   FormatSpec::fmt, argIsString, compiledArgs, argTernaries — all runtime
+//   All AstNode name/key strings, listVal data, historyTarget, etc.
+
+static void ShrinkCExpr(CExpr& e) {
+	// Assign a default-constructed string to release any heap buffer while
+	// leaving `compiled` (the te_expr*) intact.
+	e.source = {};
+}
+
+static void ShrinkNodeSources(AstNode& n) {
+	ShrinkCExpr(n.eX);         ShrinkCExpr(n.eY);
+	ShrinkCExpr(n.eFontSize);  ShrinkCExpr(n.eColor);
+	ShrinkCExpr(n.eWidth);     ShrinkCExpr(n.eHeight);
+	ShrinkCExpr(n.eColorBox);
+	ShrinkCExpr(n.eRoundnessTL); ShrinkCExpr(n.eRoundnessTR);
+	ShrinkCExpr(n.eRoundnessBL); ShrinkCExpr(n.eRoundnessBR);
+	ShrinkCExpr(n.eX2);        ShrinkCExpr(n.eY2);
+	ShrinkCExpr(n.eDashOn);    ShrinkCExpr(n.eDashOff);
+	ShrinkCExpr(n.eHistoryValue);
+	ShrinkCExpr(n.eMin);       ShrinkCExpr(n.eMax);
+	ShrinkCExpr(n.eLineColor); ShrinkCExpr(n.eFillColor);
+	ShrinkCExpr(n.eVarValue);
+	ShrinkCExpr(n.eVarThen);   ShrinkCExpr(n.eVarElse);
+
+	// condSource is replaced by condToksCached for the fast path.
+	// Clear it only when tokens are available (which is always the case
+	// for non-empty conditions after a successful Compile).
+	if (!n.condToksCached.empty())    n.condSource    = {};
+	if (!n.varCondToksCached.empty()) n.varCondSource  = {};
+
+	// Recurse into child node vectors.
+	for (auto& child : n.thenBranch) ShrinkNodeSources(child);
+	for (auto& child : n.elseBranch) ShrinkNodeSources(child);
+	for (auto& child : n.body)       ShrinkNodeSources(child);
+}
+
+static void ShrinkCompiledSourceStrings(Document::Impl& im) {
+	// Walk the entire render script.
+	for (auto& n : im.script) ShrinkNodeSources(n);
+
+	// Clear the now-redundant arg source strings from every Format config.
+	// argExprs were only used by BuildFormatArg() during the Compile pass;
+	// the compiled argTernaries + compiledArgs carry the runtime state.
+	for (auto& kv : im.config) {
+		if (kv.second.kind == ConfigKind::Format && kv.second.fmtVal) {
+			kv.second.fmtVal->argExprs.clear();
+			kv.second.fmtVal->argExprs.shrink_to_fit();
+		}
+	}
+
+	// Clear numericSource from every FormatArg (te_compile is already done).
+	// condSource is deliberately NOT cleared -- MaterializeText reads it at
+	// runtime for ternary condition evaluation.
+	for (auto& fa : im.ownedFormatArgs) {
+		if (fa) fa->numericSource = {};
+	}
+}
+
 bool Document::Compile() {
 	Impl& im = *m_impl;
 	// Free any prior compiled expressions.
@@ -3306,7 +3380,7 @@ bool Document::Compile() {
 						auto cit = im.config.find(n.listName);
 						if (cit != im.config.end()
 						 && cit->second.kind == ConfigKind::List) {
-							lvt = cit->second.listVal.elemType;
+							lvt = cit->second.listVal->elemType;
 						}
 						n.loopVarType = lvt;
 						if (lvt == ListElemType::String) {
@@ -3407,7 +3481,7 @@ bool Document::Compile() {
 		};
 	for (auto& kv : im.config) {
 		if (kv.second.kind == ConfigKind::Format) {
-			auto& f = kv.second.fmtVal;
+			auto& f = *kv.second.fmtVal;
 			for (size_t i = 0; i < f.argTernaries.size(); ++i) {
 				bool isStr = i < f.argIsString.size() && f.argIsString[i];
 				scanFmtArg((FormatArg*)f.argTernaries[i], isStr);
@@ -3811,7 +3885,7 @@ bool Document::Compile() {
 	// materialise routine prefers argTernaries.
 	for (auto& kv : im.config) {
 		if (kv.second.kind != ConfigKind::Format) continue;
-		FormatSpec& f = kv.second.fmtVal;
+		FormatSpec& f = *kv.second.fmtVal;
 		f.compiledArgs.assign(f.argExprs.size(), nullptr);
 		for (size_t i = 0; i < f.argTernaries.size(); ++i) {
 			bool isStr = i < f.argIsString.size() && f.argIsString[i];
@@ -3918,6 +3992,9 @@ bool Document::Compile() {
 			}
 			if (!compileOne(row.lineSource, row.lineCompiled, "lineCol")) return false;
 			if (!compileOne(row.fillSource, row.fillCompiled, "fillCol")) return false;
+			// Source strings are consumed; release their heap now.
+			row.lineSource = {};
+			row.fillSource = {};
 		}
 	}
 
@@ -4124,6 +4201,12 @@ bool Document::Compile() {
 		e.ym = kv.second.yMirror ? kv.second.yMirror.get() : nullptr;
 		im.m_resetDimsZero.push_back(e);
 	}
+
+	// ----- Release compile-only source strings -----
+	// Every CExpr::source, condSource, varCondSource, FormatSpec::argExprs,
+	// and FormatArg::numericSource was only needed to drive te_compile().
+	// Now that all te_expr* trees are built, free their heap allocations.
+	ShrinkCompiledSourceStrings(im);
 
 	// First Reset(): zeroes un-config-backed VARs and re-materialises the
 	// Format-kind strings (which are intentionally "always live").
@@ -4787,7 +4870,7 @@ static std::string MaterializeText(Document::Impl& im,
 		const ConfigValue& cv = it->second;
 		if (cv.kind == ConfigKind::String) return cv.stringVal;
 		if (cv.kind == ConfigKind::Format) {
-			const FormatSpec& f = cv.fmtVal;
+			const FormatSpec& f = *cv.fmtVal;
 			std::vector<double>      vals;
 			std::vector<std::string> strs;
 			vals.reserve(f.argTernaries.size());
@@ -5004,7 +5087,7 @@ bool Document::Evaluate(Callback cb, void* user) {
 							+ "' is not a LIST at evaluate time";
 						return false;
 					}
-					const ListValue& lv = cit->second.listVal;
+					const ListValue& lv = *cit->second.listVal;
 					// Pre-resolve the storage slot once -- it's stable across
 					// iterations (the privateVars / stringVars maps are not
 					// mutated during evaluation).
