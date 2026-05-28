@@ -665,7 +665,7 @@ Available only with SaltyNX
 `Game_LastFrameNumber_int`, `Game_IsGameRunning`, `Game_FPS_int`, `Game_FpsAvgOld_float`, `Game_FpsAvg_float`, `Game_ReadSpeedPerSecond_float`, `Game_ResolutionRenderCalls_int` (struct array of 8: `[N].width`/`.height`/`.calls`), `Game_ResolutionViewportCalls_int` (same shape).
 
 ### System
-`System_IsDocked`, `System_KeysDown_int`, `System_KeysHeld_int`, `formattedKeyCombo` (string), `System_ClockHour_int`, `System_ClockMinute_int`, `System_ClockSecond_int`, `System_CalendarYear_int`, `System_CalendarMonth_int`, `System_CalendarDay_int`, `System_OverlayRenderingFrameTimeInNs_int`
+`System_IsDocked`, `System_KeysDown_int`, `System_KeysHeld_int`, `formattedKeyCombo` (string), `System_ClockHour_int`, `System_ClockMinute_int`, `System_ClockSecond_int`, `System_CalendarYear_int`, `System_CalendarMonth_int`, `System_CalendarDay_int`, `System_OverlayRenderingFrameTimeInNs_int`, `System_OverlayMemoryLeftInB_int`
 
 Available only with SaltyNX: `System_DisplayRefreshRate_int`
 
