@@ -78,7 +78,8 @@ int main() {
         if (doc.LoadFromMemory(bad, std::strlen(bad))) {
             // Load succeeds (it's lazy); Compile is where the failure shows.
             if (doc.Compile()) {
-                std::printf("  unexpected: Compile succeeded on bad input\n");
+                std::printf("FAIL: Compile succeeded on bad input\n");
+                return 1;
             } else {
                 std::printf("  Compile rejected (as expected): %s\n",
                     doc.LastError());
@@ -107,9 +108,10 @@ int main() {
             "Start:\n"
             "VAR{Game_FPS_int, 100}\n";
         if (doc.LoadFromMemory(bad2, std::strlen(bad2))) {
-            std::printf("  unexpected: load succeeded\n");
+            std::printf("FAIL unexpected: load succeeded\n");
+            return 1;
         } else {
-            std::printf("  rejected: %s\n", doc.LastError());
+            std::printf("  rejected as expected: %s\n", doc.LastError());
         }
         (void)bad;
         // Recovery
