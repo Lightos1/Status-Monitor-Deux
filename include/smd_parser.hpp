@@ -25,7 +25,6 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
-#include <memory>
 
 // Forward-declared so consumers don't need to include tinyexpr.h.
 struct te_expr;
@@ -81,13 +80,8 @@ struct ConfigValue {
     int64_t      intVal  = 0;
     bool         boolVal = false;
     std::string  stringVal;
-    // Non-null only for ConfigKind::Format.  Using unique_ptr instead of
-    // inline storage drops ConfigValue from ~288 bytes to ~72 bytes for the
-    // common Integer / Bool / String kinds, which make up the majority of
-    // config entries.  The pointer is never null when kind == Format.
-    std::unique_ptr<FormatSpec>  fmtVal;
-    // Non-null only for ConfigKind::List, History, and GraphConditions.
-    std::unique_ptr<ListValue>   listVal;
+    FormatSpec   fmtVal;
+    ListValue    listVal;
     // True when the config line used `key = value` instead of `key: value`.
     // The two are both compile-time-once seeds for matching VAR storage;
     // the difference is mutability:
