@@ -19,9 +19,6 @@ HidSixAxisSensorHandle sixaxisHandles[Controller_Max];
 #include "Configuration/ConfigurationMainMenu.hpp"
 #include "Configuration/Configuration.hpp"
 #include "RenderingPipelineDummy.hpp"
-#ifdef DEBUG
-#include "MemoryDebug.hpp"
-#endif
 
 extern "C" {
 	//This is done to save some space as they have no practical use in our case
@@ -222,12 +219,6 @@ public:
                             tsl::changeTo<MainMenu>(localPath, name);
                             return true;
                         }
-						#ifdef DEBUG
-						else if (keys & KEY_Y) {
-							tsl::changeTo<MemoryCheck>();
-							return true;							
-						}
-						#endif
 						else if (isMainMenu && (keys & KEY_DLEFT)) {
 							tsl::changeTo<ConfigurationMainMenu>();
 							return true;
