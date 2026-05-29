@@ -206,6 +206,7 @@ private:
 					addNewLine = true;
 				}
 				updatedContent += "User_" + key + " = " + trim(data.value) + "\n";
+				keysFound.insert(key);
 				if (addNewLine) { updatedContent += "\n"; addNewLine = false; }
 			}
 		};

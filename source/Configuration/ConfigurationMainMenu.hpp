@@ -39,6 +39,7 @@ private:
 				}
 				if (data.length() > 0) {
 					updatedContent += key + " = " + trim(data) + "\n";
+					keysFound.insert(key);
 					if (addNewLine) { updatedContent += "\n"; addNewLine = false; }
 				}
 			}
