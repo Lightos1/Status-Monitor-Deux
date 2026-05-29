@@ -189,6 +189,7 @@ BOX{0, 0, LayerWidth, fontsize+2, User_BoxColor}
 
 #for $category in $User_Ordering
 	#if $EnableCPU and $User_ShowCPU and $category == "CPU"
+		VAR{CPU_DeltaHz_int, CPU_RealHz_int - CPU_Hz_int}
 		VAR{DimensionsText, CPUplaceholder}
 		VAR{Text, CPUpart1Text}
 		VAR{difference, "@"}
@@ -213,6 +214,7 @@ BOX{0, 0, LayerWidth, fontsize+2, User_BoxColor}
 		VAR{X_OFFSET, X_OFFSET + Dimensions2.x}
 	#endif
 	#if $EnableGPU and $User_ShowGPU and $category == "GPU"
+		VAR{GPU_DeltaHz_int, GPU_RealHz_int - GPU_Hz_int}
 		VAR{DimensionsText, GPUplaceholder}
 		VAR{difference, "@"}
 		#if $GPU_DeltaHz_int > 20000
@@ -241,6 +243,7 @@ BOX{0, 0, LayerWidth, fontsize+2, User_BoxColor}
 		#else
 			VAR{DimensionsText, RAMspacePlaceholder}
 		#endif
+		VAR{RAM_DeltaHz_int, RAM_RealHz_int - RAM_Hz_int}
 		VAR{difference, "@"}
 		#if $RAM_DeltaHz_int > 20000
 			VAR{difference, "△"}
