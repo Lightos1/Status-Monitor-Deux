@@ -327,11 +327,11 @@ The host **must** call the appropriate `Bind*` for any predefined name the SMD f
 
 Note: there's no enforcement that the `Bind*` you call matches the suffix; you're trusted. But the script will type-error or coerce odd things if you cross the streams.
 
-**CPU**: `CPU_Hz_int`, `CPU_RealHz_int`, `CPU_DeltaHz_int`, `CPU_Core0Load_double`...`CPU_Core3Load_double`.
+**CPU**: `CPU_Hz_int`, `CPU_RealHz_int`, `CPU_Core0Load_double`...`CPU_Core3Load_double`.
 
-**GPU**: `GPU_Hz_int`, `GPU_RealHz_int`, `GPU_DeltaHz_int`, `GPU_Load_int`.
+**GPU**: `GPU_Hz_int`, `GPU_RealHz_int`, `GPU_Load_int`.
 
-**RAM**: `RAM_Hz_int`, `RAM_RealHz_int`, `RAM_DeltaHz_int`, `RAM_LoadAll_int`, `RAM_LoadCPU_int`, `RAM_UsedAllMB_float`, `RAM_TotalAllMB_float`, plus `_UsedApplicationMB_float` / `_TotalApplicationMB_float` / `_UsedAppletMB_float` / `_TotalAppletMB_float` / `_UsedSystemMB_float` / `_TotalSystemMB_float` / `_UsedSystemUnsafeMB_float` / `_TotalSystemUnsafeMB_float`.
+**RAM**: `RAM_Hz_int`, `RAM_RealHz_int`, `RAM_LoadAll_int`, `RAM_LoadCPU_int`, `RAM_UsedAllMB_float`, `RAM_TotalAllMB_float`, plus `_UsedApplicationMB_float` / `_TotalApplicationMB_float` / `_UsedAppletMB_float` / `_TotalAppletMB_float` / `_UsedSystemMB_float` / `_TotalSystemMB_float` / `_UsedSystemUnsafeMB_float` / `_TotalSystemUnsafeMB_float`.
 
 **Board**: `Board_ChargerCurrentLimit_int`, `Board_ChargerVoltageLimit_int`, `Board_ChargerConnected_int`, `Board_BatteryCurrentAvg_float`, `Board_BatteryVoltageAvg_float`, `Board_IsBatteryFiltered`, `Board_BatteryAgePercentage_float`, `Board_BatteryChargePercentage_float`, `Board_BatteryTemperatureCelcius_float`, `Board_DesignedFullBatteryCapacity_float`, `Board_ActualFullBatteryCapacity_float`, `Board_PowerConsumption_float`, `Board_BatteryTimeEstimateInMinutes_int`, `Board_SocTemperatureCelsius_float`, `Board_PcbTemperatureCelsius_float`, `Board_SkinTemperatureMiliCelsius_int`, `Board_FanRotationPercentageLevel_float`.
 
