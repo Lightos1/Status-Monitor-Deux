@@ -32,7 +32,7 @@ Any additional service can be added by creating `.smse` file.
 # Functionality:
 - If you can see Ⓨ next to mode name, it means you can configure it by pressing Y button which shows up list of possible things to tweak for current mode like which data should be shown, how they should be shown.
 - Global settings are available by pressing Left D-Pad button in Main Menu.
-- If you can see joycon symbol next to mode name, it means it's using custom exit key combo. To see how it looks like you can go to Global settings -> Exit key combo and change it.
+- If you can see joycon symbol next to mode name, it means it's using custom exit key combo. To see how it looks like you can go to Global settings -> Exit key combo, you can change it too.
 - You can move supported overlays on screen with touch screen or sixaxis
 - Mutlilanguage support that doesn't need recompiling to work, it supports all languages as long as Switch builtin fonts are supporting your alphabet
 - If you want to implement support for additional services to make them available from status monitor, you can create your own .smse file. It supports only `Out` functions. Already included are extensions for `hoc:clk` and `sys:clk` if you want to see examples.
