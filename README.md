@@ -1,12 +1,12 @@
 # Status Monitor Deux
-Monitor Your hardware in real time!
-This is an overlay homebrew dedicated to Nintendo Switch.
+Monitor Your hardware in real time!<br>
+This is an overlay homebrew dedicated to Nintendo Switch.<br>
 You need to have installed Tesla environment to use it.
 
 This README was written to convey only basics of tool.
 
-This is the next iteration of Status Monitor Overlay that changes structurally how it works.
-Instead of hardcoding each mode now they are stored as script files with filetype `.smd`.
+This is the next iteration of Status Monitor Overlay that changes structurally how it works.<br>
+Instead of hardcoding each mode now they are stored as script files with filetype `.smd`.<br>
 Any additional service can be added by creating `.smse` file.
 
 # Data shown in included SMD files
