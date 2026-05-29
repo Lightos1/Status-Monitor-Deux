@@ -342,13 +342,13 @@ struct HostResolutionArrayBinding {
 static bool IsPredefinedReadOnlyName(const std::string& n) {
 	static const char* kFixed[] = {
 		// CPU
-		"CPU_Hz_int", "CPU_RealHz_int", "CPU_DeltaHz_int",
+		"CPU_Hz_int", "CPU_RealHz_int",,
 		"CPU_Core0Load_double", "CPU_Core1Load_double",
 		"CPU_Core2Load_double", "CPU_Core3Load_double",
 		// GPU
-		"GPU_Hz_int", "GPU_RealHz_int", "GPU_DeltaHz_int", "GPU_Load_int",
+		"GPU_Hz_int", "GPU_RealHz_int", "GPU_Load_int",
 		// RAM
-		"RAM_Hz_int", "RAM_RealHz_int", "RAM_DeltaHz_int",
+		"RAM_Hz_int", "RAM_RealHz_int",
 		"RAM_LoadAll_int", "RAM_LoadCPU_int",
 		"RAM_UsedAllMB_float", "RAM_TotalAllMB_float",
 		"RAM_UsedApplicationMB_float", "RAM_TotalApplicationMB_float",
