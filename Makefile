@@ -187,8 +187,8 @@ $(BUILD):
 	@rm -rf out/
 	@mkdir -p out/switch/.overlays/
 	@cp -a $(CURDIR)/config out/
-	@cp -a $(CURDIR)/modes out/config/
-	@cp -a $(CURDIR)/extensions out/config/
+	@cp -a $(CURDIR)/modes out/config/status-monitor-deux/
+	@cp -a $(CURDIR)/extensions out/config/status-monitor-deux/
 	@cp $(CURDIR)/$(TARGET).ovl out/switch/.overlays/$(TARGET).ovl
 
 #---------------------------------------------------------------------------------
