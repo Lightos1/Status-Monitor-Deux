@@ -41,7 +41,7 @@ APP_TITLE	:=	Status Monitor Deux
 APP_VERSION	:=	0.1.0
 TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build
-SOURCES		:=	source lib/tinyexpr source/System source/Extensions source/SmdParser lib/libtesla/source lib/slre
+SOURCES		:=	source lib/tinyexpr source/System source/Extensions lib/libtesla/source lib/slre
 INCLUDES	:=	include lib/libtesla/include lib/tinyexpr include/Extensions lib/slre
 NO_ICON		:=	1
 #ROMFS		:=	romfs
@@ -187,6 +187,8 @@ $(BUILD):
 	@rm -rf out/
 	@mkdir -p out/switch/.overlays/
 	@cp -a $(CURDIR)/config out/
+	@cp -a $(CURDIR)/modes out/config/
+	@cp -a $(CURDIR)/extensions out/config/
 	@cp $(CURDIR)/$(TARGET).ovl out/switch/.overlays/$(TARGET).ovl
 
 #---------------------------------------------------------------------------------
