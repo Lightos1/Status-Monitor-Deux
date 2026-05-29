@@ -1,2 +1,2 @@
 *.smd linguist-language=inno-setup
-*.smse linguist-language=YAML
+*.smse linguist-language=TOML
