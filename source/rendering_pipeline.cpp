@@ -260,7 +260,7 @@ RenderingPipeline::RenderingPipeline(std::string filepath, bool double_back) {
 	Movable = doc.GetConfigBool("Movable", false);
 	rel_filepath = filepath.substr(strlen("sdmc:/config/status-monitor-deux/modes/"));
 	if (Movable && saveAndLoadMovableOverlayPosition) {
-		uint32_t crc32 = doc.GetFileHash();
+		smd_hash = doc.GetFileHash();
 		uint16_t saved_x_pos;
 		uint16_t saved_y_pos;
 		bool wasSuccess = ProcessSmdSettings(rel_filepath, crc32, &saved_x_pos, &saved_y_pos);
@@ -271,7 +271,7 @@ RenderingPipeline::RenderingPipeline(std::string filepath, bool double_back) {
 			auto [ptr, ec] = std::to_chars(&buffer[0], &buffer[sizeof(buffer)], crc32, 16);
 			if (ec == std::errc{}) {
 				std::string value = std::string(&buffer[0], ptr - &buffer[0]);
-				setIniFile("sdmc:/config/status-monitor-deux/config.ini", rel_filepath, "hash", value, "");
+				setIniFile("sdmc:/config/status-monitor-deux/config.ini", rel_filepath, "hash", smd_hash, "");
 				setIniFile("sdmc:/config/status-monitor-deux/config.ini", rel_filepath, "x", "0", "");
 				setIniFile("sdmc:/config/status-monitor-deux/config.ini", rel_filepath, "y", "0", "");
 			}
@@ -388,6 +388,7 @@ RenderingPipeline::~RenderingPipeline() {
 		if (ec == std::errc{} && ec2 == std::errc{}) {
 			setIniFile("sdmc:/config/status-monitor-deux/config.ini", rel_filepath, "x", value, "");
 			setIniFile("sdmc:/config/status-monitor-deux/config.ini", rel_filepath, "y", value2, "");
+			setIniFile("sdmc:/config/status-monitor-deux/config.ini", rel_filepath, "hash", smd_hash, "");
 		}
 	}
 	m_obj_offset_x_screen = 0;
