@@ -31,8 +31,7 @@ cmds:
   
 asserts:
 	GetApiVersion() >= 2
-	GetVersionString() != "0.(.*)"
-	GetVersionString() != "1.(.*)"
+	GetVersionString() != "[0-1].(.*)"
 	GetVersionString() != "2.[0-1].(.*)"
 	GetVersionString() == "[2-9].(.*)"
 	
