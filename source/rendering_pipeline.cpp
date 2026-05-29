@@ -1,6 +1,7 @@
 #include <tesla.hpp>
 #include "rendering_pipeline.hpp"
 #include "Utils.hpp"
+#include "Extensions/smse.hpp"
 
 // Globals defined in main.cpp that rendering_pipeline needs
 extern tsl::elm::OverlayFrame* rootFrame;
@@ -247,6 +248,11 @@ RenderingPipeline::RenderingPipeline(std::string filepath, bool double_back) {
 		return;
 	}
 	BindAllPredefined(doc);
+	for (auto& v : smseGetAllVars()) {
+		if (v.accessor.isInt()) doc.BindInt64(v.name.c_str(), v.accessor.intPtr());
+		else if (v.accessor.isFloat()) doc.BindFloat(v.name.c_str(), v.accessor.f32Ptr());
+		else if (v.accessor.isDouble()) doc.BindDouble(v.name.c_str(), v.accessor.f64Ptr());
+	}
 	if (doc.Compile() == false) {
 		error = doc.LastError();
 		return;
@@ -479,6 +485,11 @@ tsl::elm::Element* RenderingPipeline::createUI() {
 // ─── update ──────────────────────────────────────────────────────────────────
 
 void RenderingPipeline::update() {
+	uint64_t tick = svcGetSystemTick();
+	if (tick - last_tick > (systemtickfrequency / 2)) {
+		smseExecuteAll();
+		last_tick = tick;
+	}
 	SystemData.OverlayRenderingFrameTimeInNs = frameTimeInNS;
 	SystemData.OverlayMemoryLeftInB =  getFreeHeapMemory();
 	if (error.length() != 0) return;
@@ -488,7 +499,7 @@ void RenderingPipeline::update() {
 	if (displayRefreshRate) {
 		SystemData.DisplayRefreshRate_int = *displayRefreshRate;
 	}
-	uint64_t deltaTick = svcGetSystemTick() - LocalTime.relative_tick;
+	uint64_t deltaTick = tick - LocalTime.relative_tick;
 	int64_t seconds_passed = deltaTick / systemtickfrequency;
 	time_t new_timestamp = LocalTime.timestamp + seconds_passed;
 	struct tm local_time;

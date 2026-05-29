@@ -65,8 +65,6 @@ Result tcCheck = 1;
 Result Hinted = 1;
 Result pmdmntCheck = 1;
 Result psmCheck = 1;
-Result sysclkCheck = 1;
-Result hocclkCheck = 1;
 Result pwmDutyCycleCheck = 1;
 
 CpuDataType CpuData = {0};
@@ -77,8 +75,6 @@ GameDataType GameData = {0};
 SystemDataType SystemData = {0};
 MiscDataType MiscData = {0};
 
-SysClkContext sysclkCTX;
-HocClkContext hocclkCTX;
 FieldDescriptor fd = 0;
 
 //Sixaxis
@@ -93,23 +89,6 @@ std::string proControllerMotionKeyCombo = "ZR+R+RSTICK";
 //Check each core for idled ticks in intervals, they cannot read info about other core than they are assigned
 //In case of getting more than systemtickfrequency in idle, make it equal to systemtickfrequency to get 0% as output and nothing less
 //This is because making each loop also takes time, which is not considered because this will take also additional time
-
-Result updateExtClk() {
-	static uint64_t last_tick = 0;
-	Result rc = 0;
-	uint64_t new_tick = svcGetSystemTick();
-	if (new_tick - last_tick < systemtickfrequency) {
-		return 0;
-	}
-	if (R_SUCCEEDED(sysclkCheck)) {
-		rc = sysclkIpcGetCurrentContext(&sysclkCTX);
-	}
-	else if (R_SUCCEEDED(hocclkCheck))
-		rc = hocclkIpcGetCurrentContext(&hocclkCTX);
-	else return (Result)2137;
-	if (R_SUCCEEDED(rc)) last_tick = new_tick;
-	return rc;
-}
 
 void CheckCore(void* idletick_ptr) {
 	uint64_t* idletick = (uint64_t*)idletick_ptr;
@@ -382,12 +361,6 @@ void CpuThreadLoop(void* refreshRate) {
 			if (R_SUCCEEDED(pcvGetClockRate(PcvModule_CpuBus, &Hz_int)))
 				CpuData.Hz_int = Hz_int;
 		}
-		if (R_SUCCEEDED(updateExtClk())) {
-			if (R_SUCCEEDED(sysclkCheck))
-				CpuData.RealHz_int = sysclkCTX.realFreqs[SysClkModule_CPU];
-			else CpuData.RealHz_int = hocclkCTX.stable.realFreqs[HocClkModule_CPU];
-			CpuData.DeltaHz_int = CpuData.RealHz_int - CpuData.Hz_int;
-		}
 		CpuData.Core0Load_double = std::clamp(floor((1.0 - ((double)idletick[0] * inv_frequency)) * 10000.0), 0.0, 10000.0) * 0.01;
 		CpuData.Core1Load_double = std::clamp(floor((1.0 - ((double)idletick[1] * inv_frequency)) * 10000.0), 0.0, 10000.0) * 0.01;
 		CpuData.Core2Load_double = std::clamp(floor((1.0 - ((double)idletick[2] * inv_frequency)) * 10000.0), 0.0, 10000.0) * 0.01;
@@ -424,12 +397,6 @@ void GpuThreadLoop(void*) {
 			if (R_SUCCEEDED(pcvGetClockRate(PcvModule_GPU, &Hz_int)))
 				GpuData.Hz_int = Hz_int;
 		}
-		if (R_SUCCEEDED(updateExtClk())) {
-			if (R_SUCCEEDED(sysclkCheck))
-				GpuData.RealHz_int = sysclkCTX.realFreqs[SysClkModule_GPU];
-			else GpuData.RealHz_int = hocclkCTX.stable.realFreqs[HocClkModule_GPU];
-			GpuData.DeltaHz_int = GpuData.RealHz_int - GpuData.Hz_int;
-		}
 	} while (!leventWait(&threadexit, 1'000'000'000));
 
 	threadWaitForExit(&thread);
@@ -451,24 +418,6 @@ void RamThreadLoop(void*) {
 			u32 Hz_int;
 			if (R_SUCCEEDED(pcvGetClockRate(PcvModule_EMC, &Hz_int)))
 				RamData.Hz_int = Hz_int;
-		}
-		if (R_SUCCEEDED(updateExtClk())) {
-			if (R_SUCCEEDED(sysclkCheck)) {
-				RamData.RealHz_int = sysclkCTX.realFreqs[SysClkModule_MEM];
-				RamData.LoadAll_int = sysclkCTX.ramLoad[SysClkRamLoad_All];
-				RamData.LoadCPU_int = sysclkCTX.ramLoad[SysClkRamLoad_Cpu];
-				RamData.DeltaHz_int = RamData.RealHz_int - RamData.Hz_int;
-			}
-			else {
-				RamData.RealHz_int = hocclkCTX.stable.realFreqs[HocClkModule_MEM];
-				RamData.LoadAll_int = hocclkCTX.stable.partLoad[HocClkPartLoad_EMC];
-				RamData.LoadCPU_int = hocclkCTX.stable.partLoad[HocClkPartLoad_EMCCpu];
-				RamData.DeltaHz_int = RamData.RealHz_int - RamData.Hz_int;
-				RamData.HocClkRamBWAll_int = hocclkCTX.stable.partLoad[HocClkPartLoad_RamBWAll];
-				RamData.HocClkRamBWCpu_int = hocclkCTX.stable.partLoad[HocClkPartLoad_RamBWCpu];
-				RamData.HocClkRamBWGpu_int = hocclkCTX.stable.partLoad[HocClkPartLoad_RamBWGpu];
-				RamData.HocClkRamBWPeak_int = hocclkCTX.stable.partLoad[HocClkPartLoad_RamBWPeak];
-			}
 		}
 
 		if (R_SUCCEEDED(Hinted)) {
@@ -541,20 +490,6 @@ void BoardThreadLoop(void*) {
 				if (Rotation_Duty <= 0) Rotation_Duty = 0.0000001;
 				BoardData.FanRotationPercentageLevel_float = Rotation_Duty;
 			}
-		}
-		if (R_SUCCEEDED(hocclkCheck) && R_SUCCEEDED(updateExtClk())) {
-			BoardData.HocClkThermalSensorCPU_int = hocclkCTX.stable.temps[HocClkThermalSensor_CPU];
-			BoardData.HocClkThermalSensorGPU_int = hocclkCTX.stable.temps[HocClkThermalSensor_GPU];
-			BoardData.HocClkThermalSensorMEM_int = hocclkCTX.stable.temps[HocClkThermalSensor_MEM];
-			BoardData.HocClkThermalSensorPLLX_int = hocclkCTX.stable.temps[HocClkThermalSensor_PLLX];
-			BoardData.HocClkThermalSensorAO_int = hocclkCTX.stable.temps[HocClkThermalSensor_AO];
-			BoardData.HocClkThermalSensorBQ24193_int = hocclkCTX.stable.temps[HocClkThermalSensor_BQ24193];
-			BoardData.HocClkVoltageSOC_int = hocclkCTX.stable.voltages[HocClkVoltage_SOC];
-			BoardData.HocClkVoltageEMCVDD2_int = hocclkCTX.stable.voltages[HocClkVoltage_EMCVDD2];
-			BoardData.HocClkVoltageCPU_int = hocclkCTX.stable.voltages[HocClkVoltage_CPU];
-			BoardData.HocClkVoltageGPU_int = hocclkCTX.stable.voltages[HocClkVoltage_GPU];
-			BoardData.HocClkVoltageEMCVDDQ_int = hocclkCTX.stable.voltages[HocClkVoltage_EMCVDDQ];
-			BoardData.HocClkVoltageDisplay_int = hocclkCTX.stable.voltages[HocClkVoltage_Display];
 		}
 	} while (!leventWait(&threadexit, 1'000'000'000));	
 

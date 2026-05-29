@@ -1,6 +1,7 @@
 #pragma once
 #include "EditConfigLanguage.hpp"
 #include "EditConfigKeyCombo.hpp"
+#include "ConfigurationServiceCheck.hpp"
 
 class ConfigurationMainMenu : public tsl::Gui {
 private:
@@ -270,6 +271,18 @@ public:
 					tsl::setNextOverlay(filepath, "");
 					tsl::goBack();
 					tsl::goBack();
+					return true;
+				}
+				return false;
+			});		
+			list->addItem(Item);
+		}
+
+		{
+			auto Item = new tsl::elm::ListItem(locale["services_check"]);
+			Item->setClickListener([this](uint64_t keys) {
+				if (keys & KEY_A) {
+					tsl::changeTo<ConfigurationServiceCheck>(locale["services_check"]);
 					return true;
 				}
 				return false;

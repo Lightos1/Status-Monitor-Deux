@@ -3,8 +3,10 @@
 #include "Utils.hpp"
 #include <malloc.h>
 #include <set>
-
+#include "Extensions/smse.hpp"
 #include <cstdlib>
+
+std::list<ServiceExtensions> serviceExt;
 
 tsl::elm::OverlayFrame* rootFrame = nullptr;
 
@@ -349,22 +351,9 @@ public:
 			if (SaltySD) {
 				LoadSharedMemoryAndRefreshRate();
 			}
-			if (sysclkIpcRunning() && R_SUCCEEDED(sysclkIpcInitialize())) {
-				uint32_t sysClkApiVer = 0;
-				sysclkIpcGetAPIVersion(&sysClkApiVer);
-				if (sysClkApiVer < 4) {
-					sysclkIpcExit();
-				}
-				else sysclkCheck = 0;
-			}
-			else if (hocclkIpcRunning() && R_SUCCEEDED(hocclkIpcInitialize())) {
-				uint32_t hocClkApiVer = 0;
-				hocclkIpcGetAPIVersion(&hocClkApiVer);
-				if (hocClkApiVer < 2) {
-					hocclkIpcExit();
-				}
-				else hocclkCheck = 0;
-			}
+
+			smseLoadFolder("sdmc:/config/status-monitor-deux/extensions/");
+			smseExecuteAll();
 		});
 		Hinted = envIsSyscallHinted(0x6F);
 		hidGetSixAxisSensorHandles(&sixaxisHandles[Controller_ProController], 1, HidNpadIdType_No1,      HidNpadStyleTag_NpadFullKey);
@@ -372,12 +361,10 @@ public:
 	}
 
 	virtual void exitServices() override {
-		if (R_SUCCEEDED(sysclkCheck)) {
-			sysclkIpcExit();
+		for (auto& se : serviceExt) {
+			serviceClose(&se.service);
 		}
-		else if (R_SUCCEEDED(hocclkCheck)) {
-			hocclkIpcExit();
-		}
+
 		shmemClose(&_sharedmemory);
 		//Exit services
 		clkrstExit();
