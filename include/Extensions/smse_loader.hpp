@@ -468,7 +468,7 @@ private:
             fmt("Exec command '%s' not found in cmds", cmdName.c_str())));
     }
 
-SmseError _runAssert(SmseServiceRuntime& rt,
+    SmseError _runAssert(SmseServiceRuntime& rt,
                          const SmseAssertDesc& asrt,
                          const std::string& src)
     {
