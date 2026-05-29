@@ -47,6 +47,7 @@ private:
 	bool m_gyro_started = false;
 	u32 m_last_layer_w = tsl::cfg::LayerWidth;
 	u32 m_last_layer_h = tsl::cfg::LayerHeight;
+	u64 last_tick = 0;
 
 	struct TouchRect { int64_t x, y, w, h; };
 	static inline std::vector<TouchRect> s_rects{};

@@ -10,18 +10,6 @@
 #include "smd_parser.hpp"
 #include <array>
 
-#if defined(__cplusplus)
-extern "C"
-{
-#endif
-
-#include <sysclk/client/ipc.h>
-#include <hocclk/client/ipc.h>
-
-#if defined(__cplusplus)
-}
-#endif
-
 #define NVGPU_GPU_IOCTL_PMU_GET_GPU_LOAD 0x80044715
 #define FieldDescriptor uint32_t
 #define BASE_SNS_UOHM 5000
@@ -112,8 +100,6 @@ struct LocalTimeType {
 
 struct CpuDataType {
 	int64_t Hz_int;
-	int64_t RealHz_int;
-	int64_t DeltaHz_int;
 	double Core0Load_double;
 	double Core1Load_double;
 	double Core2Load_double;
@@ -122,15 +108,11 @@ struct CpuDataType {
 
 struct GpuDataType {
 	int64_t Hz_int;
-	int64_t RealHz_int;
-	int64_t DeltaHz_int;
 	int64_t Load_int;
 };
 
 struct RamDataType {
 	int64_t Hz_int;
-	int64_t RealHz_int;
-	int64_t DeltaHz_int;
 	int64_t LoadAll_int;
 	int64_t LoadCPU_int;
 	float UsedAllMB_float;
@@ -143,10 +125,6 @@ struct RamDataType {
 	float TotalSystemMB_float;
 	float UsedSystemUnsafeMB_float;
 	float TotalSystemUnsafeMB_float;
-	int64_t HocClkRamBWAll_int;
-	int64_t HocClkRamBWCpu_int;
-	int64_t HocClkRamBWGpu_int;
-	int64_t HocClkRamBWPeak_int;
 };
 
 struct BoardDataType {
@@ -167,18 +145,6 @@ struct BoardDataType {
 	float PcbTemperatureCelsius_float;
 	int64_t SkinTemperatureMiliCelsius_int;
 	float FanRotationPercentageLevel_float;
-	int64_t HocClkThermalSensorCPU_int;
-	int64_t HocClkThermalSensorGPU_int;
-	int64_t HocClkThermalSensorMEM_int;
-	int64_t HocClkThermalSensorPLLX_int;
-	int64_t HocClkThermalSensorAO_int;
-	int64_t HocClkThermalSensorBQ24193_int;
-	int64_t HocClkVoltageSOC_int;
-	int64_t HocClkVoltageEMCVDD2_int;
-	int64_t HocClkVoltageCPU_int;
-	int64_t HocClkVoltageGPU_int;
-	int64_t HocClkVoltageEMCVDDQ_int;
-	int64_t HocClkVoltageDisplay_int;
 };
 
 struct GameDataType {
@@ -254,8 +220,6 @@ extern Result tcCheck;
 extern Result Hinted;
 extern Result pmdmntCheck;
 extern Result psmCheck;
-extern Result sysclkCheck;
-extern Result hocclkCheck;
 extern Result pwmDutyCycleCheck;
 
 extern CpuDataType CpuData;
@@ -266,9 +230,8 @@ extern GameDataType GameData;
 extern SystemDataType SystemData;
 extern MiscDataType MiscData;
 
-extern SysClkContext sysclkCTX;
-extern HocClkContext hocclkCTX;
 extern FieldDescriptor fd;
+
 static constexpr unsigned char impl_defaultLocale[] = {
 	#embed "defaultLocale.ini"
 	, 0
@@ -277,21 +240,13 @@ extern std::array<unsigned char, sizeof(impl_defaultLocale)> defaultLocale;
 
 inline void BindAllPredefined(smd::Document& doc) {
     doc.BindInt64 ("CPU_Hz_int",                          		&CpuData.Hz_int);
-    doc.BindInt64 ("CPU_RealHz_int",                      		&CpuData.RealHz_int);
-    doc.BindInt64 ("CPU_DeltaHz_int",                     		&CpuData.DeltaHz_int);
     doc.BindDouble("CPU_Core0Load_double",                		&CpuData.Core0Load_double);
     doc.BindDouble("CPU_Core1Load_double",                		&CpuData.Core1Load_double);
     doc.BindDouble("CPU_Core2Load_double",                		&CpuData.Core2Load_double);
     doc.BindDouble("CPU_Core3Load_double",                		&CpuData.Core3Load_double);
     doc.BindInt64 ("GPU_Hz_int",                          		&GpuData.Hz_int);
-    doc.BindInt64 ("GPU_RealHz_int",                      		&GpuData.RealHz_int);
-    doc.BindInt64 ("GPU_DeltaHz_int",                     		&GpuData.DeltaHz_int);
     doc.BindInt64 ("GPU_Load_int",                        		&GpuData.Load_int);
     doc.BindInt64 ("RAM_Hz_int",                          		&RamData.Hz_int);
-    doc.BindInt64 ("RAM_RealHz_int",                      		&RamData.RealHz_int);
-    doc.BindInt64 ("RAM_DeltaHz_int",                     		&RamData.DeltaHz_int);
-    doc.BindInt64 ("RAM_LoadAll_int",                     		&RamData.LoadAll_int);
-    doc.BindInt64 ("RAM_LoadCPU_int",                     		&RamData.LoadCPU_int);
     doc.BindFloat ("RAM_UsedAllMB_float",                 		&RamData.UsedAllMB_float);
     doc.BindFloat ("RAM_TotalAllMB_float",                		&RamData.TotalAllMB_float);
     doc.BindFloat ("RAM_UsedApplicationMB_float",         		&RamData.UsedApplicationMB_float);
@@ -302,10 +257,6 @@ inline void BindAllPredefined(smd::Document& doc) {
     doc.BindFloat ("RAM_TotalSystemMB_float",             		&RamData.TotalSystemMB_float);
     doc.BindFloat ("RAM_UsedSystemUnsafeMB_float",        		&RamData.UsedSystemUnsafeMB_float);
     doc.BindFloat ("RAM_TotalSystemUnsafeMB_float",       		&RamData.TotalSystemUnsafeMB_float);
-    doc.BindInt64 ("RAM_HocClkRamBWAll_int",                    &RamData.HocClkRamBWAll_int);
-	doc.BindInt64 ("RAM_HocClkRamBWCpu_int",                    &RamData.HocClkRamBWCpu_int);
-	doc.BindInt64 ("RAM_HocClkRamBWGpu_int",                    &RamData.HocClkRamBWGpu_int);
-	doc.BindInt64 ("RAM_HocClkRamBWPeak_int",                   &RamData.HocClkRamBWPeak_int);
     doc.BindInt64 ("Board_ChargerCurrentLimit_int",       		&BoardData.ChargerCurrentLimit_int);
     doc.BindInt64 ("Board_ChargerVoltageLimit_int",       		&BoardData.ChargerVoltageLimit_int);
     doc.BindInt64 ("Board_ChargerConnected_int",          		&BoardData.ChargerConnected_int);
@@ -323,19 +274,6 @@ inline void BindAllPredefined(smd::Document& doc) {
     doc.BindFloat ("Board_PcbTemperatureCelsius_float",   		&BoardData.PcbTemperatureCelsius_float);
     doc.BindInt64 ("Board_SkinTemperatureMiliCelsius_int", 		&BoardData.SkinTemperatureMiliCelsius_int);
     doc.BindFloat ("Board_FanRotationPercentageLevel_float",	&BoardData.FanRotationPercentageLevel_float);
-    doc.BindInt64 ("Board_HocClkThermalSensorCPU_int",	        &BoardData.HocClkThermalSensorCPU_int);
-    doc.BindInt64 ("Board_HocClkThermalSensorGPU_int",	        &BoardData.HocClkThermalSensorGPU_int);
-    doc.BindInt64 ("Board_HocClkThermalSensorMEM_int",	        &BoardData.HocClkThermalSensorMEM_int);
-    doc.BindInt64 ("Board_HocClkThermalSensorPLLX_int",	        &BoardData.HocClkThermalSensorPLLX_int);
-    doc.BindInt64 ("Board_HocClkThermalSensorAO_int",	        &BoardData.HocClkThermalSensorAO_int);
-	//BQ24193: 0 - Normal, 1 - Warm, 2 - Hot, 3 - Overheat
-    doc.BindInt64 ("Board_HocClkThermalSensorBQ24193_int",	    &BoardData.HocClkThermalSensorBQ24193_int);
-    doc.BindInt64 ("HocClkVoltageSOC_int",	                    &BoardData.HocClkVoltageSOC_int);
-    doc.BindInt64 ("HocClkVoltageCPU_int",	                    &BoardData.HocClkVoltageCPU_int);
-    doc.BindInt64 ("HocClkVoltageGPU_int",	                    &BoardData.HocClkVoltageGPU_int);
-    doc.BindInt64 ("HocClkVoltageEMCVDD2_int",	                &BoardData.HocClkVoltageEMCVDD2_int);
-    doc.BindInt64 ("HocClkVoltageEMCVDDQ_int",	                &BoardData.HocClkVoltageEMCVDDQ_int);
-	doc.BindInt64 ("HocClkVoltageDisplay_int",	                &BoardData.HocClkVoltageDisplay_int);
     doc.BindInt64 ("Game_LastFrameNumber_int",            		&GameData.LastFrameNumber_int);
     doc.BindBool  ("Game_IsGameRunning",                  		&GameData.IsGameRunning);
     doc.BindInt64 ("Game_FPS_int",                        		&GameData.FPS_int);
