@@ -3,7 +3,8 @@ Monitor Your hardware in real time!<br>
 This is an overlay homebrew dedicated to Nintendo Switch.<br>
 You need to have installed Tesla environment to use it.
 
-This README was written to convey only basics of tool.
+> [!NOTE]
+> This README was written to convey only basics of tool.
 
 This is the next iteration of Status Monitor Overlay that changes structurally how it works.<br>
 Instead of hardcoding each mode now they are stored as script files with filetype `.smd`.<br>
@@ -37,10 +38,11 @@ Any additional service can be added by creating `.smse` file.
 - If you want to implement support for additional services to make them available from status monitor, you can create your own .smse file. It supports only `Out` functions. Already included are extensions for `hoc:clk` and `sys:clk` if you want to see examples.
 - You can create your own overlays, you can look in `modes` folder for seeing how all of them are implemented. Format is explained [here](docs/SMD_FORMAT.md)
 
-Currently implemented languages:
-- American English
-- Polish
-- German (only for Main menu and Global settings)
+> [!NOTE]
+> Currently implemented languages:
+> - American English
+> - Polish
+> - German (only for Main menu and Global settings)
 
 All additional files are stored in `config/status-monitor-deux`, including:
 - `modes` folder - stores SMD files used to render ovarlays. If there is only one SMD file detected, overlay jumps automatically into detected file (this can be turned off in Global settings). Each SMD file stores its own texts and localization must be implemented inside them.
@@ -70,13 +72,15 @@ Huge part of new code relative to Status Monitor Overlay was written with Claude
 
 # Troubleshooting:
 
-Q: When opening Full or Mini mode, overlay is showing that Core #3 usage is at 100% while everything else is showing 0, eventually leading to crash. Why this happens?
+> [!IMPORTANT]
+> Q: When opening Full or Mini mode, overlay is showing that Core #3 usage is at 100% while everything else is showing 0, eventually leading to crash. Why this happens?
 
 A: There are few possible explanations: 
 1. You're using nifm services connection test patches (in short `nifm ctest patches`) that are included in various packs. Those patches allow to connect to network that has no internet connection. But they cause nifm to randomly rampage when connected to network. Find any folder in `atmosphere/exefs_patches` that has in folder name `nifm`, `nfim` and/or `ctest`, delete this folder and restart Switch (if you are using `sys-patch`, turn off `nifm` patching). If you must use it, only solution is to use this overlay only in airplane mode.
 2. You're using some untested custom sysmodule that has no proper thread sleeping implemented. Find out in atmosphere/contents any sysmodule that you don't need, delete it and restart Switch.
 3. Your Switch is using sigpatches, is not a primary device, is using linked account, and is connected to network. Delete sigpatches, change your Switch to primary device, unlink account, or disable Wi-Fi.
 
-Q: When I open overlay, nothing is listed.
+> [!IMPORTANT]
+> Q: When I open overlay, nothing is listed.
 
 A: It means you have removed or didn't copy `status-monitor-deux` folder from/to `sdmc:/config/`. Download newest release and be sure to copy all files in release zip.
