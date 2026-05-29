@@ -45,7 +45,7 @@ Any additional service can be added by creating `.smse` file.
 > - German (only for Main menu and Global settings)
 
 All additional files are stored in `config/status-monitor-deux`, including:
-- `modes` folder - stores SMD files used to render ovarlays. If there is only one SMD file detected, overlay jumps automatically into detected file (this can be turned off in Global settings). Each SMD file stores its own texts and localization must be implemented inside them.
+- `modes` folder - stores SMD files used for rendering. If there is only one SMD file detected, overlay jumps automatically into detected file (this can be turned off in Global settings). Each SMD file stores its own texts and localization must be implemented inside them.
 - `extensions` folder - stores SMSE files which store informations about additional services and how their variables should be named. For functions without buffers function name is used as reference to variable it outputs.
 - `config.ini` - stores global settings and settings for each mode. It's automatically created on first boot if it doesn't exist.
 - `locale.ini` - stores localization info unrelated to SMD files.
