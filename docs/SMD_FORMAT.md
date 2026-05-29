@@ -640,17 +640,17 @@ Names the host fills in every frame. You read them in any expression; you cannot
 ### CPU
 `CPU_Hz_int`, `CPU_Core0Load_double`, `CPU_Core1Load_double`, `CPU_Core2Load_double`, `CPU_Core3Load_double`.
 
-Available only with sys-clk or hoc-clk: `CPU_RealHz_int`, `CPU_DeltaHz_int`
+Available only with sys-clk or hoc-clk: `CPU_RealHz_int`
 
 ### GPU
 `GPU_Hz_int`, `GPU_Load_int`.
 
-Available only with sys-clk or hoc-clk: `GPU_RealHz_int`, `GPU_DeltaHz_int`
+Available only with sys-clk or hoc-clk: `GPU_RealHz_int`
 
 ### RAM
 `RAM_Hz_int`, `RAM_UsedAllMB_float`, `RAM_TotalAllMB_float`, `RAM_UsedApplicationMB_float`, `RAM_TotalApplicationMB_float`, `RAM_UsedAppletMB_float`, `RAM_TotalAppletMB_float`, `RAM_UsedSystemMB_float`, `RAM_TotalSystemMB_float`, `RAM_UsedSystemUnsafeMB_float`, `RAM_TotalSystemUnsafeMB_float`.
 
-Available only with sys-clk or hoc-clk:  `RAM_RealHz_int`, `RAM_DeltaHz_int`, `RAM_LoadAll_int`, `RAM_LoadCPU_int`
+Available only with sys-clk or hoc-clk:  `RAM_RealHz_int`, `RAM_LoadAll_int`, `RAM_LoadCPU_int`
 
 Avaialble only with hoc-clk: `RAM_HocClkRamBWAll_int`, `RAM_HocClkRamBWCpu_int`, `RAM_HocClkRamBWGpu_int`, `RAM_HocClkRamBWPeak_int`
 
