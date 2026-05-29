@@ -49,7 +49,16 @@ All additional files are stored in `config/status-monitor-deux`, including:
 - `locale.ini` - stores localization info unrelated to SMD files.
 
 # How to setup everything: 
-Read [HERE](https://gist.github.com/masagrator/65fcbd5ad09243399268d145aaab899b)
+
+Atmosphere CFW is required. SX OS and other CFWs are not supported.
+It's advised to use Atmosphere's USB Transfer Tool homebrew to transfer files. If you use Hekate's USB Mass Storage and you will be putting files using any other Operating System than Windows, you must run Hekate's Archive Bit Fixer after putting all files.
+This tutorial is only for Atmosphere 1.8.0+ users 
+
+1. Download newest `SaltyNX` release from [HERE](https://github.com/masagrator/SaltyNX/releases), unpack zip file, copy both folders (`SaltySD` and `atmosphere`) to the root of your sdcard, accept any popup about overwriting folders.
+2. Download newest `Ultrahand` release (sdout.zip) from [HERE](https://github.com/ppkantorski/Ultrahand-Overlay/releases), unpack it, copy all unpacked folders to the root of sdcard, accept any popup about overwriting folders.
+3. Download `Status Monitor Deux` release from [HERE](https://github.com/masagrator/Status-Monitor-Deux/releases), copy folders `switch` and `config` to root of sdcard. It may not be visible in USB Mass Storage, but it's there.
+4. Restart Switch, now you can access overlays by pressing all 3 buttons at once: `L`, `D-pad down` and `R-stick` (aka pressing it).
+
 ---
 
 # Thanks to:
