@@ -263,15 +263,15 @@ RenderingPipeline::RenderingPipeline(std::string filepath, bool double_back) {
 		smd_hash = doc.GetFileHash();
 		uint16_t saved_x_pos;
 		uint16_t saved_y_pos;
-		bool wasSuccess = ProcessSmdSettings(rel_filepath, crc32, &saved_x_pos, &saved_y_pos);
+		bool wasSuccess = ProcessSmdSettings(rel_filepath, smd_hash, &saved_x_pos, &saved_y_pos);
 		if (wasSuccess == false) {
 			saved_x_pos = 0;
 			saved_y_pos = 0;
 			char buffer[10] = "";
-			auto [ptr, ec] = std::to_chars(&buffer[0], &buffer[sizeof(buffer)], crc32, 16);
+			auto [ptr, ec] = std::to_chars(&buffer[0], &buffer[sizeof(buffer)], smd_hash, 16);
 			if (ec == std::errc{}) {
 				std::string value = std::string(&buffer[0], ptr - &buffer[0]);
-				setIniFile("sdmc:/config/status-monitor-deux/config.ini", rel_filepath, "hash", smd_hash, "");
+				setIniFile("sdmc:/config/status-monitor-deux/config.ini", rel_filepath, "hash", value, "");
 				setIniFile("sdmc:/config/status-monitor-deux/config.ini", rel_filepath, "x", "0", "");
 				setIniFile("sdmc:/config/status-monitor-deux/config.ini", rel_filepath, "y", "0", "");
 			}
@@ -379,16 +379,19 @@ RenderingPipeline::~RenderingPipeline() {
 	if (Movable && saveAndLoadMovableOverlayPosition) {
 		char buffer[10] = {0};
 		char buffer2[10] = {0};
+		char buffer3[10] = {0};
 		if (reachedMaxX == true) m_base_x = 1280;
 		if (reachedMaxY == true) m_base_y = 720;
 		auto [ptr, ec] = std::to_chars(&buffer[0], &buffer[sizeof(buffer)], m_base_x, 10);
 		std::string value = buffer;
 		auto [ptr2, ec2] = std::to_chars(&buffer2[0], &buffer2[sizeof(buffer2)], m_base_y, 10);
 		std::string value2 = buffer2;
-		if (ec == std::errc{} && ec2 == std::errc{}) {
+		auto [ptr3, ec3] = std::to_chars(&buffer3[0], &buffer3[sizeof(buffer2)], smd_hash, 16);
+		std::string value3 = buffer3;
+		if (ec == std::errc{} && ec2 == std::errc{} && ec3 == std::errc{}) {
 			setIniFile("sdmc:/config/status-monitor-deux/config.ini", rel_filepath, "x", value, "");
 			setIniFile("sdmc:/config/status-monitor-deux/config.ini", rel_filepath, "y", value2, "");
-			setIniFile("sdmc:/config/status-monitor-deux/config.ini", rel_filepath, "hash", smd_hash, "");
+			setIniFile("sdmc:/config/status-monitor-deux/config.ini", rel_filepath, "hash", value3, "");
 		}
 	}
 	m_obj_offset_x_screen = 0;
