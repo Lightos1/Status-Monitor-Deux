@@ -127,13 +127,18 @@ struct SmseCommandDesc {
 // Assert descriptor
 // ---------------------------------------------------------------------------
 
-enum class SmseAssertOp { GE, EQ_REGEX };
+enum class SmseAssertOp { 
+    // Numeric
+    EQ, NE, LT, LE, GT, GE, 
+    // Regex
+    EQ_REGEX, NE_REGEX 
+};
 
 struct SmseAssertDesc {
     std::string  cmdName;
     SmseAssertOp op;
-    u64          numericMin = 0;   // for GE
-    std::string  regex;            // for EQ_REGEX
+    u64          numericValue = 0;   // for numeric operators
+    std::string  regex;              // for EQ_REGEX / NE_REGEX
 };
 
 // ---------------------------------------------------------------------------

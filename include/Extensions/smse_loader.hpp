@@ -468,7 +468,7 @@ private:
             fmt("Exec command '%s' not found in cmds", cmdName.c_str())));
     }
 
-    SmseError _runAssert(SmseServiceRuntime& rt,
+SmseError _runAssert(SmseServiceRuntime& rt,
                          const SmseAssertDesc& asrt,
                          const std::string& src)
     {
@@ -479,42 +479,71 @@ private:
             return SmseError::make(SmseErrorCode::AssertUnknownCommand, src,
                                    fmt("Assert cmd '%s' not found", asrt.cmdName.c_str()));
 
-        if (asrt.op == SmseAssertOp::GE) {
+        // Determine if this is a numeric check or a string regex check
+        bool isNumericOp = (asrt.op != SmseAssertOp::EQ_REGEX && asrt.op != SmseAssertOp::NE_REGEX);
+
+        if (isNumericOp) {
             if (cmd->isBuffer)
                 return SmseError::make(SmseErrorCode::AssertBadOutputType, src,
-                    fmt("Assert >= on buffer cmd '%s'", asrt.cmdName.c_str()));
+                    fmt("Assert numeric op on buffer cmd '%s'", asrt.cmdName.c_str()));
+            
             u64 tmp = 0;
             Result rc = serviceCall(rt.svc, cmd->cmdId, &tmp,
                                     valueTypeSize(cmd->outputType), false);
             if (R_FAILED(rc))
                 return SmseError::make(SmseErrorCode::ExecCommandFailed, src,
                     fmt("Assert call '%s' failed", asrt.cmdName.c_str()), rc);
+            
             s64 val = extractInt(reinterpret_cast<const u8*>(&tmp), cmd->outputType);
-            if (val < static_cast<s64>(asrt.numericMin))
+            s64 expected = static_cast<s64>(asrt.numericValue);
+            
+            bool passed = false;
+            const char* opStr = "";
+            switch (asrt.op) {
+                case SmseAssertOp::EQ: passed = (val == expected); opStr = "=="; break;
+                case SmseAssertOp::NE: passed = (val != expected); opStr = "!="; break;
+                case SmseAssertOp::LT: passed = (val <  expected); opStr = "<";  break;
+                case SmseAssertOp::LE: passed = (val <= expected); opStr = "<="; break;
+                case SmseAssertOp::GT: passed = (val >  expected); opStr = ">";  break;
+                case SmseAssertOp::GE: passed = (val >= expected); opStr = ">="; break;
+                default: break;
+            }
+
+            if (!passed)
                 return SmseError::make(SmseErrorCode::AssertVersionTooLow, src,
-                    fmt("'%s' = %lld < required %zu",
-                                asrt.cmdName.c_str(), (long long)val, asrt.numericMin));
+                    fmt("'%s' = %lld, condition (%s %lld) failed",
+                                asrt.cmdName.c_str(), (long long)val, opStr, (long long)expected));
         } else {
             if (!cmd->isBuffer || !cmd->bufIsChar)
                 return SmseError::make(SmseErrorCode::AssertBadOutputType, src,
                     fmt("Assert regex on non-char cmd '%s'", asrt.cmdName.c_str()));
+            
             std::vector<u8> tmp(cmd->bufSize, 0);
             Result rc = serviceCall(rt.svc, cmd->cmdId, tmp.data(), tmp.size(), true);
             if (R_FAILED(rc))
                 return SmseError::make(SmseErrorCode::ExecCommandFailed, src,
                     fmt("Assert call '%s' failed", asrt.cmdName.c_str()), rc);
+            
             std::string got(reinterpret_cast<char*>(tmp.data()),
                             safe_strlen(reinterpret_cast<char*>(tmp.data()), tmp.size()));
+            
             // Anchor pattern for full-string match semantics (slre_match does substring search)
             std::string anchored = "^(" + asrt.regex + ")$";
             bool matched = slre_match(anchored.c_str(), got.c_str(),
                                       static_cast<int>(got.size()),
                                       nullptr, 0, 0) >= 0;
-            if (!matched)
+
+            // For EQ_REGEX, we want matched == true. For NE_REGEX, we want matched == false.
+            bool passed = (asrt.op == SmseAssertOp::EQ_REGEX) ? matched : !matched;
+            
+            if (!passed) {
+                const char* condStr = (asrt.op == SmseAssertOp::EQ_REGEX) ? "match" : "not match";
                 return SmseError::make(SmseErrorCode::AssertVersionStringMismatch, src,
-                    fmt("'%s' = '%s' did not match '%s'",
-                                asrt.cmdName.c_str(), got.c_str(), asrt.regex.c_str()));
+                    fmt("'%s' = '%s' expected to %s '%s'",
+                                asrt.cmdName.c_str(), got.c_str(), condStr, asrt.regex.c_str()));
+            }
         }
+        
         return SmseError::success();
     }
 };

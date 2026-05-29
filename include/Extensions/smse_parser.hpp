@@ -268,35 +268,69 @@ static ParseResult parseFile(const std::string& path) {
 
         // ----------------------------------------------------------------
         case Section::Asserts: {
-            // GetApiVersion() >= 2
-            // GetVersionString() == "2.4.0(.*)"
             std::string_view sv = line;
             auto parenClose = sv.find("()");
             if (parenClose == std::string_view::npos)
                 return SmseError::make(SmseErrorCode::ParseMalformedLine,
                                        path, fmt("Bad assert: %s", std::string(line).c_str()));
+            
             std::string cmdName(sv.substr(0, parenClose));
             sv = trim(sv.substr(parenClose + 2));
 
             SmseAssertDesc ad;
-            ad.cmdName = std::move(cmdName);
+            ad.cmdName = cmdName;
 
-            if (sv.starts_with(">=")) {
-                ad.op = SmseAssertOp::GE;
-                auto numStr = trim(sv.substr(2));
+            // 1. Look up the command to determine its return type
+            auto cmdIt = std::find_if(out.cmds.begin(), out.cmds.end(),
+                                      [&](const SmseCommandDesc& c) { return c.name == cmdName; });
+            
+            if (cmdIt == out.cmds.end()) {
+                return SmseError::make(SmseErrorCode::AssertUnknownCommand,
+                                       path, fmt("Assert references unknown command: %s", cmdName.c_str()));
+            }
+
+            // 2. Check if the command outputs a char buffer (string)
+            bool isString = cmdIt->isBuffer && cmdIt->bufIsChar;
+
+            if (isString) {
+                // -- String / Regex Assertions --
+                if (sv.starts_with("==")) {
+                    ad.op = SmseAssertOp::EQ_REGEX;
+                    sv = trim(sv.substr(2));
+                } else if (sv.starts_with("!=")) {
+                    ad.op = SmseAssertOp::NE_REGEX;
+                    sv = trim(sv.substr(2));
+                } else {
+                    return SmseError::make(SmseErrorCode::ParseMalformedLine,
+                                           path, fmt("Invalid string assert op (expected == or !=): %s", std::string(line).c_str()));
+                }
+                ad.regex = std::string(stripQuotes(sv));
+            } else {
+                // -- Numeric Assertions --
+                size_t opLen = 0;
+                
+                // Check 2-character ops first
+                if (sv.starts_with(">="))      { ad.op = SmseAssertOp::GE; opLen = 2; }
+                else if (sv.starts_with("<=")) { ad.op = SmseAssertOp::LE; opLen = 2; }
+                else if (sv.starts_with("==")) { ad.op = SmseAssertOp::EQ; opLen = 2; }
+                else if (sv.starts_with("!=")) { ad.op = SmseAssertOp::NE; opLen = 2; }
+                // Check 1-character ops
+                else if (sv.starts_with(">"))  { ad.op = SmseAssertOp::GT; opLen = 1; }
+                else if (sv.starts_with("<"))  { ad.op = SmseAssertOp::LT; opLen = 1; }
+                else {
+                    return SmseError::make(SmseErrorCode::ParseMalformedLine,
+                                           path, fmt("Invalid numeric assert op: %s", std::string(line).c_str()));
+                }
+
+                auto numStr = trim(sv.substr(opLen));
                 auto v = parseNum(numStr);
                 if (!v)
                     return SmseError::make(SmseErrorCode::ParseMalformedLine,
-                                           path, fmt("Bad assert value: %s", std::string(numStr).c_str()));
-                ad.numericMin = *v;
-            } else if (sv.starts_with("==")) {
-                ad.op = SmseAssertOp::EQ_REGEX;
-                auto regexPart = trim(sv.substr(2));
-                ad.regex = std::string(stripQuotes(regexPart));
-            } else {
-                return SmseError::make(SmseErrorCode::ParseMalformedLine,
-                                       path, fmt("Unknown assert op: %s", std::string(sv).c_str()));
+                                           path, fmt("Bad numeric assert value: %s", std::string(numStr).c_str()));
+                
+                ad.numericValue = *v;
             }
+
             out.asserts.push_back(std::move(ad));
             break;
         }
