@@ -50,7 +50,6 @@ static inline Result serviceCall(Service* s, u32 cmd,
 
 // ---------------------------------------------------------------------------
 // Conversion helpers
-// Read from raw bytes in the wire type, produce s64 / float / double.
 // ---------------------------------------------------------------------------
 
 static inline bool isIntType(SmseValueType t) noexcept {
@@ -80,32 +79,22 @@ inline std::size_t safe_strlen(const char* buf, std::size_t max_size) {
 
 // ---------------------------------------------------------------------------
 // Accessor
-//
-// ptr always points to:
-//   s64    — for any integer source type (u8..u64, s8..s64)
-//   float  — for f32
-//   double — for f64
-//   char   — for buffer_char (C string)
-//
-// srcType tells you the original wire type from the .smse file.
 // ---------------------------------------------------------------------------
 
 struct SmseFieldAccessor {
     SmseValueType srcType;
-    const void*   ptr;      // stable pointer; never moves after smseLoadFolder()
+    const void*   ptr;
 
     bool isInt()    const noexcept { return isIntType(srcType); }
     bool isFloat()  const noexcept { return srcType == SmseValueType::f32_; }
     bool isDouble() const noexcept { return srcType == SmseValueType::f64_; }
     bool isString() const noexcept { return srcType == SmseValueType::buffer_char; }
 
-    // Typed pointer access — choose based on isInt/isFloat/isDouble/isString
     const s64*    intPtr() const noexcept { return static_cast<const s64*>(ptr); }
     const float*  f32Ptr() const noexcept { return static_cast<const float*>(ptr); }
     const double* f64Ptr() const noexcept { return static_cast<const double*>(ptr); }
     const char*   strPtr() const noexcept { return static_cast<const char*>(ptr); }
 
-    // Value shorthands
     s64         asInt()    const noexcept { return *intPtr(); }
     float       asFloat()  const noexcept { return *f32Ptr(); }
     double      asDouble() const noexcept { return *f64Ptr(); }
@@ -113,56 +102,44 @@ struct SmseFieldAccessor {
 };
 
 // ---------------------------------------------------------------------------
-// Public variable entry — one per struct field / scalar output / string output
+// Public entries
 // ---------------------------------------------------------------------------
 
 struct SmseVarEntry {
-    std::string       name;       // field name or command name
-    std::string       service;    // owning service
-    SmseFieldAccessor accessor;   // stable; bind to other threads freely
+    std::string       name;
+    std::string       service;
+    SmseFieldAccessor accessor;
 };
 
-// ---------------------------------------------------------------------------
-// Public service entry
-// ---------------------------------------------------------------------------
-
 struct SmseServiceEntry {
-    std::string            name;
-    bool                   connected  = false;
-    std::vector<SmseError> initErrors;   // connection + assert; fixed after load
-    std::vector<SmseError>* execErrors; // live; cleared+filled each smseExecuteAll()
+    std::string             name;
+    bool                    connected  = false;
+    std::vector<SmseError>  initErrors;   // connection + assert failures; fixed after load
+    std::vector<SmseError>* execErrors;   // live; cleared+filled each smseExecuteAll()
 };
 
 // ---------------------------------------------------------------------------
 // Internal storage
-//
-// Separation of concerns:
-//   rawData  — scratch buffer handed to serviceCall (wire size)
-//   *Storage — converted values that accessors point into (stable pointers)
 // ---------------------------------------------------------------------------
 
-// One entry in the field conversion map for a buffer slot
 struct SmseConvertEntry {
     size_t        srcOffset;
     SmseValueType srcType;
-    size_t        storageIdx;   // index into the relevant storage vector
-    // which storage to use (mutually exclusive):
+    size_t        storageIdx;
     bool isF32 = false;
     bool isF64 = false;
-    // else: integer -> intStorage
 };
 
 struct SmseBufferSlot {
-    std::vector<u8>              rawData;     // wire-size scratch; never exposed
-    std::vector<SmseConvertEntry> fieldMap;   // how to convert rawData -> storage
-    std::vector<s64>             intStorage;  // all integer fields, as s64
-    std::vector<float>           f32Storage;
-    std::vector<double>          f64Storage;
-    bool isChar = false;  // if true: rawData is the string; no fieldMap used
+    std::vector<u8>               rawData;
+    std::vector<SmseConvertEntry> fieldMap;
+    std::vector<s64>              intStorage;
+    std::vector<float>            f32Storage;
+    std::vector<double>           f64Storage;
+    bool isChar = false;
 
-    // Called after every successful serviceCall
     void convert() noexcept {
-        if (isChar) return;  // rawData is the output itself
+        if (isChar) return;
         for (auto& fe : fieldMap) {
             const u8* src = rawData.data() + fe.srcOffset;
             if (fe.isF32) {
@@ -182,28 +159,18 @@ struct SmseScalarSlot {
     float  f32Val = 0.0f;
     double f64Val = 0.0;
 
-    // Write from a raw wire buffer (1-8 bytes at ptr)
     void write(const u8* src) noexcept {
-        if (srcType == SmseValueType::f32_) {
-            __builtin_memcpy(&f32Val, src, 4);
-        } else if (srcType == SmseValueType::f64_) {
-            __builtin_memcpy(&f64Val, src, 8);
-        } else {
-            intVal = extractInt(src, srcType);
-        }
+        if      (srcType == SmseValueType::f32_) { __builtin_memcpy(&f32Val, src, 4); }
+        else if (srcType == SmseValueType::f64_) { __builtin_memcpy(&f64Val, src, 8); }
+        else                                     { intVal = extractInt(src, srcType); }
     }
 
-    // Stable pointer for the accessor
     const void* ptr() const noexcept {
         if (srcType == SmseValueType::f32_) return &f32Val;
         if (srcType == SmseValueType::f64_) return &f64Val;
         return &intVal;
     }
 };
-
-// ---------------------------------------------------------------------------
-// Per-service runtime
-// ---------------------------------------------------------------------------
 
 struct SmseServiceRuntime {
     std::string  serviceName;
@@ -214,7 +181,7 @@ struct SmseServiceRuntime {
     std::unordered_map<std::string, SmseScalarSlot>  scalarOutputs;
     std::unordered_map<std::string, SmseBufferSlot>  bufferOutputs;
 
-    std::vector<std::string>       execOrder;
+    std::vector<std::string>        execOrder;
     std::unordered_set<std::string> execSeen;
 
     std::vector<SmseError> execErrors;
@@ -238,7 +205,7 @@ public:
                     loadErrors.push_back(SmseError::make(
                         SmseErrorCode::ParseStructSizeConflict, pf.sourceFile,
                         fmt("Struct '%s' size conflict: %zu vs %zu",
-                                    sname.c_str(), ex.bufSize, sd.bufSize)));
+                            sname.c_str(), ex.bufSize, sd.bufSize)));
                     return false;
                 }
                 if (sd.bufSize) ex.bufSize = sd.bufSize;
@@ -258,7 +225,7 @@ public:
 
         for (auto& [svcName, files] : byService) {
             SmseServiceEntry sentry;
-            sentry.name = svcName;
+            sentry.name      = svcName;
             sentry.execErrors = nullptr;
 
             // --- Connect once ---
@@ -289,45 +256,67 @@ public:
             }
             sentry.connected = true;
 
-            // --- Build runtime ---
             auto& rt = _runtimes[svcName];
             rt.serviceName = svcName;
             rt.svc = &existing->service;
 
+            // --- Per-file: assert first, merge only on full pass ---
+            //
+            // Asserts run against the file's own cmd list (rt.cmds is still
+            // empty at this point; we haven't merged anything yet).
+            // Only if every assert in a file passes do we fold that file's
+            // cmds / structs / exec entries into the runtime.
+            // A failure in one file has zero effect on other files.
             for (auto* pf : files) {
+                std::vector<SmseError> fileErrors;
+
+                for (auto& asrt : pf->asserts) {
+                    auto e = _runAssertFromFile(*pf, rt.svc, asrt, pf->sourceFile);
+                    if (!e.ok()) {
+                        fileErrors.push_back(e);
+                        sentry.initErrors.push_back(e);
+                        errors.push_back(e);
+                    }
+                }
+
+                if (!fileErrors.empty())
+                    continue;  // this file is rejected; skip its data entirely
+
+                // All asserts passed — merge this file's contributions
                 for (auto& cmd : pf->cmds)
-                    rt.cmds.emplace(cmd.cmdId, cmd);
+                    rt.cmds.emplace(cmd.cmdId, cmd);  // emplace: first file wins on collision
+
                 for (auto& [sname, sd] : pf->structs) {
                     auto& dst = rt.structs[sname];
-                    if (dst.name.empty()) dst = sd;
-                    else {
+                    if (dst.name.empty()) {
+                        dst = sd;
+                    } else {
                         if (sd.bufSize) dst.bufSize = sd.bufSize;
                         for (auto& f : sd.fields) dst.fields.push_back(f);
                     }
                 }
+
                 for (auto& ec : pf->execCmds)
                     if (rt.execSeen.insert(ec).second)
                         rt.execOrder.push_back(ec);
             }
 
-            // --- Allocate output slots ---
-            // All allocations happen here; pointers are stable from this point on.
+            // --- Allocate output slots (pointers stable from here on) ---
             for (auto& [cmdId, cmd] : rt.cmds) {
                 if (cmd.isBuffer) {
                     auto& slot = rt.bufferOutputs[cmd.name];
                     slot.rawData.resize(cmd.bufSize, 0);
                     slot.isChar = cmd.bufIsChar;
                     if (!cmd.bufIsChar) {
-                        // Build conversion map from the merged struct descriptor
                         auto it = rt.structs.find(cmd.bufStructName);
                         if (it != rt.structs.end()) {
                             size_t intIdx=0, f32Idx=0, f64Idx=0;
                             for (auto& field : it->second.fields) {
                                 SmseConvertEntry fe;
-                                fe.srcOffset  = field.offset;
-                                fe.srcType    = field.type;
-                                fe.isF32      = (field.type == SmseValueType::f32_);
-                                fe.isF64      = (field.type == SmseValueType::f64_);
+                                fe.srcOffset = field.offset;
+                                fe.srcType   = field.type;
+                                fe.isF32     = (field.type == SmseValueType::f32_);
+                                fe.isF64     = (field.type == SmseValueType::f64_);
                                 if      (fe.isF32) fe.storageIdx = f32Idx++;
                                 else if (fe.isF64) fe.storageIdx = f64Idx++;
                                 else               fe.storageIdx = intIdx++;
@@ -343,7 +332,7 @@ public:
                 }
             }
 
-            // --- Build _allVars (pointers are now stable) ---
+            // --- Build _allVars (pointers stable after allocations above) ---
 
             // Struct fields
             for (auto& [sname, sd] : rt.structs) {
@@ -359,10 +348,8 @@ public:
                             fe.isF32 ? (const void*)&slot.f32Storage[fe.storageIdx] :
                             fe.isF64 ? (const void*)&slot.f64Storage[fe.storageIdx] :
                                        (const void*)&slot.intStorage[fe.storageIdx];
-                        _allVars.push_back({
-                            sd.fields[i].name, svcName,
-                            SmseFieldAccessor{ fe.srcType, ptr }
-                        });
+                        _allVars.push_back({ sd.fields[i].name, svcName,
+                                             SmseFieldAccessor{ fe.srcType, ptr } });
                     }
                     break;
                 }
@@ -374,11 +361,8 @@ public:
                     if (cmd.name != execName || cmd.isBuffer) continue;
                     auto it = rt.scalarOutputs.find(cmd.name);
                     if (it == rt.scalarOutputs.end()) break;
-                    // ptr() returns pointer into SmseScalarSlot's stable member
-                    _allVars.push_back({
-                        cmd.name, svcName,
-                        SmseFieldAccessor{ cmd.outputType, it->second.ptr() }
-                    });
+                    _allVars.push_back({ cmd.name, svcName,
+                                         SmseFieldAccessor{ cmd.outputType, it->second.ptr() } });
                     break;
                 }
             }
@@ -389,23 +373,10 @@ public:
                     if (cmd.name != execName || !cmd.isBuffer || !cmd.bufIsChar) continue;
                     auto it = rt.bufferOutputs.find(cmd.name);
                     if (it == rt.bufferOutputs.end()) break;
-                    _allVars.push_back({
-                        cmd.name, svcName,
-                        SmseFieldAccessor{ SmseValueType::buffer_char,
-                                           it->second.rawData.data() }
-                    });
+                    _allVars.push_back({ cmd.name, svcName,
+                                         SmseFieldAccessor{ SmseValueType::buffer_char,
+                                                            it->second.rawData.data() } });
                     break;
-                }
-            }
-
-            // --- Asserts ---
-            for (auto* pf : files) {
-                for (auto& asrt : pf->asserts) {
-                    auto e = _runAssert(rt, asrt, pf->sourceFile);
-                    if (!e.ok()) {
-                        sentry.initErrors.push_back(e);
-                        errors.push_back(e);
-                    }
                 }
             }
 
@@ -468,36 +439,38 @@ private:
             fmt("Exec command '%s' not found in cmds", cmdName.c_str())));
     }
 
-    SmseError _runAssert(SmseServiceRuntime& rt,
-                         const SmseAssertDesc& asrt,
-                         const std::string& src)
+    // Runs asserts using the cmd list from the file itself, not the merged runtime.
+    // This is intentional: we haven't merged this file's data yet and might not.
+    SmseError _runAssertFromFile(const SmseParsedFile& pf, Service* svc,
+                                  const SmseAssertDesc& asrt, const std::string& src)
     {
         const SmseCommandDesc* cmd = nullptr;
-        for (auto& [id, c] : rt.cmds)
+        for (auto& c : pf.cmds)
             if (c.name == asrt.cmdName) { cmd = &c; break; }
         if (!cmd)
             return SmseError::make(SmseErrorCode::AssertUnknownCommand, src,
-                                   fmt("Assert cmd '%s' not found", asrt.cmdName.c_str()));
+                                   fmt("Assert cmd '%s' not found in this file",
+                                       asrt.cmdName.c_str()));
 
-        // Determine if this is a numeric check or a string regex check
-        bool isNumericOp = (asrt.op != SmseAssertOp::EQ_REGEX && asrt.op != SmseAssertOp::NE_REGEX);
+        bool isNumericOp = (asrt.op != SmseAssertOp::EQ_REGEX &&
+                            asrt.op != SmseAssertOp::NE_REGEX);
 
         if (isNumericOp) {
             if (cmd->isBuffer)
                 return SmseError::make(SmseErrorCode::AssertBadOutputType, src,
                     fmt("Assert numeric op on buffer cmd '%s'", asrt.cmdName.c_str()));
-            
+
             u64 tmp = 0;
-            Result rc = serviceCall(rt.svc, cmd->cmdId, &tmp,
+            Result rc = serviceCall(svc, cmd->cmdId, &tmp,
                                     valueTypeSize(cmd->outputType), false);
             if (R_FAILED(rc))
                 return SmseError::make(SmseErrorCode::ExecCommandFailed, src,
                     fmt("Assert call '%s' failed", asrt.cmdName.c_str()), rc);
-            
-            s64 val = extractInt(reinterpret_cast<const u8*>(&tmp), cmd->outputType);
+
+            s64 val      = extractInt(reinterpret_cast<const u8*>(&tmp), cmd->outputType);
             s64 expected = static_cast<s64>(asrt.numericValue);
-            
-            bool passed = false;
+
+            bool passed  = false;
             const char* opStr = "";
             switch (asrt.op) {
                 case SmseAssertOp::EQ: passed = (val == expected); opStr = "=="; break;
@@ -508,42 +481,40 @@ private:
                 case SmseAssertOp::GE: passed = (val >= expected); opStr = ">="; break;
                 default: break;
             }
-
             if (!passed)
                 return SmseError::make(SmseErrorCode::AssertVersionTooLow, src,
                     fmt("'%s' = %lld, condition (%s %lld) failed",
-                                asrt.cmdName.c_str(), (long long)val, opStr, (long long)expected));
+                        asrt.cmdName.c_str(), (long long)val,
+                        opStr, (long long)expected));
         } else {
             if (!cmd->isBuffer || !cmd->bufIsChar)
                 return SmseError::make(SmseErrorCode::AssertBadOutputType, src,
                     fmt("Assert regex on non-char cmd '%s'", asrt.cmdName.c_str()));
-            
+
             std::vector<u8> tmp(cmd->bufSize, 0);
-            Result rc = serviceCall(rt.svc, cmd->cmdId, tmp.data(), tmp.size(), true);
+            Result rc = serviceCall(svc, cmd->cmdId, tmp.data(), tmp.size(), true);
             if (R_FAILED(rc))
                 return SmseError::make(SmseErrorCode::ExecCommandFailed, src,
                     fmt("Assert call '%s' failed", asrt.cmdName.c_str()), rc);
-            
+
             std::string got(reinterpret_cast<char*>(tmp.data()),
                             safe_strlen(reinterpret_cast<char*>(tmp.data()), tmp.size()));
-            
-            // Anchor pattern for full-string match semantics (slre_match does substring search)
+
             std::string anchored = "^(" + asrt.regex + ")$";
             bool matched = slre_match(anchored.c_str(), got.c_str(),
                                       static_cast<int>(got.size()),
                                       nullptr, 0, 0) >= 0;
-
-            // For EQ_REGEX, we want matched == true. For NE_REGEX, we want matched == false.
             bool passed = (asrt.op == SmseAssertOp::EQ_REGEX) ? matched : !matched;
-            
             if (!passed) {
-                const char* condStr = (asrt.op == SmseAssertOp::EQ_REGEX) ? "match" : "not match";
+                const char* condStr = (asrt.op == SmseAssertOp::EQ_REGEX)
+                                      ? "match" : "not match";
                 return SmseError::make(SmseErrorCode::AssertVersionStringMismatch, src,
                     fmt("'%s' = '%s' expected to %s '%s'",
-                                asrt.cmdName.c_str(), got.c_str(), condStr, asrt.regex.c_str()));
+                        asrt.cmdName.c_str(), got.c_str(),
+                        condStr, asrt.regex.c_str()));
             }
         }
-        
+
         return SmseError::success();
     }
 };
@@ -570,24 +541,19 @@ inline std::vector<SmseError> smseLoadFolder(const char* folderPath) {
     if (ec)
         all.push_back(SmseError::make(SmseErrorCode::ParseMalformedLine,
             folderPath, fmt("Cannot iterate folder: %s", ec.message().c_str())));
-    for (auto& e : g_smse.finalize())    all.push_back(e);
-    for (auto& e : g_smse.loadErrors)    all.push_back(e);
+    for (auto& e : g_smse.finalize())  all.push_back(e);
+    for (auto& e : g_smse.loadErrors)  all.push_back(e);
     return all;
 }
 
-// Every variable from every loaded service.
-// Stable span; entries never move after smseLoadFolder() returns.
 inline std::span<const SmseVarEntry> smseGetAllVars() noexcept {
     return g_smse.allVars();
 }
 
-// Every service with connection status + error context.
-// execErrors pointer is live: refreshed each smseExecuteAll().
 inline std::span<const SmseServiceEntry> smseGetAllServices() noexcept {
     return g_smse.allServices();
 }
 
-// Call from your execution thread on every tick.
 inline void smseExecuteAll() {
     g_smse.executeAll();
 }
