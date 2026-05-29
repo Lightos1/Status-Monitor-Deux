@@ -33,6 +33,5 @@ asserts:
 	GetApiVersion() >= 2
 	#GetVersionString() == "2.(.*)"
 	
-	
 execution:
 	GetCurrentContext()
