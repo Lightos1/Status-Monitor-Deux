@@ -1,2 +1,4 @@
 *.smd linguist-language=inno-setup
 *.smse linguist-language=YAML
+*.smd linguist-vendored=false
+*.smse linguist-vendored=false
