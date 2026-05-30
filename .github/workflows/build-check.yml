@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # Always pull the newest devkitPro image — never use a cached layer.
       - name: Pull latest devkitA64 image
