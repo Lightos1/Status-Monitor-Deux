@@ -362,8 +362,6 @@ VAR{HalfAvg, HISTORY_AVERAGE{FPSreading} / 2}
 
 Returns `0.0` when the buffer has no samples yet. For a `float`-typed history the result is promoted to double, matching the precision available to all numeric expressions.
 
-The leading `$` is accepted inside the braces for consistency with the rest of the format (`HISTORY_AVERAGE{$FPSreading}` is identical).
-
 ### `GRAPH_LINE_CHART{x, y, width, height, min, max, direction, lineColor, fillColor, conditions, history}`
 
 Draws a graph of a history buffer.
