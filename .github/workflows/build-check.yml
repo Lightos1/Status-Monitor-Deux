@@ -24,7 +24,7 @@ permissions:
 
 jobs:
   build:
-    name: Compile (devkitA64 / libnx)
+    name: Compile
     runs-on: ubuntu-latest
 
     steps:
