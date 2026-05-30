@@ -574,7 +574,7 @@ namespace tsl {
                 end.r = this->blendColor(src.r, dst.r, dst.a); 
                 end.g = this->blendColor(src.g, dst.g, dst.a); 
                 end.b = this->blendColor(src.b, dst.b, dst.a); 
-                end.a = (dst.a + (src.a * (0xF - dst.a) >> 4)); 
+                end.a = dst.a; 
  
                 this->setPixelWithOffset(offset, end); 
             }
@@ -2117,6 +2117,7 @@ namespace tsl {
 				rand();
 				this->setColor(this->m_color);
 				last_tick = svcGetSystemTick();
+				rng = (u16)rand() % 0x1000;
 			}
 
 			virtual ~ColorListItem() {}
@@ -2175,11 +2176,11 @@ namespace tsl {
 				else {
 					uint64_t new_tick = svcGetSystemTick();
 					if (new_tick - last_tick > armGetSystemTickFreq()) {
-						rng = rand() % 0x1000;
+						rng = (u16)rand() % 0x1000;
 						last_tick = new_tick;
 					}
-					renderer->drawCircle(this->getX() + this->getWidth() - 32, this->getY() + 37, 17, true, 0xFFFF - rng);
-					renderer->drawRect(this->getX() + this->getWidth() - 43, this->getY() + 26, 24, 24, 0xF000 + rng);					
+					renderer->drawCircle(this->getX() + this->getWidth() - 32, this->getY() + 37, 17, true, (u32)(0xFFFF - rng) & 0xFFFF);
+					renderer->drawRect(this->getX() + this->getWidth() - 43, this->getY() + 26, 24, 24, (u32)(0xF000 + rng) & 0xFFFF);					
 				}
 			}
 
