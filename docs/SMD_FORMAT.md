@@ -12,7 +12,7 @@ This document is for **authors writing `.smd` files**. For details on how the pa
 
 Every `.smd` file is two halves separated by a `Start:` line:
 
-```
+```inno-setup
 ;; -- header: configuration --
 Name = My Overlay
 LayerWidth = 448
@@ -48,7 +48,7 @@ TEXT{5, 0, 18, Color, FpsLine}
 
 The configuration section uses **two different separators**, and the choice matters:
 
-```
+```inno-setup
 User_RefreshRate = 30              ; constant: cannot be changed by VAR
 lastFrame: 0                       ; default: VAR may rewrite it
 ```
@@ -70,7 +70,7 @@ What you put on the right-hand side determines how the value is treated:
 
 Decimal or `0x`-prefixed hex.
 
-```
+```inno-setup
 COMMON_MARGIN = 20
 LayerHeight = 720
 WindowColor = 0xF00F
@@ -82,7 +82,7 @@ Negative values work too: `Offset = -5`.
 
 `true` or `false`, case sensitive.
 
-```
+```inno-setup
 EnableCPU = true
 HeaderText = false
 ```
@@ -91,7 +91,7 @@ HeaderText = false
 
 Double-quoted. Standard escapes: `\n`, `\t`, `\\`, `\"`. Unicode bytes can be embedded literally.
 
-```
+```inno-setup
 Name = "FPS Counter"
 FPSnoDataText = "n/d"
 ```
@@ -100,7 +100,7 @@ FPSnoDataText = "n/d"
 
 A printf-style template followed by argument expressions. **Re-evaluated every frame** against live host data.
 
-```
+```inno-setup
 FpsLine: {"FPS=%d", Game_FPS_int}
 BatteryText: {"Battery: %.1f%%", Board_BatteryChargePercentage_float}
 ComboFooter: {"Hold %s to exit", formattedKeyCombo}
@@ -121,7 +121,7 @@ Flags (`-`, `+`, ` `, `#`, `0`), width, and precision are honoured. **Length mod
 
 A `%s` slot pulls a value from one of: a string-typed host binding, a `String`-kind config value, a string-typed `VAR`, or a string-valued ternary. A `{"...","..."}` format may be **nested** inside another:
 
-```
+```inno-setup
 TimeOrDash: {"%s", Board_BatteryTimeEstimateInMinutes_int >= 0 ? {"%d:%02d", Board_BatteryTimeEstimateInMinutes_int / 60, Board_BatteryTimeEstimateInMinutes_int % 60} : "-:--"}
 ```
 
@@ -129,7 +129,7 @@ TimeOrDash: {"%s", Board_BatteryTimeEstimateInMinutes_int >= 0 ? {"%d:%02d", Boa
 
 Declares a ring buffer of samples used by `GRAPH_LINE_CHART`.
 
-```
+```inno-setup
 FPSreading = HISTORY{float, 180}
 CPUreading = HISTORY{int, 60}
 PowerReading = HISTORY{double, 120}
@@ -143,7 +143,7 @@ Per-sample style overrides for `GRAPH_LINE_CHART`. Each row is a triple: a condi
 
 `fillColor` is currently ignored.
 
-```
+```inno-setup
 GraphConditions: GRAPH_CONDITIONS{{round(x) == System_DisplayRefreshRate_int, perfectColor, 0x0000}, {round(x * 2) == System_DisplayRefreshRate_int, roundedColor, 0x0000}}
 ```
 
@@ -151,7 +151,7 @@ GraphConditions: GRAPH_CONDITIONS{{round(x) == System_DisplayRefreshRate_int, pe
 
 `COLOR{16-bit value}` does the nibble swap so you can use RGBA order for RGBA4444 framebuffer instead of BARG. `COLOR{0xABCD}` (RGBA) becomes `0xDCBA` (BARG).
 
-```
+```inno-setup
 Color = COLOR{0xF77F}        ; literal: rewritten at load time
 TintedColor = COLOR{base + 4} ; expression: evaluated each frame
 ```
@@ -162,7 +162,7 @@ Two forms: a **literal-body** `COLOR{0xHHHH}` is rewritten at load time (free at
 
 A typed array. The element type is `int`, `float`, `double`, or `str`. Used as the iterand of a `#for` loop (see §5b).
 
-```
+```inno-setup
 Categories = LIST{str, {"CPU", "GPU", "RAM"}}
 Sizes      = LIST{int, {16, 24, 32}}
 Ratios     = LIST{float, {0.5, 1.0, 1.5}}
@@ -174,7 +174,7 @@ It supports special command inside `LIST`: `RANGE{start, end, step}`
 
 Python-style integer sequence generator. Used in place of the element list inside `LIST{int, ...}`:
 
-```
+```inno-setup
 Indices = LIST{int, RANGE{0, 8, 2}}    ; -> 0, 2, 4, 6
 Down    = LIST{int, RANGE{10, 0, -2}}  ; -> 10, 8, 6, 4, 2
 ```
@@ -185,7 +185,7 @@ The sequence includes `start` and continues while strictly below `end` (or stric
 
 A special kind of string storage used for translations. string represents a text that is used when system/overriden language is not detected.
 
-```
+```inno-setup
 WarningText = IETF{"Game is not running or it's incompatible."}
 ```
 
@@ -219,7 +219,7 @@ List of codes supported natively by system:
 
 Any other language must be forced via `config.ini`.
 
-```
+```inno-setup
 IETF_LOCALE{WarningText, "PL-PL", "Gra jest nieuruchomiona lub niekompatybilna."}
 ```
 
@@ -227,7 +227,7 @@ IETF_LOCALE{WarningText, "PL-PL", "Gra jest nieuruchomiona lub niekompatybilna."
 
 Get string from local variable initiated with `IETF{string}`.
 
-```
+```inno-setup
 TEXT{0, 20, 18, User_WarningColor, IETF_GET{WarningText}}
 ```
 
@@ -255,7 +255,7 @@ Draws text at pixel position `(x, y)`, with `fontSize` in points and a 16-bit RG
 
 Inline `{"fmt", args...}` is also accepted — handy for one-off values that don't deserve a config key of their own:
 
-```
+```inno-setup
 TEXT{0, 13, 10, 0xFFFF, false, {"%d", RefreshRate}}
 TEXT{0, 0,  20, 0xFFFF, true,  IETF_GET{Title}}
 ```
@@ -266,7 +266,7 @@ The inline form re-evaluates every frame, same as a named config Format. For val
 
 Filled rectangle.
 
-```
+```inno-setup
 BOX{0, 0, LayerWidth, 50, BackgroundColor}
 ```
 
@@ -274,7 +274,7 @@ BOX{0, 0, LayerWidth, 50, BackgroundColor}
 
 Filled rectangle with rounded corners. Roundness range is [0.0, 1.0]. 0.0 for all roundness inputs is equal to using BOX{x, y, width, height, color}.
 
-```
+```inno-setup
 ROUNDED_BOX{0, 0, LayerWidth, 50, 0.3, 0.0, 0.3, 0.0, BackgroundColor}
 ```
 
@@ -292,7 +292,7 @@ Asks the host to measure how big `contentExpr` will render at `fontSize`. The re
 
 `matchLineHeight` is a **required boolean literal** (`true` or `false`), and must match the value you intend to pass to the corresponding `TEXT` command. When `true`, the measurement reflects line heights clamped to `fontSize`; when `false`, it reflects the font's natural leading. Passing mismatched values between `GET_DIMENSIONS` and `TEXT` will produce mis-aligned layouts.
 
-```
+```inno-setup
 GET_DIMENSIONS{labelDims, 18, false, "Battery: 100%"}
 TEXT{(LayerWidth - labelDims.x) / 2, 0, 18, 0xFFFF, false, "Battery: 100%"}
 ```
@@ -303,7 +303,7 @@ The measurement is cached per `(text, fontSize, matchLineHeight)` triple, so rep
 
 Declare or assign a script-local variable.
 
-```
+```inno-setup
 VAR{boxWidth, System_DisplayRefreshRate_int >= 100 ? 212 : 202}
 VAR{label, "Frame: " + {"%d", Game_LastFrameNumber_int}}
 ```
@@ -325,7 +325,7 @@ VAR can freely reassign config keys declared with `:` (default-kind). The new va
 
 Pushes one sample onto a history buffer. The value is evaluated as a double and stored with the precision the buffer was declared with.
 
-```
+```inno-setup
 HISTORY_UPDATE{FPSreading, Game_FpsAvg_float}
 ```
 
@@ -335,7 +335,7 @@ If the buffer is at capacity, the oldest sample is dropped.
 
 Clears every sample from the buffer, maintaining declared capacity.
 
-```
+```inno-setup
 HISTORY_CLEAN{FPSreading}
 ```
 
@@ -343,7 +343,7 @@ HISTORY_CLEAN{FPSreading}
 
 Returns the **arithmetic mean** of all samples currently in the named ring buffer, as a numeric value. Usable anywhere a number can appear: format-spec arguments, `VAR` right-hand sides, `#if` conditions, ternaries, and arithmetic sub-expressions.
 
-```
+```inno-setup
 ; inline in a format spec:
 TEXT{0, 0, 18, 0xFFFF, {"%d", HISTORY_AVERAGE{FPSreading}}}
 
@@ -366,7 +366,7 @@ Returns `0.0` when the buffer has no samples yet. For a `float`-typed history th
 
 Draws a graph of a history buffer.
 
-```
+```inno-setup
 GRAPH_LINE_CHART{20, 5, 180, 60, 0, 60, LEFT_TO_RIGHT, mainColor, 0x0000, GraphConditions, FPSreading}
 ```
 
@@ -385,7 +385,7 @@ Arguments:
 
 If you don't want per-sample style overrides, leave the conditions slot empty:
 
-```
+```inno-setup
 GRAPH_LINE_CHART{0, 0, 100, 60, 0, 60, LEFT_TO_RIGHT, 0xFFFF, 0x0000, , myHistory}
 ```
 
@@ -419,14 +419,14 @@ There is **no `not` operator**.
 
 ### Ternary
 
-```
+```inno-setup
 VAR{x, condition ? thenValue : elseValue}
 TEXT{0, 0, 18, gameRunning ? 0xFFFF : 0x8888, "..."}
 ```
 
 Works in any numeric expression slot. Inside Format-spec args:
 
-```
+```inno-setup
 FpsLine: {"FPS: %d (%s)", Game_FPS_int, Game_FPS_int >= 60 ? "OK" : "Low"}
 ```
 
@@ -452,7 +452,7 @@ Standard tinyexpr math (`log`, `exp`, `sin`, `cos`, `pow`, `atan2`, ...) is also
 
 Bare `true` and `false` work as numeric `1` and `0` in expressions. They only match at word boundaries — a name like `truesz` is left alone.
 
-```
+```inno-setup
 VAR{flag, true}           ; same as VAR{flag, 1}
 #if $cond == false        ; same as #if $cond == 0
 ```
@@ -461,14 +461,14 @@ VAR{flag, true}           ; same as VAR{flag, 1}
 
 A struct VAR or a resolution-array slot is read with `.field`:
 
-```
+```inno-setup
 GET_DIMENSIONS{D, 18, "x"}
 TEXT{D.x, D.y, 18, 0xFFFF, "x"}
 ```
 
 For resolution arrays:
 
-```
+```inno-setup
 TEXT{0, 0, 18, 0xFFFF, {"%dx%d, %d", Game_ResolutionRenderCalls_int[0].width, Game_ResolutionRenderCalls_int[0].height, Game_ResolutionRenderCalls_int[0].calls}}
 ```
 
@@ -478,7 +478,7 @@ TEXT{0, 0, 18, 0xFFFF, {"%dx%d, %d", Game_ResolutionRenderCalls_int[0].width, Ga
 
 Conditional rendering uses `#if` / `#elif` / `#else` / `#endif`. Conditions are full expressions including comparisons and logical operators.
 
-```
+```inno-setup
 #if $Game_IsGameRunning
     TEXT{0, 0, 18, 0xFFFF, "Game running"}
 #elif $System_IsDocked
@@ -496,7 +496,7 @@ Stray `#endif`, `#else`, `#elif` outside an open `#if` are a load-time error. Do
 
 ## 5b. Loops
 
-```
+```inno-setup
 #for $loopVar in $listName
     ...body...
 #endfor
@@ -506,7 +506,7 @@ The body runs once per element of `$listName`, in FIFO (First In First Out) orde
 
 `$listName` must reference a `LIST{...}` config key. The list is evaluated once at load time; the loop body is interpreted every frame and may use the loop variable in any expression.
 
-```
+```inno-setup
 Order = LIST{str, {"CPU", "GPU", "RAM"}}
 ;;;
 #for $cat in $Order
@@ -531,7 +531,7 @@ Empty lists run the body zero times. Stray `#endfor` outside any open `#for`, or
 ### Cross-frame state
 Use a `:` config key as the initial value, then `VAR` to update it:
 
-```
+```inno-setup
 ;; header
 lastFrame: 0
 
@@ -548,7 +548,7 @@ lastFrame: 0
 
 Use `HISTORY_AVERAGE` to show the mean of a history buffer without a separate counter or accumulator VAR:
 
-```
+```inno-setup
 ;; header
 fps_hist = HISTORY{float, 60}
 
@@ -559,7 +559,7 @@ TEXT{0, 0, 18, 0xFFFF, {"Avg FPS: %.1f", HISTORY_AVERAGE{fps_hist}}}
 
 The same value can be reused in conditions and arithmetic by first caching it in a VAR:
 
-```
+```inno-setup
 VAR{avg, HISTORY_AVERAGE{fps_hist}}
 TEXT{0, 0, 18, avg < 30 ? 0xFF3F : 0xFFFF, {"%.1f fps", avg}}
 ```
@@ -568,7 +568,7 @@ TEXT{0, 0, 18, avg < 30 ? 0xFF3F : 0xFFFF, {"%.1f fps", avg}}
 
 Track the previous state and react when it differs:
 
-```
+```inno-setup
 ;; header
 gameWasActive: false
 
@@ -585,7 +585,7 @@ gameWasActive: false
 
 If you want a value that differs between docked and handheld but the rest of the script just reads "the value":
 
-```
+```inno-setup
 ;; header
 User_DockedFontSize = 40
 User_HandheldFontSize = 30
@@ -605,7 +605,7 @@ The two `=` lines are user-tunable knobs (constants); `fontsize` is a fresh-per-
 
 Use `GET_DIMENSIONS` to measure, then offset:
 
-```
+```inno-setup
 VAR{label, {"%.1f FPS", Game_FpsAvg_float}}
 GET_DIMENSIONS{labelDims, 18, label}
 TEXT{(LayerWidth - labelDims.x) / 2, 10, 18, 0xFFFF, label}
@@ -613,7 +613,7 @@ TEXT{(LayerWidth - labelDims.x) / 2, 10, 18, 0xFFFF, label}
 
 ### Conditional color
 
-```
+```inno-setup
 TEXT{0, 0, 18, Game_FPS_int < 30 ? 0x00FF : 0xFFFF, FpsLine}
 ```
 
@@ -621,7 +621,7 @@ TEXT{0, 0, 18, Game_FPS_int < 30 ? 0x00FF : 0xFFFF, FpsLine}
 
 ### Hold-to-exit combo
 
-```
+```inno-setup
 ;; header
 UseCustomExitCombo = true
 ComboButtonFooter = {"Hold %s to exit", formattedKeyCombo}
@@ -678,7 +678,7 @@ These are integer constants you can compare against `System_KeysDown_int` / `Sys
 
 Example:
 
-```
+```inno-setup
 #if $System_KeysHeld_int == System_Key_Y
     TEXT{0, 0, 18, 0xFFFF, Misc_WiFiPassphrase_str}
 #endif
