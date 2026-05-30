@@ -34,8 +34,8 @@ User_DockedFontSize = 40
 User_OldFpsAverage = false
 ;;User_OldFpsAverage_Description = Don't clamp FPS if they are in close range of PFPS value.
 ;;User_OldFpsAverage_Description_PL-PL = Nie zaokrąglaj FPS jeśli jest w pobliżu wartości PFPS.
-;;User_OldFpsAverage_Name = Use old FPS averaging.
-;;User_OldFpsAverage_Name_PL-PL = Użyj starego uśredniania FPS.
+;;User_OldFpsAverage_Name = Use old FPS averaging
+;;User_OldFpsAverage_Name_PL-PL = Użyj starego uśredniania FPS
 ;;User_OldFpsAverage_DefaultValue = false
 
 BackgroundColor = COLOR{0x0000}
