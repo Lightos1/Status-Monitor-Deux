@@ -247,7 +247,7 @@ void BatteryChecker(void*) {
 			if (batteryTimeEstimateInMinutes > (99.0*60.0)+59.0) {
 				batteryTimeEstimateInMinutes = (99.0*60.0)+59.0;
 			}
-			static int itr = 0;;
+			static int itr = 0;
 			BatteryTimeCache[itr++ % cacheElements] = (int32_t)batteryTimeEstimateInMinutes;
 			uint64_t new_tick_TTE = svcGetSystemTick();
 			if (armTicksToNs(new_tick_TTE - tick_TTE) / 1'000'000'000 >= (uint64_t)batteryTimeLeftRefreshRate) {
