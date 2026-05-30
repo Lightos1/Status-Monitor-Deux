@@ -4,9 +4,19 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'source/**'
+      - 'include/**'
+      - 'lib/**'
+      - 'Makefile'
   pull_request:
     branches:
       - main
+    paths:
+      - 'source/**'
+      - 'include/**'
+      - 'lib/**'
+      - 'Makefile'
   workflow_dispatch:
 
 permissions:
@@ -14,11 +24,11 @@ permissions:
 
 jobs:
   build:
-    name: Compile
+    name: Compile (devkitA64 / libnx)
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       # Always pull the newest devkitPro image — never use a cached layer.
       - name: Pull latest devkitA64 image
