@@ -68,7 +68,7 @@ This tutorial is only for Atmosphere 1.8.0+ users
 - CTCaer for Hekate from which I took max17050.h and calculation formulas for reading battery stats from max17050 chip
 - Lightos for providing German translation
 
-Huge part of new code relative to Status Monitor Overlay was written with Claude. SMD file design is 100% my own.
+Huge part of new code relative to Status Monitor Overlay was written with Claude. SMD and SMSE files design is 100% my own.
 
 # Troubleshooting:
 
