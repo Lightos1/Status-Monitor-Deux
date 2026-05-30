@@ -43,6 +43,8 @@ Any additional service can be added by creating `.smse` file.
 > - American English
 > - Polish
 > - German (only for Main menu and Global settings)
+>
+> If you want to add new language, send those two translated files in issues: [FILE 1](https://github.com/masagrator/Status-Monitor-Deux/blob/main/config/status-monitor-deux/locale.ini), [FILE 2](https://github.com/masagrator/Status-Monitor-Deux/blob/main/docs/toTranslate.ini)
 
 All additional files are stored in `config/status-monitor-deux`, including:
 - `modes` folder - stores SMD files used for rendering. If there is only one SMD file detected, overlay jumps automatically into detected file (this can be turned off in Global settings). Each SMD file stores its own texts and localization must be implemented inside them.
