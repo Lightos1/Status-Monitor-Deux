@@ -386,7 +386,7 @@ RenderingPipeline::~RenderingPipeline() {
 		std::string value = buffer;
 		auto [ptr2, ec2] = std::to_chars(&buffer2[0], &buffer2[sizeof(buffer2)], m_base_y, 10);
 		std::string value2 = buffer2;
-		auto [ptr3, ec3] = std::to_chars(&buffer3[0], &buffer3[sizeof(buffer2)], smd_hash, 16);
+		auto [ptr3, ec3] = std::to_chars(&buffer3[0], &buffer3[sizeof(buffer3)], smd_hash, 16);
 		std::string value3 = buffer3;
 		if (ec == std::errc{} && ec2 == std::errc{} && ec3 == std::errc{}) {
 			setIniFile("sdmc:/config/status-monitor-deux/config.ini", rel_filepath, "x", value, "");
@@ -654,7 +654,7 @@ bool RenderingPipeline::handleInput(uint64_t keysDown, uint64_t keysHeld, touchP
 			else if (style_set & HidNpadStyleTag_NpadJoyRight) {
 				if ((keysHeld & rightJoyconMotionMappedButtons) == rightJoyconMotionMappedButtons) id = Controller_JoyConR;
 			}
-			else if (style_set & HidNpadStyleTag_NpadJoyRight) {
+			else if (style_set & HidNpadStyleTag_NpadFullKey) {
 				if ((keysHeld & proControllerMotionMappedButtons) == proControllerMotionMappedButtons) id = Controller_ProController;
 			}
 			if (id < 0) {
@@ -712,7 +712,7 @@ bool RenderingPipeline::handleInput(uint64_t keysDown, uint64_t keysHeld, touchP
 					else if (style_set & HidNpadStyleTag_NpadJoyRight) {
 						if ((keysHeld & rightJoyconMotionMappedButtons) == rightJoyconMotionMappedButtons) break;
 					}
-					else if (style_set & HidNpadStyleTag_NpadJoyRight) {
+					else if (style_set & HidNpadStyleTag_NpadFullKey) {
 						if ((keysHeld & proControllerMotionMappedButtons) == proControllerMotionMappedButtons) break;
 					}
 				}

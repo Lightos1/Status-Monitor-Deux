@@ -13,11 +13,18 @@ namespace tsl::hlp::ini {
     using IniData = std::map<std::string, std::map<std::string, std::string>>;
 }
 
+//--------------------------------------------------------------------
+// systemtickfrequency definition (only for non-SWITCH / non-OUNCE)
+//--------------------------------------------------------------------
 #ifndef __SWITCH__
 #ifndef __OUNCE__
 uint64_t systemtickfrequency = 0;
 #endif
 #endif
+
+//--------------------------------------------------------------------
+// Global variable definitions
+//--------------------------------------------------------------------
 
 //System
 std::string keyCombo = "L+DDOWN+RSTICK"; // default Tesla Menu combo
@@ -70,9 +77,18 @@ MiscDataType MiscData = {0};
 
 FieldDescriptor fd = 0;
 
+//Sixaxis
 std::string leftJoyconMotionKeyCombo = "ZL+L+LSTICK";
 std::string rightJoyconMotionKeyCombo = "ZR+R+RSTICK";
 std::string proControllerMotionKeyCombo = "ZR+R+RSTICK";
+
+//--------------------------------------------------------------------
+// Function definitions
+//--------------------------------------------------------------------
+
+//Check each core for idled ticks in intervals, they cannot read info about other core than they are assigned
+//In case of getting more than systemtickfrequency in idle, make it equal to systemtickfrequency to get 0% as output and nothing less
+//This is because making each loop also takes time, which is not considered because this will take also additional time
 
 void CheckCore(void* idletick_ptr) {
 	uint64_t* idletick = (uint64_t*)idletick_ptr;
@@ -105,7 +121,7 @@ void gpuLoadThread(void*) {
 	} while(!leventWait(&threadexit, 16'666'000));
 }
 
-//[17.0.0+]
+//[21.0.0+]
 typedef struct {
     u32 input_current_limit;          ///< Input (Sink) current limit in mA
     u32 boost_mode_current_limit;     ///< Output (Source/VBUS/OTG) current limit in mA
@@ -580,19 +596,24 @@ void MiscThreadLoop(void*) {
 						char pass_temp3[17];
 						if (password_len > 48) {
 							memcpy(&pass_temp1, &(Nifm_profile.wireless_setting_data.passphrase[0]), 24);
+							pass_temp1[24] = 0;
 							MiscData.WiFiPassphrase_str = pass_temp1;
 							MiscData.WiFiPassphrase_str += "\n";
 							memcpy(&pass_temp2, &(Nifm_profile.wireless_setting_data.passphrase[24]), 24);
+							pass_temp2[24] = 0;
 							MiscData.WiFiPassphrase_str += pass_temp2;
 							MiscData.WiFiPassphrase_str += "\n";
 							memcpy(&pass_temp3, &(Nifm_profile.wireless_setting_data.passphrase[48]), 16);
+							pass_temp3[16] = 0;
 							MiscData.WiFiPassphrase_str += pass_temp3;
 						}
 						else if (password_len > 24) {
 							memcpy(&pass_temp1, &(Nifm_profile.wireless_setting_data.passphrase[0]), 24);
+							pass_temp1[24] = 0;
 							MiscData.WiFiPassphrase_str = pass_temp1;
 							MiscData.WiFiPassphrase_str += "\n";
 							memcpy(&pass_temp2, &(Nifm_profile.wireless_setting_data.passphrase[24]), 24);
+							pass_temp2[24] = 0;
 							MiscData.WiFiPassphrase_str += pass_temp2;
 						}
 						else {
@@ -1045,13 +1066,13 @@ void ParseIniFile() {
 			}
 			else if (key.compare("right_joycon_motion_key_combo") == 0 and value.length() > 0) {
 				rightJoyconMotionKeyCombo = value;
-				removeSpaces(leftJoyconMotionKeyCombo);
-				convertToUpper(leftJoyconMotionKeyCombo);
+				removeSpaces(rightJoyconMotionKeyCombo);
+				convertToUpper(rightJoyconMotionKeyCombo);
 			}
 			else if (key.compare("pro_controller_motion_key_combo") == 0 and value.length() > 0) {
 				proControllerMotionKeyCombo = value;
-				removeSpaces(leftJoyconMotionKeyCombo);
-				convertToUpper(leftJoyconMotionKeyCombo);
+				removeSpaces(proControllerMotionKeyCombo);
+				convertToUpper(proControllerMotionKeyCombo);
 			}
 			else if (key.compare("jump_immediately_to_single_smd") == 0 and value.length() > 0) {
 				std::string temp = value;
