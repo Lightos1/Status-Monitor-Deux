@@ -61,6 +61,11 @@ This tutorial is only for Atmosphere 1.8.0+ users
 3. Download `Status Monitor Deux` release from [HERE](https://github.com/masagrator/Status-Monitor-Deux/releases), copy folders `switch` and `config` to root of sdcard. It may not be visible in USB Mass Storage, but it's there.
 4. Restart Switch, now you can access overlays by pressing all 3 buttons at once: `L`, `D-pad down` and `R-stick` (aka pressing it).
 
+# Extras
+
+Syntax highlighting for VS Code
+https://github.com/masagrator/Status-Monitor-Deux/tree/main/.vscode/extensions/statusmonitor-smd
+
 ---
 
 # Thanks to:
