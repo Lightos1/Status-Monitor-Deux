@@ -63,7 +63,7 @@ This tutorial is only for Atmosphere 1.8.0+ users
 
 # Extras
 
-Syntax highlighting for VS Code
+Syntax highlighting for VS Code<br>
 https://github.com/masagrator/Status-Monitor-Deux/tree/main/.vscode/extensions/statusmonitor-smd
 
 ---
