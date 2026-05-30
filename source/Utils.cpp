@@ -13,18 +13,11 @@ namespace tsl::hlp::ini {
     using IniData = std::map<std::string, std::map<std::string, std::string>>;
 }
 
-//--------------------------------------------------------------------
-// systemtickfrequency definition (only for non-SWITCH / non-OUNCE)
-//--------------------------------------------------------------------
 #ifndef __SWITCH__
 #ifndef __OUNCE__
 uint64_t systemtickfrequency = 0;
 #endif
 #endif
-
-//--------------------------------------------------------------------
-// Global variable definitions
-//--------------------------------------------------------------------
 
 //System
 std::string keyCombo = "L+DDOWN+RSTICK"; // default Tesla Menu combo
@@ -77,18 +70,9 @@ MiscDataType MiscData = {0};
 
 FieldDescriptor fd = 0;
 
-//Sixaxis
 std::string leftJoyconMotionKeyCombo = "ZL+L+LSTICK";
 std::string rightJoyconMotionKeyCombo = "ZR+R+RSTICK";
 std::string proControllerMotionKeyCombo = "ZR+R+RSTICK";
-
-//--------------------------------------------------------------------
-// Function definitions
-//--------------------------------------------------------------------
-
-//Check each core for idled ticks in intervals, they cannot read info about other core than they are assigned
-//In case of getting more than systemtickfrequency in idle, make it equal to systemtickfrequency to get 0% as output and nothing less
-//This is because making each loop also takes time, which is not considered because this will take also additional time
 
 void CheckCore(void* idletick_ptr) {
 	uint64_t* idletick = (uint64_t*)idletick_ptr;
@@ -121,7 +105,7 @@ void gpuLoadThread(void*) {
 	} while(!leventWait(&threadexit, 16'666'000));
 }
 
-//[21.0.0+]
+//[17.0.0+]
 typedef struct {
     u32 input_current_limit;          ///< Input (Sink) current limit in mA
     u32 boost_mode_current_limit;     ///< Output (Source/VBUS/OTG) current limit in mA
