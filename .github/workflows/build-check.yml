@@ -1,0 +1,30 @@
+name: Build check
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Compile
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      # Always pull the newest devkitPro image — never use a cached layer.
+      - name: Pull latest devkitA64 image
+        run: docker pull devkitpro/devkita64:latest
+
+      - name: Build with make
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/project" \
+            -w /project \
+            devkitpro/devkita64:latest \
+            make -j$(nproc)
