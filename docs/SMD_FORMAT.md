@@ -415,7 +415,7 @@ Numeric expressions use **tinyexpr-style arithmetic** plus a small set of additi
 - `and`
 - `or`
 
-There is **no `not` operator**. Use `== false` or `== 0` for negation.
+There is **no `not` operator**.
 
 ### Ternary
 
