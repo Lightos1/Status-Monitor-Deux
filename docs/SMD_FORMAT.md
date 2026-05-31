@@ -25,7 +25,7 @@ FpsLine: {"FPS=%d", Game_FPS_int}
 Start:
 ;; -- body: render script --
 BOX{0, 0, 100, 20, BackgroundColor}
-TEXT{5, 0, 18, Color, FpsLine}
+TEXT{5, 0, 18, Color, true, FpsLine}
 ```
 
 **Above `Start:`**: configuration. One `key value` pair per line.
@@ -228,7 +228,7 @@ IETF_LOCALE{WarningText, "PL-PL", "Gra jest nieuruchomiona lub niekompatybilna."
 Get string from local variable initiated with `IETF{string}`.
 
 ```inno-setup
-TEXT{0, 20, 18, User_WarningColor, IETF_GET{WarningText}}
+TEXT{0, 20, 18, User_WarningColor, true, IETF_GET{WarningText}}
 ```
 
 #### NAME_LOCALE - `NAME_LOCALE{ietf code string, string}`
@@ -345,15 +345,15 @@ Returns the **arithmetic mean** of all samples currently in the named ring buffe
 
 ```inno-setup
 ; inline in a format spec:
-TEXT{0, 0, 18, 0xFFFF, {"%d", HISTORY_AVERAGE{FPSreading}}}
+TEXT{0, 0, 18, 0xFFFF, true, {"%d", HISTORY_AVERAGE{FPSreading}}}
 
 ; via VAR first:
 VAR{AvgFPS, HISTORY_AVERAGE{FPSreading}}
-TEXT{0, 0, 18, 0xFFFF, {"%d", AvgFPS}}
+TEXT{0, 0, 18, 0xFFFF, true, {"%d", AvgFPS}}
 
 ; in a condition:
 #if HISTORY_AVERAGE{FPSreading} < 30
-    TEXT{0, 0, 18, 0xFF3F, "Low FPS!"}
+    TEXT{0, 0, 18, 0xFF3F, true, "Low FPS!"}
 #endif
 
 ; in an arithmetic expression:
@@ -421,7 +421,7 @@ There is **no `not` operator**.
 
 ```inno-setup
 VAR{x, condition ? thenValue : elseValue}
-TEXT{0, 0, 18, gameRunning ? 0xFFFF : 0x8888, "..."}
+TEXT{0, 0, 18, gameRunning ? 0xFFFF : 0x8888, true, "..."}
 ```
 
 Works in any numeric expression slot. Inside Format-spec args:
@@ -463,13 +463,13 @@ A struct VAR or a resolution-array slot is read with `.field`:
 
 ```inno-setup
 GET_DIMENSIONS{D, 18, "x"}
-TEXT{D.x, D.y, 18, 0xFFFF, "x"}
+TEXT{D.x, D.y, 18, 0xFFFF, true, "x"}
 ```
 
 For resolution arrays:
 
 ```inno-setup
-TEXT{0, 0, 18, 0xFFFF, {"%dx%d, %d", Game_ResolutionRenderCalls_int[0].width, Game_ResolutionRenderCalls_int[0].height, Game_ResolutionRenderCalls_int[0].calls}}
+TEXT{0, 0, 18, 0xFFFF, true, {"%dx%d, %d", Game_ResolutionRenderCalls_int[0].width, Game_ResolutionRenderCalls_int[0].height, Game_ResolutionRenderCalls_int[0].calls}}
 ```
 
 ---
@@ -480,11 +480,11 @@ Conditional rendering uses `#if` / `#elif` / `#else` / `#endif`. Conditions are 
 
 ```inno-setup
 #if $Game_IsGameRunning
-    TEXT{0, 0, 18, 0xFFFF, "Game running"}
+    TEXT{0, 0, 18, 0xFFFF, true, "Game running"}
 #elif $System_IsDocked
-    TEXT{0, 0, 18, 0xFFFF, "Docked, no game"}
+    TEXT{0, 0, 18, 0xFFFF, true, "Docked, no game"}
 #else
-    TEXT{0, 0, 18, 0xFFFF, "Handheld, no game"}
+    TEXT{0, 0, 18, 0xFFFF, true, "Handheld, no game"}
 #endif
 ```
 
@@ -511,10 +511,10 @@ Order = LIST{str, {"CPU", "GPU", "RAM"}}
 ;;;
 #for $cat in $Order
     #if $User_ShowCPU and $cat == "CPU"
-        TEXT{X_OFFSET, 0, 18, 0xFFFF, "CPU"}
+        TEXT{X_OFFSET, 0, 18, 0xFFFF, true, "CPU"}
     #endif
     #if $User_ShowGPU and $cat == "GPU"
-        TEXT{X_OFFSET, 0, 18, 0xFFFF, "GPU"}
+        TEXT{X_OFFSET, 0, 18, 0xFFFF, true, "GPU"}
     #endif
     ...
 #endfor
@@ -554,14 +554,14 @@ fps_hist = HISTORY{float, 60}
 
 ;; script
 HISTORY_UPDATE{fps_hist, Game_FpsAvg_float}
-TEXT{0, 0, 18, 0xFFFF, {"Avg FPS: %.1f", HISTORY_AVERAGE{fps_hist}}}
+TEXT{0, 0, 18, 0xFFFF, true, {"Avg FPS: %.1f", HISTORY_AVERAGE{fps_hist}}}
 ```
 
 The same value can be reused in conditions and arithmetic by first caching it in a VAR:
 
 ```inno-setup
 VAR{avg, HISTORY_AVERAGE{fps_hist}}
-TEXT{0, 0, 18, avg < 30 ? 0xFF3F : 0xFFFF, {"%.1f fps", avg}}
+TEXT{0, 0, 18, avg < 30 ? 0xFF3F : 0xFFFF, true, {"%.1f fps", avg}}
 ```
 
 ### Edge detection (action on state change)
@@ -596,7 +596,7 @@ User_HandheldFontSize = 30
 #else
     VAR{fontsize, User_HandheldFontSize}
 #endif
-TEXT{0, 0, fontsize, 0xFFFF, "Hello"}
+TEXT{0, 0, fontsize, 0xFFFF, true, "Hello"}
 ```
 
 The two `=` lines are user-tunable knobs (constants); `fontsize` is a fresh-per-frame VAR built from one of them.
@@ -608,13 +608,13 @@ Use `GET_DIMENSIONS` to measure, then offset:
 ```inno-setup
 VAR{label, {"%.1f FPS", Game_FpsAvg_float}}
 GET_DIMENSIONS{labelDims, 18, label}
-TEXT{(LayerWidth - labelDims.x) / 2, 10, 18, 0xFFFF, label}
+TEXT{(LayerWidth - labelDims.x) / 2, 10, 18, 0xFFFF, true, label}
 ```
 
 ### Conditional color
 
 ```inno-setup
-TEXT{0, 0, 18, Game_FPS_int < 30 ? 0x00FF : 0xFFFF, FpsLine}
+TEXT{0, 0, 18, Game_FPS_int < 30 ? 0x00FF : 0xFFFF, true, FpsLine}
 ```
 
 (Remember: in `COLOR{}` form the nibble order outputs proper RGBA; with a literal hex like `0x00FF` you're writing it directly in BARG order. Pick one convention and stick with it.)
@@ -680,7 +680,7 @@ Example:
 
 ```inno-setup
 #if $System_KeysHeld_int == System_Key_Y
-    TEXT{0, 0, 18, 0xFFFF, Misc_WiFiPassphrase_str}
+    TEXT{0, 0, 18, 0xFFFF, true, Misc_WiFiPassphrase_str}
 #endif
 ```
 
