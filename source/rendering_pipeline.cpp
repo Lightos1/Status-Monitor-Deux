@@ -346,7 +346,8 @@ RenderingPipeline::RenderingPipeline(std::string filepath, bool double_back) {
 		hidStartSixAxisSensor(sixaxisHandles[Controller_JoyConL]);
 		hidStartSixAxisSensor(sixaxisHandles[Controller_JoyConR]);
 	}
-	int64_t overlayRefreshRate = doc.GetConfigInt("User_RefreshRate", 0);
+	int64_t overlayRefreshRate = doc.GetConfigInt("RefreshRate", 0);
+	if (overlayRefreshRate == 0) overlayRefreshRate = doc.GetConfigInt("User_RefreshRate", 0);
 	if (overlayRefreshRate > 0) timeout = 1'000'000'000 / overlayRefreshRate;
 	if (timeout < 15'000'000) timeout = 15'000'000;
 	bool EnableCPU   = doc.GetConfigBool("EnableCPU",   false);
