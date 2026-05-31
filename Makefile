@@ -38,7 +38,7 @@ include $(DEVKITPRO)/libnx/switch_rules
 #   NACP building is skipped as well.
 #---------------------------------------------------------------------------------
 APP_TITLE	:=	Status Monitor Deux
-APP_VERSION	:=	0.1.4
+APP_VERSION	:=	0.1.5
 TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build
 SOURCES		:=	source lib/tinyexpr source/System source/Extensions lib/libtesla/source lib/slre
