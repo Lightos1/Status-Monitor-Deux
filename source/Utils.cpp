@@ -1225,6 +1225,9 @@ void find_smd_files(const std::string& base_path, std::vector<Designs>& filesChe
     DIR *dir = opendir(base_path.c_str());
     if (!dir) return;
 
+    std::vector<Designs> files;
+    std::vector<Designs> dirs;
+
     struct dirent *entry;
     while ((entry = readdir(dir)) != NULL) {
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
@@ -1232,16 +1235,26 @@ void find_smd_files(const std::string& base_path, std::vector<Designs>& filesChe
         }
 
         if (entry->d_type == DT_DIR) {
-            filesChecked.push_back({entry->d_name, true});
+            dirs.push_back({entry->d_name, true});
         } 
         else if (entry->d_type == DT_REG) {
             int name_len = strlen(entry->d_name);
             if (name_len > 4 && strcmp(entry->d_name + name_len - 4, ".smd") == 0) {
-                filesChecked.push_back({entry->d_name, false});
+                files.push_back({entry->d_name, false});
             }
         }
     }
     closedir(dir);
+
+    auto compareName = [](const Designs& a, const Designs& b) {
+        return a.name < b.name;
+    };
+
+    std::sort(files.begin(), files.end(), compareName);
+    std::sort(dirs.begin(), dirs.end(), compareName);
+
+    filesChecked.insert(filesChecked.end(), files.begin(), files.end());
+    filesChecked.insert(filesChecked.end(), dirs.begin(), dirs.end());
 }
 
 std::string lookupSMF(const std::string& folderPath) {
