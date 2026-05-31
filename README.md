@@ -68,6 +68,9 @@ This tutorial is only for Atmosphere 1.8.0+ users
 Syntax highlighting for VS Code<br>
 https://github.com/masagrator/Status-Monitor-Deux/tree/main/.vscode/extensions/statusmonitor-smd
 
+Repository storing other SMD files than stored in this repository:<br>
+https://github.com/masagrator/SMD-Files
+
 ---
 
 # Thanks to:
