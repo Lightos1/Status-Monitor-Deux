@@ -38,7 +38,7 @@ Start:
 ;; -- bottom half: render script --
 #if $Game_IsGameRunning
     BOX{0, 0, 100, 20, BackgroundColor}
-    TEXT{5, 0, 18, Color, FpsLine}
+    TEXT{5, 0, 18, Color, true, FpsLine}
     GRAPH_LINE_CHART{0, 25, 100, 40, 0, 120,
                      LEFT_TO_RIGHT, 0xF00F, 0xF005, conds, hist}
 #endif
