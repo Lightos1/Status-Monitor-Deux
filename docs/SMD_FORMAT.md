@@ -694,7 +694,7 @@ These are read by the host but can also be overridden in your `.smd` config sect
 | `BackgroundColor`    | `COLOR{0x000D}`                 | Background fill color (use 0x0000 for no background). |
 | `ComboButtonFooter`  | `"\uE0E1  Back     \uE0E0  OK"` | Footer hint text.                                     |
 | `Movable`            | `false`                         | Can the user drag the overlay?                        |
-| `User_RefreshRate`   | `60`                            | Target FPS for the overlay.                           |
+| `User_RefreshRate`   | `60`                            | Target FPS for the overlay. If you want to have it hidden, drop `User_` part. |
 | `EnableCPU`          | `false`                         | Enable refreshing CPU_* variables.                    |
 | `EnableGPU`          | `false`                         | Enable refreshing GPU_* variables.                    |
 | `EnableRAM`          | `false`                         | Enable refreshing RAM_* variables.                    |
