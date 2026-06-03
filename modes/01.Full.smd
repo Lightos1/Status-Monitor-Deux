@@ -5,9 +5,9 @@ VERSION = 1
 User_RefreshRate = 1
 ;;User_RefreshRate_Description = Max refresh rate of rendered overlay. It won't be faster than your current display refresh rate because of vsync.
 ;;User_RefreshRate_Description_PL-PL = Maksymalna częstotliwość odświeżania nakładki. Przez vsync nie będzie szybsza niż odświeżanie ekranu.
+;;User_RefreshRate_Description_DE-DE = Maximale Aktualisierungsrate des Overlays. Aufgrund Vsync kann es nicht höher als die aktuelle Display Wiederholungsrate sein.
 ;;User_RefreshRate_Name = Refresh rate
 ;;User_RefreshRate_Name_PL-PL = Odświeżanie
-;;User_RefreshRate_Description_DE-DE = Maximale Aktualisierungsrate des Overlays. Aufgrund Vsync kann es nicht höher als die aktuelle Display Wiederholungsrate sein.
 ;;User_RefreshRate_Name_DE-DE = Aktualisierungsrate
 
 ;;User_RefreshRate_DefaultValue = 1
@@ -15,17 +15,20 @@ User_RefreshRate = 1
 User_ShowRealFrequencies = true
 ;;User_ShowRealFrequencies_Description = Show real frequencies for CPU, GPU and RAM. Shows up only when hoc-clk or sys-clk is detected running.
 ;;User_ShowRealFrequencies_Description_PL-PL = Pokaż rzeczywiste taktowania CPU, GPU\ni RAM. Dostępne tylko gdy działa w tle hoc-clk albo sys-clk.
+;;User_ShowRealFrequencies_Description = Zeigt wirklichen Frequenzen für CPU, GPU und RAM. Funktiniert nur wenn hoc-clk oder sys-clk erkannt werden.
 ;;User_ShowRealFrequencies_Name = Show real frequencies
 ;;User_ShowRealFrequencies_Name_PL-PL = Pokaż rzeczywiste częstotliwości
-;;User_ShowRealFrequencies_Description = Zeigt wirklichen Frequenzen für CPU, GPU und RAM. Funktiniert nur wenn hoc-clk oder sys-clk erkannt werden.
 ;;User_ShowRealFrequencies_Name_DE-DE = Zeige wirklichen Frequenzen
 
 ;;User_ShowRealFrequencies_DefaultValue = true
 User_ShowTargetFrequencies = true
 ;;User_ShowTargetFrequencies_Description = Show target frequencies for CPU, GPU and RAM.
 ;;User_ShowTargetFrequencies_Description_PL-PL = Pokaż docelowe taktowanie CPU, GPU\ni RAM.
+;;User_ShowTargetFrequencies_Description_DE-DE = Zeigt Ziel-Frequenzen für CPU, GPU und RAM.
 ;;User_ShowTargetFrequencies_Name = Show target frequencies
 ;;User_ShowTargetFrequencies_Name_PL-PL = Pokaż docelowe częstowliości
+;;User_ShowTargetFrequencies_Name_DE-DE = Zeige Ziel-Frequenzen
+
 ;;User_ShowTargetFrequencies_DefaultValue = true
 User_ShowFrequenceDeltas = true
 ;;User_ShowFrequenceDeltas_Description = Show difference between real frequency and target frequency. Shows up only when hoc-clk or sys-clk is detected running.
