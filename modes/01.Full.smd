@@ -7,6 +7,9 @@ User_RefreshRate = 1
 ;;User_RefreshRate_Description_PL-PL = Maksymalna częstotliwość odświeżania nakładki. Przez vsync nie będzie szybsza niż odświeżanie ekranu.
 ;;User_RefreshRate_Name = Refresh rate
 ;;User_RefreshRate_Name_PL-PL = Odświeżanie
+;;User_RefreshRate_Name_DE-DE = Aktualisierungsrate
+;;User_RefreshRate_Description_DE-DE = Maximale Aktualisierungsrate des Overlays. Aufgrund Vsync kann es nicht höher als die aktuelle Display Wiederholungsrate sein.
+
 ;;User_RefreshRate_DefaultValue = 1
 ;;User_RefreshRate_Range = {int, 1, 60}
 User_ShowRealFrequencies = true
