@@ -7,8 +7,8 @@ User_RefreshRate = 1
 ;;User_RefreshRate_Description_PL-PL = Maksymalna częstotliwość odświeżania nakładki. Przez vsync nie będzie szybsza niż odświeżanie ekranu.
 ;;User_RefreshRate_Name = Refresh rate
 ;;User_RefreshRate_Name_PL-PL = Odświeżanie
-;;User_RefreshRate_Name_DE-DE = Aktualisierungsrate
 ;;User_RefreshRate_Description_DE-DE = Maximale Aktualisierungsrate des Overlays. Aufgrund Vsync kann es nicht höher als die aktuelle Display Wiederholungsrate sein.
+;;User_RefreshRate_Name_DE-DE = Aktualisierungsrate
 
 ;;User_RefreshRate_DefaultValue = 1
 ;;User_RefreshRate_Range = {int, 1, 60}
@@ -17,6 +17,9 @@ User_ShowRealFrequencies = true
 ;;User_ShowRealFrequencies_Description_PL-PL = Pokaż rzeczywiste taktowania CPU, GPU\ni RAM. Dostępne tylko gdy działa w tle hoc-clk albo sys-clk.
 ;;User_ShowRealFrequencies_Name = Show real frequencies
 ;;User_ShowRealFrequencies_Name_PL-PL = Pokaż rzeczywiste częstotliwości
+;;User_ShowRealFrequencies_Description = Zeigt wirklichen Frequenzen für CPU, GPU und RAM. Funktiniert nur wenn hoc-clk oder sys-clk erkannt werden.
+;;User_ShowRealFrequencies_Name_DE-DE = Zeige wirklichen Frequenzen
+
 ;;User_ShowRealFrequencies_DefaultValue = true
 User_ShowTargetFrequencies = true
 ;;User_ShowTargetFrequencies_Description = Show target frequencies for CPU, GPU and RAM.
