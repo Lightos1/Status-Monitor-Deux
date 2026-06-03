@@ -24,16 +24,16 @@ User_ShowRealFrequencies = true
 User_ShowTargetFrequencies = true
 ;;User_ShowTargetFrequencies_Description = Show target frequencies for CPU, GPU and RAM.
 ;;User_ShowTargetFrequencies_Description_PL-PL = Pokaż docelowe taktowanie CPU, GPU\ni RAM.
-;;User_ShowTargetFrequencies_Description_DE-DE = Zeigt Ziel-Frequenzen für CPU, GPU und RAM.
+;;User_ShowTargetFrequencies_Description_DE-DE = Zeigt Zielfrequenz für CPU, GPU und RAM.
 ;;User_ShowTargetFrequencies_Name = Show target frequencies
 ;;User_ShowTargetFrequencies_Name_PL-PL = Pokaż docelowe częstowliości
-;;User_ShowTargetFrequencies_Name_DE-DE = Zeige Ziel-Frequenzen
+;;User_ShowTargetFrequencies_Name_DE-DE = Zeige Zielfrequenz
 
 ;;User_ShowTargetFrequencies_DefaultValue = true
 User_ShowFrequenceDeltas = true
 ;;User_ShowFrequenceDeltas_Description = Show difference between real frequency and target frequency. Shows up only when hoc-clk or sys-clk is detected running.
 ;;User_ShowFrequenceDeltas_Description_PL-PL = Pokaż różnicę między rzeczywistymi a docelowymi taktowaniami. Dostępne tylko gdy działa w tle hoc-clk albo sys-clk.
-;;User_ShowFrequenceDeltas_Description_DE-DE = Zeigt Unterschied zwischen wirklicher- und Zielfrequenz. Funktiniert nur wenn hoc-clk oder sys-clk erkannt werden.
+;;User_ShowFrequenceDeltas_Description_DE-DE = Zeigt Unterschied zwischen wirklicher und Zielfrequenz. Funktiniert nur wenn hoc-clk oder sys-clk erkannt werden.
 
 ;;User_ShowFrequenceDeltas_Name = Show frequency deltas
 ;;User_ShowFrequenceDeltas_Name_PL-PL = Pokaż delty częstotliwości
